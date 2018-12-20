@@ -274,6 +274,7 @@ enum {
 	IH_TYPE_FIRMWARE_IVT,		/* Firmware Image with HABv4 IVT */
 	IH_TYPE_PMMC,            /* TI Power Management Micro-Controller Firmware */
 	IH_TYPE_STM32IMAGE,		/* STMicroelectronics STM32 Image */
+	IH_TYPE_SUNXI_EGON,		/* Allwinner eGON Boot Image */
 
 	IH_TYPE_COUNT,			/* Number of image types */
 };
