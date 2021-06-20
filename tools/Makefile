@@ -97,6 +97,7 @@ dumpimage-mkimage-objs := aisimage.o \
 			lib/md5.o \
 			lpc32xximage.o \
 			mxsimage.o \
+			sunxi_toc0.o \
 			omapimage.o \
 			os_support.o \
 			pblimage.o \
@@ -144,7 +145,7 @@ HOSTCFLAGS_kwbimage.o += -DCONFIG_KWB_SECURE
 endif
 
 # MXSImage needs LibSSL
-ifneq ($(CONFIG_MX23)$(CONFIG_MX28)$(CONFIG_ARMADA_38X)$(CONFIG_ARMADA_39X)$(CONFIG_FIT_SIGNATURE),)
+ifneq ($(CONFIG_MX23)$(CONFIG_MX28)$(CONFIG_ARMADA_38X)$(CONFIG_ARMADA_39X)$(CONFIG_FIT_SIGNATURE)$(CONFIG_ARCH_SUNXI),)
 HOSTLOADLIBES_mkimage += \
 	$(shell pkg-config --libs libssl libcrypto 2> /dev/null || echo "-lssl -lcrypto")
 

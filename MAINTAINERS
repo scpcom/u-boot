@@ -221,6 +221,7 @@ F:	arch/arm/cpu/armv7/sunxi/
 F:	arch/arm/include/asm/arch-sunxi/
 F:	arch/arm/mach-sunxi/
 F:	board/sunxi/
+F:	tools/sunxi*
 
 ARM TEGRA
 M:	Tom Warren <twarren@nvidia.com>

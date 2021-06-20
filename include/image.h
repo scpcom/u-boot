@@ -275,6 +275,7 @@ enum {
 	IH_TYPE_PMMC,            /* TI Power Management Micro-Controller Firmware */
 	IH_TYPE_STM32IMAGE,		/* STMicroelectronics STM32 Image */
 	IH_TYPE_SUNXI_EGON,		/* Allwinner eGON Boot Image */
+	IH_TYPE_SUNXI_TOC0,		/* Allwinner TOC0 Boot Image */
 
 	IH_TYPE_COUNT,			/* Number of image types */
 };
