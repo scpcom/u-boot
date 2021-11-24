@@ -40,7 +40,11 @@ ENTRY(relocate_vectors)
 	 * If the ARM processor has the security extensions,
 	 * use VBAR to relocate the exception vectors.
 	 */
+#ifdef CONFIG_ARCH_SUNXI
+	ldr	r0, =_start
+#else
 	ldr	r0, [r9, #GD_RELOCADDR]	/* r0 = gd->relocaddr */
+#endif
 	mcr     p15, 0, r0, c12, c0, 0  /* Set VBAR */
 #else
 	/*

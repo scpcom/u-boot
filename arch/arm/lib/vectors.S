@@ -146,6 +146,19 @@ IRQ_STACK_START_IN:
 	.word	0x0badc0de
 #endif
 
+
+/* IRQ stack memory (calculated at run-time) */
+.globl IRQ_STACK_START
+IRQ_STACK_START:
+	.word	0x0badc0de
+
+/* IRQ stack memory (calculated at run-time) */
+.globl FIQ_STACK_START
+FIQ_STACK_START:
+	.word 0x0badc0de
+
+
+
 @
 @ IRQ stack frame.
 @
@@ -270,6 +283,26 @@ not_used:
 	bl	do_not_used
 
 
+#ifdef CONFIG_ARCH_SUNXI
+	
+		.align	5
+	irq:
+		get_irq_stack
+		irq_save_user_regs
+		bl	do_irq
+		irq_restore_user_regs
+	
+		.align	5
+	fiq:
+		get_fiq_stack
+		/* someone ought to write a more effiction fiq_save_user_regs */
+		irq_save_user_regs
+		bl	do_fiq
+		irq_restore_user_regs
+	
+#else
+
+
 	.align	5
 irq:
 	get_bad_stack
@@ -281,5 +314,5 @@ fiq:
 	get_bad_stack
 	bad_save_user_regs
 	bl	do_fiq
-
+#endif
 #endif	/* CONFIG_SPL_BUILD */

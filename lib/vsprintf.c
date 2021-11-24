@@ -15,12 +15,15 @@
 #include <charset.h>
 #include <efi_loader.h>
 #include <div64.h>
+#include <hexdump.h>
 #include <uuid.h>
 #include <stdarg.h>
 #include <linux/ctype.h>
 #include <linux/err.h>
 #include <linux/types.h>
 #include <linux/string.h>
+
+DECLARE_GLOBAL_DATA_PTR;
 
 #define noinline __attribute__((noinline))
 
@@ -315,17 +318,6 @@ static char *device_path_string(char *buf, char *end, void *dp, int field_width,
 #endif
 
 #ifdef CONFIG_CMD_NET
-static const char hex_asc[] = "0123456789abcdef";
-#define hex_asc_lo(x)	hex_asc[((x) & 0x0f)]
-#define hex_asc_hi(x)	hex_asc[((x) & 0xf0) >> 4]
-
-static inline char *pack_hex_byte(char *buf, u8 byte)
-{
-	*buf++ = hex_asc_hi(byte);
-	*buf++ = hex_asc_lo(byte);
-	return buf;
-}
-
 static char *mac_address_string(char *buf, char *end, u8 *addr, int field_width,
 				int precision, int flags)
 {
@@ -335,7 +327,7 @@ static char *mac_address_string(char *buf, char *end, u8 *addr, int field_width,
 	int i;
 
 	for (i = 0; i < 6; i++) {
-		p = pack_hex_byte(p, addr[i]);
+		p = hex_byte_pack(p, addr[i]);
 		if (!(flags & SPECIAL) && i != 5)
 			*p++ = ':';
 	}
@@ -354,8 +346,8 @@ static char *ip6_addr_string(char *buf, char *end, u8 *addr, int field_width,
 	int i;
 
 	for (i = 0; i < 8; i++) {
-		p = pack_hex_byte(p, addr[2 * i]);
-		p = pack_hex_byte(p, addr[2 * i + 1]);
+		p = hex_byte_pack(p, addr[2 * i]);
+		p = hex_byte_pack(p, addr[2 * i + 1]);
 		if (!(flags & SPECIAL) && i != 7)
 			*p++ = ':';
 	}
@@ -784,11 +776,45 @@ int sprintf(char *buf, const char *fmt, ...)
 }
 
 #if CONFIG_IS_ENABLED(PRINTF)
+int tick_printf(const char *fmt, ...)
+{
+	va_list args;
+	uint i,msecond;
+	char printbuffer[CONFIG_SYS_PBSIZE+9-12];
+	char printbuffer_with_timestamp[CONFIG_SYS_PBSIZE];
+
+	if (gd->debug_mode == 0)
+		return 0;
+
+	va_start(args, fmt);
+
+	/* For this to work, printbuffer must be larger than
+	 * anything we ever want to print.
+	 */
+	msecond=get_timer_masked();
+	vsprintf(printbuffer, fmt, args);
+	i = sprintf(printbuffer_with_timestamp, "[%02u.%03u]%s", msecond/1000, msecond%1000, printbuffer);
+
+	va_end(args);
+
+	/* Handle error */
+	if (i <= 0)
+		return i;
+	/* Print the string */
+	puts(printbuffer_with_timestamp);
+
+	return i;
+}
+
+
 int printf(const char *fmt, ...)
 {
 	va_list args;
 	uint i;
 	char printbuffer[CONFIG_SYS_PBSIZE];
+
+	if (gd->debug_mode == 0)
+		return 0;
 
 	va_start(args, fmt);
 
@@ -811,6 +837,9 @@ int vprintf(const char *fmt, va_list args)
 {
 	uint i;
 	char printbuffer[CONFIG_SYS_PBSIZE];
+
+	if (gd->debug_mode == 0)
+		return 0;
 
 	/*
 	 * For this to work, printbuffer must be larger than

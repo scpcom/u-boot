@@ -8,6 +8,8 @@
 #include <command.h>
 #include <console.h>
 #include <mmc.h>
+#include <spare_head.h>
+#include <sunxi_board.h>
 
 static int curr_device = -1;
 
@@ -110,9 +112,9 @@ static int do_mmcinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	struct mmc *mmc;
 
 	if (curr_device < 0) {
-		if (get_mmc_num() > 0)
-			curr_device = 0;
-		else {
+		curr_device = get_mmc_num();
+		printf("curr_device:%d\n", curr_device);
+		if (curr_device < 0) {
 			puts("No MMC device available\n");
 			return 1;
 		}
@@ -400,8 +402,9 @@ static int do_mmc_part(cmd_tbl_t *cmdtp, int flag,
 static int do_mmc_dev(cmd_tbl_t *cmdtp, int flag,
 		      int argc, char * const argv[])
 {
-	int dev, part = 0, ret;
+	int dev, part = 0;
 	struct mmc *mmc;
+	__maybe_unused int ret;
 
 	if (argc == 1) {
 		dev = curr_device;
@@ -419,6 +422,7 @@ static int do_mmc_dev(cmd_tbl_t *cmdtp, int flag,
 		return CMD_RET_USAGE;
 	}
 
+#ifndef CONFIG_MMC_SUNXI
 	mmc = init_mmc_device(dev, true);
 	if (!mmc)
 		return CMD_RET_FAILURE;
@@ -428,6 +432,12 @@ static int do_mmc_dev(cmd_tbl_t *cmdtp, int flag,
 	       part, (!ret) ? "OK" : "ERROR");
 	if (ret)
 		return 1;
+#else
+	mmc = init_mmc_device(dev, false);
+	if (!mmc)
+		return CMD_RET_FAILURE;
+#endif
+
 
 	curr_device = dev;
 	if (mmc->part_config == MMCPART_NOAVAILABLE)
@@ -899,3 +909,43 @@ U_BOOT_CMD(
 	"display MMC info",
 	"- display info of the current MMC device"
 );
+
+int do_card0_probe(cmd_tbl_t *cmdtp, int flag,
+			 int argc, char * const argv[])
+{
+	extern int get_boot_storage_type(void);
+	int boot_type = get_boot_storage_type() ;
+	struct mmc *mmc_boot = NULL;
+	static int card0_init;
+
+	if (boot_type == STORAGE_SD || card0_init) {
+		printf("card0 has inited\n");
+		return 0;
+	}
+
+	board_mmc_set_num(0);
+	board_mmc_pre_init(0);
+
+//	sunxi_mmc_init(0);
+	mmc_boot = find_mmc_device(0);
+	if (!mmc_boot) {
+		printf("fail to find card0\n");
+		return -1;
+	}
+	if (mmc_init(mmc_boot)) {
+		puts("card0 init failed\n");
+		return  -1;
+	}
+	run_command("mmcinfo", 0);
+	run_command("mmc part", 0);
+	card0_init = 1;
+	return 0;
+}
+
+U_BOOT_CMD(
+	sunxi_card0_probe, 1, 0, do_card0_probe,
+	"probe sunxi card0 device",
+	"sunxi_card0_probe"
+);
+
+

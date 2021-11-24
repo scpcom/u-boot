@@ -28,6 +28,13 @@ config OMAP_WATCHDOG
 	help
 	  Say Y here to enable the OMAP3+ watchdog driver.
 
+config SUNXI_WATCHDOG
+	bool "sunxi watchdog"
+	depends on ARCH_SUNXI
+	select HW_WATCHDOG
+	help
+	  Say Y here to enable the sunxi watchdog driver.
+
 config TANGIER_WATCHDOG
 	bool "Intel Tangier watchdog"
 	depends on INTEL_MID

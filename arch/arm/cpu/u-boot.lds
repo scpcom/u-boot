@@ -35,12 +35,18 @@ SECTIONS
 	 */
 	/DISCARD/ : { *(.rel._secure*) }
 #endif
-	. = 0x00000000;
+	. = CONFIG_SYS_TEXT_BASE;
+	/*. = 0x00000000;*/
 
 	. = ALIGN(4);
-	.text :
+	.head :
 	{
 		*(.__image_copy_start)
+		CPUDIR/spare_head.o (.data*)
+	}
+	.text :
+	{
+		/* *(.__image_copy_start) */
 		*(.vectors)
 		CPUDIR/start.o (.text*)
 		*(.text*)
@@ -191,6 +197,7 @@ SECTIONS
 	}
 
 	_image_binary_end = .;
+	ASSERT(. < CONFIG_SYS_TEXT_BASE + CONFIG_SUNXI_TEXT_SIZE, "uboot size exceeds size limit")
 
 	/*
 	 * Deprecated: this MMU section is used by pxa at present but

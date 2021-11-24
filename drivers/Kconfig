@@ -86,6 +86,8 @@ source "drivers/spi/Kconfig"
 
 source "drivers/spmi/Kconfig"
 
+source "drivers/sunxi_power/Kconfig"
+
 source "drivers/sysreset/Kconfig"
 
 source "drivers/thermal/Kconfig"
@@ -99,6 +101,22 @@ source "drivers/usb/Kconfig"
 source "drivers/video/Kconfig"
 
 source "drivers/watchdog/Kconfig"
+
+source "drivers/sunxi_flash/Kconfig"
+
+source "drivers/sunxi_usb/Kconfig"
+
+source "drivers/smc/Kconfig"
+
+source "drivers/sunxi_crypto/Kconfig"
+
+source "drivers/phy_key/Kconfig"
+
+source "drivers/sunxi_ir/Kconfig"
+
+source "drivers/arisc/Kconfig"
+
+source "drivers/dsp/Kconfig"
 
 config PHYS_TO_BUS
 	bool "Custom physical to bus address mapping"

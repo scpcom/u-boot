@@ -119,6 +119,7 @@ static int do_spi_flash_probe(int argc, char * const argv[])
 			return -1;
 	}
 
+	printf("sf: bus-%d cs-%d spedd-%dHz mode-%x\n", bus, cs, speed, mode);
 #ifdef CONFIG_DM_SPI_FLASH
 	/* Remove the old device, otherwise probe will just be a nop */
 	ret = spi_find_bus_and_cs(bus, cs, &bus_dev, &new);
@@ -296,15 +297,18 @@ static int do_spi_flash_read_write(int argc, char * const argv[])
 	} else if (strncmp(argv[0], "read", 4) == 0 ||
 			strncmp(argv[0], "write", 5) == 0) {
 		int read;
+		ulong begin_time = get_timer(0);
+		ulong time_used;
 
 		read = strncmp(argv[0], "read", 4) == 0;
 		if (read)
 			ret = spi_flash_read(flash, offset, len, buf);
 		else
 			ret = spi_flash_write(flash, offset, len, buf);
+		time_used = get_timer(0) - begin_time;
 
-		printf("SF: %zu bytes @ %#x %s: ", (size_t)len, (u32)offset,
-		       read ? "Read" : "Written");
+		printf("SF: %zu bytes @ %#x time:%ld ms %s: ", (size_t)len, (u32)offset,
+		       time_used, read ? "Read" : "Written");
 		if (ret)
 			printf("ERROR %d\n", ret);
 		else

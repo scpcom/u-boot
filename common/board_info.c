@@ -22,7 +22,7 @@ int __weak show_board_info(void)
 	model = fdt_getprop(gd->fdt_blob, 0, "model", NULL);
 
 	if (model)
-		printf("Model: %s\n", model);
+		tick_printf("Model: %s\n", model);
 #endif
 
 	return checkboard();

@@ -2,8 +2,10 @@ menu "MMC Host controller Support"
 
 config MMC
 	bool "MMC/SD/SDIO card support"
-	default ARM || PPC || SANDBOX
+	#default ARM || PPC || SANDBOX
+	default n
 	select HAVE_BLOCK_DEVICE
+	select CMD_MMC
 	help
 	  This selects MultiMediaCard, Secure Digital and Secure
 	  Digital I/O support.
@@ -516,11 +518,17 @@ config MMC_SUNXI
 	help
 	  This selects support for the SD/MMC Host Controller on
 	  Allwinner sunxi SoCs.
+config MMC_DEBUG_SUNXI
+	bool "Allwinner sunxi SD/MMC Debug enable"
+	depends on MMC_SUNXI
+	default n
+	help
+	  This enables can print message which use MMCDBG and MMCPRINT
 
 config MMC_SUNXI_HAS_NEW_MODE
-	bool
+	bool "Allwinner sunxi SD/MMC Host Controller new mode support"
 	depends on MMC_SUNXI
-
+	default y
 config GENERIC_ATMEL_MCI
 	bool "Atmel Multimedia Card Interface support"
 	depends on DM_MMC && BLK && ARCH_AT91

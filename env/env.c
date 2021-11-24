@@ -77,6 +77,10 @@ static enum env_location env_locations[] = {
 #ifdef CONFIG_ENV_IS_IN_UBI
 	ENVL_UBI,
 #endif
+#ifdef CONFIG_ENV_IS_IN_SUNXI_FLASH
+	ENVL_SUNXI_FLASH,
+#endif
+
 #ifdef CONFIG_ENV_IS_NOWHERE
 	ENVL_NOWHERE,
 #endif
@@ -194,7 +198,7 @@ int env_load(void)
 		if (!env_has_inited(drv->location))
 			continue;
 
-		printf("Loading Environment from %s... ", drv->name);
+		tick_printf("Loading Environment from %s... ", drv->name);
 		ret = drv->load();
 		if (ret)
 			printf("Failed (%d)\n", ret);

@@ -49,10 +49,31 @@
 #include <linux/compiler.h>
 #include <linux/err.h>
 #include <efi_loader.h>
+#include <fdt_support.h>
+
+#ifdef CONFIG_ARCH_SUNXI
+#include <sunxi_board.h>
+#include <sunxi_flash.h>
+#endif
+#ifdef CONFIG_SOUND_SUNXI_BOOT_TONE
+#include <sunxi_boot_tone.h>
+#endif
+#ifdef CONFIG_CMD_PWM_LED
+#include <pwm_led.h>
+#endif
+#include <sys_partition.h>
+#include <boot_gui.h>
+#include <sunxi_bmp.h>
+#include <sunxi_logo_display.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 ulong monitor_flash_len;
+
+
+#ifdef CONFIG_SUNXI_ROTPK_BURN_ENABLE_BY_TOOL
+extern int sunxi_burn_rotpk(void);
+#endif
 
 __weak int board_flash_wp_on(void)
 {
@@ -91,21 +112,72 @@ static int initr_trace(void)
 	return 0;
 }
 
+
+#ifdef CONFIG_SUNXI_LEDC
+static int initr_ledc(void)
+{
+	int node;
+	int led_count, led_r, led_g, led_b;
+	int workmode = get_boot_work_mode();
+
+	if (workmode != WORK_MODE_BOOT)
+		return 0;
+
+	printf("%s\n", __func__);
+
+	node =  fdt_path_offset(working_fdt, "ledc");
+	if (node < 0) {
+		printf("unable to find ledc node in device tree.\n");
+		return 0;
+	}
+	if (!fdtdec_get_is_enabled(working_fdt, node)) {
+		printf("ledc disabled in device tree\n");
+		return 0;
+	}
+
+	if (fdt_getprop_u32(working_fdt, node, "led_count", &led_count) < 0)
+		led_count = 0;
+
+	if (fdt_getprop_u32(working_fdt, node, "led_r", &led_r) < 0)
+		led_r = 0;
+
+	if (fdt_getprop_u32(working_fdt, node, "led_g", &led_g) < 0)
+		led_g = 0;
+
+	if (fdt_getprop_u32(working_fdt, node, "led_b", &led_b) < 0)
+		led_b = 0;
+
+	if (led_r == 0 && led_g == 0 && led_b == 0)
+		return 0;
+
+	sunxi_ledc_init();
+
+	debug("count:%d G:%d R:%d B:%d\n", led_count, led_g, led_r, led_b);
+	sunxi_set_led_brightness(led_count, led_g, led_r, led_b);
+	return 0;
+}
+#endif
 static int initr_reloc(void)
 {
 	/* tell others: relocation done */
 	gd->flags |= GD_FLG_RELOC | GD_FLG_FULL_MALLOC_INIT;
-
+	set_working_fdt_addr((ulong)gd->fdt_blob);
 	return 0;
 }
 
 #ifdef CONFIG_ARM
+
+
+__weak void smp_init(void)
+{
+}
 /*
  * Some of these functions are needed purely because the functions they
  * call return void. If we change them to return 0, these stubs can go away.
  */
 static int initr_caches(void)
 {
+	smp_init();
 	/* Enable caches */
 	enable_caches();
 	return 0;
@@ -122,7 +194,11 @@ static int initr_reloc_global_data(void)
 #ifdef __ARM__
 	monitor_flash_len = _end - __image_copy_start;
 #elif defined(CONFIG_NDS32) || defined(CONFIG_RISCV)
+#ifdef CONFIG_ARCH_SUNXI
+	monitor_flash_len = (ulong)&_end - (ulong)&__image_copy_start;
+#else
 	monitor_flash_len = (ulong)&_end - (ulong)&_start;
+#endif
 #elif !defined(CONFIG_SANDBOX) && !defined(CONFIG_NIOS2)
 	monitor_flash_len = (ulong)&__init_end - gd->relocaddr;
 #endif
@@ -420,8 +496,146 @@ static int initr_onenand(void)
 #ifdef CONFIG_MMC
 static int initr_mmc(void)
 {
+	/*not call this func for sunxi plat*/
+#ifndef CONFIG_ARCH_SUNXI
 	puts("MMC:   ");
 	mmc_initialize(gd->bd);
+#endif
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_ARCH_SUNXI
+static int initr_sunxi_plat(void)
+{
+	__maybe_unused int ret = 0;
+	__maybe_unused int workmode = get_boot_work_mode();
+#ifdef CONFIG_IR_BOOT_RECOVERY
+	check_ir_boot_recovery();
+#endif
+#if defined(CONFIG_SUNXI_HOMLET)
+	sunxi_boot_init_gpio();
+#endif
+
+#ifdef CONFIG_RECOVERY_KEY
+	check_recovery_key();
+#endif
+	if (!gd->boot_logo_addr) {
+		tick_printf("flash init start\n");
+#ifdef CONFIG_SUNXI_FLASH
+		ret = sunxi_flash_init_ext();
+		if (ret)
+			return ret;
+#endif
+	}
+#if defined(CONFIG_BOARD_EARLY_INIT_R)
+	board_early_init_r();
+#endif
+#ifdef CONFIG_CMD_PWM_LED
+	pwm_led_init();
+#endif
+
+#ifdef CONFIG_BOOT_GUI
+	sunxi_early_logo_display();
+#endif
+
+#ifdef CONFIG_SUNXI_BOX_STANDBY
+	do_box_standby();
+#endif
+
+#ifdef CONFIG_ATF_BOX_STANDBY
+	atf_box_standby();
+#endif
+
+	if (gd->boot_logo_addr) {
+		tick_printf("flash init start\n");
+#ifdef CONFIG_SUNXI_FLASH
+		ret = sunxi_flash_init_ext();
+		if (ret)
+			return ret;
+#endif
+	}
+	if (workmode == WORK_MODE_BOOT) {
+#ifdef CONFIG_SUNXI_UPDATE_GPT
+		int sunxi_update_gpt(void);
+		sunxi_update_gpt();
+#endif
+#ifdef CONFIG_BOOT_GUI
+		void board_bootlogo_display(void);
+		board_bootlogo_display();
+#else
+#ifdef CONFIG_SUNXI_SPINOR_JPEG
+		int sunxi_jpeg_display(const char *filename);
+		sunxi_jpeg_display("bootlogo");
+#endif
+#ifdef CONFIG_SUNXI_SPINOR_BMP
+#if defined(CONFIG_CMD_FAT)
+		fat_read_logo_to_kernel("bootlogo.bmp");
+#else
+		read_bmp_to_kernel("bootlogo");
+#endif
+#endif
+#endif
+		sunxi_probe_partition_map();
+	}
+
+#ifdef CONFIG_SUNXI_ROTPK_BURN_ENABLE_BY_TOOL
+	if (get_boot_work_mode() == WORK_MODE_BOOT) {
+		ret = sunxi_burn_rotpk();
+		if (ret)
+			return ret;
+	}
+#endif
+
+	return ret;
+}
+
+#ifdef CONFIG_SUNXI_FAST_BURN_KEY
+/* uboot already relocated, static var will be good enough */
+static int sunxi_burn_key_processed;
+
+static int sunxi_fast_burn_key(void)
+{
+	int storage_type = get_boot_storage_type_ext();
+	int ret		 = 0;
+
+	sunxi_burn_key_processed = 0;
+
+	if (!sunxi_flash_is_support_fast_write(storage_type)) {
+		pr_msg("sunxi flash type@%d not support fast burn key\n",
+		       storage_type);
+		return 0;
+	} else
+		ret = sunxi_flash_hook_init();
+
+	if (ret) {
+		pr_msg("sunxi flash hook init fail\n");
+		return 0;
+	}
+
+	pr_msg("try fast burn key\n");
+	if (!sunxi_burn_key_processed) {
+		sunxi_burn_key_processed = 1;
+		sunxi_keydata_burn_by_usb();
+	}
+	return 0;
+}
+#endif
+
+static int sunxi_burn_key(void)
+{
+#ifdef CONFIG_CMD_SUNXI_AUTO_FEL
+	sunxi_auto_fel_by_usb();
+#endif
+#ifdef CONFIG_SUNXI_BURN
+#  ifdef CONFIG_SUNXI_FAST_BURN_KEY
+	if (!sunxi_burn_key_processed)
+#  endif
+	{
+		pr_msg("try to burn key\n");
+		sunxi_keydata_burn_by_usb();
+	}
+#endif
 	return 0;
 }
 #endif
@@ -458,7 +672,6 @@ static int initr_env(void)
 #ifdef CONFIG_OF_CONTROL
 	env_set_addr("fdtcontroladdr", gd->fdt_blob);
 #endif
-
 	/* Initialize from environment */
 	load_addr = env_get_ulong("loadaddr", 16, load_addr);
 
@@ -569,7 +782,7 @@ static int initr_bbmii(void)
 #ifdef CONFIG_CMD_NET
 static int initr_net(void)
 {
-	puts("Net:   ");
+	pr_msg("Net:   ");
 	eth_initialize();
 #if defined(CONFIG_RESET_PHY_R)
 	debug("Reset Ethernet PHY\n");
@@ -717,8 +930,9 @@ static init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_ADDR_MAP
 	initr_addr_map,
 #endif
-#if defined(CONFIG_BOARD_EARLY_INIT_R)
-	board_early_init_r,
+
+#ifdef CONFIG_SUNXI_LEDC
+	initr_ledc,
 #endif
 	INIT_FUNC_WATCHDOG_RESET
 #ifdef CONFIG_POST
@@ -756,7 +970,6 @@ static init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_MMC
 	initr_mmc,
 #endif
-	initr_env,
 #ifdef CONFIG_SYS_BOOTPARAMS_LEN
 	initr_malloc_bootparams,
 #endif
@@ -796,6 +1009,14 @@ static init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_ARM
 	initr_enable_interrupts,
 #endif
+#ifdef CONFIG_SUNXI_FAST_BURN_KEY
+	sunxi_fast_burn_key,
+#endif
+#ifdef CONFIG_ARCH_SUNXI
+	initr_sunxi_plat,
+#endif
+	initr_env,
+	board_env_late_init,
 #if defined(CONFIG_MICROBLAZE) || defined(CONFIG_M68K)
 	timer_init,		/* initialize timer */
 #endif
@@ -806,6 +1027,10 @@ static init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_CMD_NET
 	initr_ethaddr,
 #endif
+#ifdef CONFIG_ARCH_SUNXI
+	sunxi_burn_key,
+#endif
+
 #ifdef CONFIG_BOARD_LATE_INIT
 	board_late_init,
 #endif
@@ -844,6 +1069,10 @@ static init_fnc_t init_sequence_r[] = {
 #endif
 #if defined(CONFIG_PRAM)
 	initr_mem,
+#endif
+
+#ifdef CONFIG_SOUND_SUNXI_BOOT_TONE
+	sunxi_boot_tone_play,
 #endif
 	run_main_loop,
 };

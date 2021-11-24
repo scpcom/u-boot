@@ -89,3 +89,5 @@ GTAGS
 # gcc code coverage files
 *.gcda
 *.gcno
+prelink-riscv
+*.dtb

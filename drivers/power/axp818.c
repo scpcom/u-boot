@@ -206,6 +206,9 @@ int axp_set_fldo(int fldo_num, unsigned int mvolt)
 		cfg = axp818_mvolt_to_cfg(mvolt, 700, 1450, 50);
 		ret = pmic_bus_write(AXP818_FLDO1_CTRL + (fldo_num - 1), cfg);
 	} else {
+		printf("fldo %d not set\n", fldo_num);
+		ret = 0;
+#if 0
 		/*
 		 * Special case for FLDO3, which is DCDC5 / 2 or FLDOIN / 2
 		 * Since FLDOIN is unknown, test against DCDC5.
@@ -216,6 +219,7 @@ int axp_set_fldo(int fldo_num, unsigned int mvolt)
 		else
 			ret = pmic_bus_setbits(AXP818_FLDO2_3_CTRL,
 					       AXP818_FLDO2_3_CTRL_FLDO3_VOL);
+#endif
 	}
 	if (ret)
 		return ret;

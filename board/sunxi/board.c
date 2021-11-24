@@ -21,8 +21,11 @@
 #include <asm/arch/mmc.h>
 #include <asm/arch/spl.h>
 #include <asm/arch/usb_phy.h>
+#ifdef CONFIG_ARM
+#include <asm/setup.h>
 #ifndef CONFIG_ARM64
 #include <asm/armv7.h>
+#endif
 #endif
 #include <asm/gpio.h>
 #include <asm/io.h>
@@ -33,160 +36,161 @@
 #include <net.h>
 #include <spl.h>
 #include <sy8106a.h>
-#include <asm/setup.h>
+#include <private_uboot.h>
+#include <sys_config.h>
+#include <sunxi_board.h>
+#ifdef CONFIG_SUNXI_POWER
+#include <sunxi_power/axp.h>
+#include <sunxi_power/power_manage.h>
+#endif
+#ifdef CONFIG_SUNXI_DMA
+#include <asm/arch/dma.h>
+#endif
+#include <mapmem.h>
+#include <smc.h>
 
-#if defined CONFIG_VIDEO_LCD_PANEL_I2C && !(defined CONFIG_SPL_BUILD)
-/* So that we can use pin names in Kconfig and sunxi_name_to_gpio() */
-int soft_i2c_gpio_sda;
-int soft_i2c_gpio_scl;
 
-static int soft_i2c_board_init(void)
+int  __attribute__((weak)) sunxi_set_sramc_mode(void)
 {
-	int ret;
-
-	soft_i2c_gpio_sda = sunxi_name_to_gpio(CONFIG_VIDEO_LCD_PANEL_I2C_SDA);
-	if (soft_i2c_gpio_sda < 0) {
-		printf("Error invalid soft i2c sda pin: '%s', err %d\n",
-		       CONFIG_VIDEO_LCD_PANEL_I2C_SDA, soft_i2c_gpio_sda);
-		return soft_i2c_gpio_sda;
-	}
-	ret = gpio_request(soft_i2c_gpio_sda, "soft-i2c-sda");
-	if (ret) {
-		printf("Error requesting soft i2c sda pin: '%s', err %d\n",
-		       CONFIG_VIDEO_LCD_PANEL_I2C_SDA, ret);
-		return ret;
-	}
-
-	soft_i2c_gpio_scl = sunxi_name_to_gpio(CONFIG_VIDEO_LCD_PANEL_I2C_SCL);
-	if (soft_i2c_gpio_scl < 0) {
-		printf("Error invalid soft i2c scl pin: '%s', err %d\n",
-		       CONFIG_VIDEO_LCD_PANEL_I2C_SCL, soft_i2c_gpio_scl);
-		return soft_i2c_gpio_scl;
-	}
-	ret = gpio_request(soft_i2c_gpio_scl, "soft-i2c-scl");
-	if (ret) {
-		printf("Error requesting soft i2c scl pin: '%s', err %d\n",
-		       CONFIG_VIDEO_LCD_PANEL_I2C_SCL, ret);
-		return ret;
-	}
-
 	return 0;
 }
-#else
-static int soft_i2c_board_init(void) { return 0; }
-#endif
+
+int  __attribute__((weak)) clock_set_corepll(int frequency)
+{
+	return 0;
+}
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_SUNXI_OVERLAY
+__weak int sunxi_overlay_apply_merged(void *dtb_base, void *dtbo_base)
+{
+	return fdt_check_header(dtbo_base);
+}
+
+#endif
+
 void i2c_init_board(void)
 {
+	__maybe_unused char fdt_node_str[8] = {0};
 #ifdef CONFIG_I2C0_ENABLE
-#if defined(CONFIG_MACH_SUN4I) || \
-    defined(CONFIG_MACH_SUN5I) || \
-    defined(CONFIG_MACH_SUN7I) || \
-    defined(CONFIG_MACH_SUN8I_R40)
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(0), SUN4I_GPB_TWI0);
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(1), SUN4I_GPB_TWI0);
-	clock_twi_onoff(0, 1);
-#elif defined(CONFIG_MACH_SUN6I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(14), SUN6I_GPH_TWI0);
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(15), SUN6I_GPH_TWI0);
-	clock_twi_onoff(0, 1);
-#elif defined(CONFIG_MACH_SUN8I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(2), SUN8I_GPH_TWI0);
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(3), SUN8I_GPH_TWI0);
-	clock_twi_onoff(0, 1);
+#if defined(CONFIG_MACH_SUN8IW18)
+	#if 0 /*twi0 & uart0 use the same pin*/
+	sunxi_gpio_set_cfgpin(SUNXI_GPH(0), SUN8I_GPH_TWI0);
+	sunxi_gpio_set_cfgpin(SUNXI_GPH(1), SUN8I_GPH_TWI0);
+	clock_twi_onoff(0,1);
+	#endif
+#else
+	sprintf(fdt_node_str, "twi0");
+	fdt_set_all_pin(fdt_node_str, "pinctrl-0");
 #endif
 #endif
 
 #ifdef CONFIG_I2C1_ENABLE
-#if defined(CONFIG_MACH_SUN4I) || \
-    defined(CONFIG_MACH_SUN7I) || \
-    defined(CONFIG_MACH_SUN8I_R40)
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(18), SUN4I_GPB_TWI1);
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(19), SUN4I_GPB_TWI1);
-	clock_twi_onoff(1, 1);
-#elif defined(CONFIG_MACH_SUN5I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(15), SUN5I_GPB_TWI1);
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(16), SUN5I_GPB_TWI1);
-	clock_twi_onoff(1, 1);
-#elif defined(CONFIG_MACH_SUN6I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(16), SUN6I_GPH_TWI1);
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(17), SUN6I_GPH_TWI1);
-	clock_twi_onoff(1, 1);
-#elif defined(CONFIG_MACH_SUN8I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(4), SUN8I_GPH_TWI1);
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(5), SUN8I_GPH_TWI1);
-	clock_twi_onoff(1, 1);
+#if defined(CONFIG_MACH_SUN8IW18)
+	sunxi_gpio_set_cfgpin(SUNXI_GPH(2), SUN8I_GPH_TWI1);
+	sunxi_gpio_set_cfgpin(SUNXI_GPH(3), SUN8I_GPH_TWI1);
+	/*clock_twi_onoff(1, 1);*/
+#else
+	sprintf(fdt_node_str, "twi1");
+	fdt_set_all_pin(fdt_node_str, "pinctrl-0");
 #endif
 #endif
 
 #ifdef CONFIG_I2C2_ENABLE
-#if defined(CONFIG_MACH_SUN4I) || \
-    defined(CONFIG_MACH_SUN7I) || \
-    defined(CONFIG_MACH_SUN8I_R40)
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(20), SUN4I_GPB_TWI2);
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(21), SUN4I_GPB_TWI2);
-	clock_twi_onoff(2, 1);
-#elif defined(CONFIG_MACH_SUN5I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(17), SUN5I_GPB_TWI2);
-	sunxi_gpio_set_cfgpin(SUNXI_GPB(18), SUN5I_GPB_TWI2);
-	clock_twi_onoff(2, 1);
-#elif defined(CONFIG_MACH_SUN6I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(18), SUN6I_GPH_TWI2);
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(19), SUN6I_GPH_TWI2);
-	clock_twi_onoff(2, 1);
-#elif defined(CONFIG_MACH_SUN8I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPE(12), SUN8I_GPE_TWI2);
-	sunxi_gpio_set_cfgpin(SUNXI_GPE(13), SUN8I_GPE_TWI2);
-	clock_twi_onoff(2, 1);
-#endif
+	sprintf(fdt_node_str, "twi2");
+	fdt_set_all_pin(fdt_node_str, "pinctrl-0");
 #endif
 
 #ifdef CONFIG_I2C3_ENABLE
-#if defined(CONFIG_MACH_SUN6I)
-	sunxi_gpio_set_cfgpin(SUNXI_GPG(10), SUN6I_GPG_TWI3);
-	sunxi_gpio_set_cfgpin(SUNXI_GPG(11), SUN6I_GPG_TWI3);
-	clock_twi_onoff(3, 1);
-#elif defined(CONFIG_MACH_SUN7I) || \
-      defined(CONFIG_MACH_SUN8I_R40)
-	sunxi_gpio_set_cfgpin(SUNXI_GPI(0), SUN7I_GPI_TWI3);
-	sunxi_gpio_set_cfgpin(SUNXI_GPI(1), SUN7I_GPI_TWI3);
-	clock_twi_onoff(3, 1);
-#endif
+	sprintf(fdt_node_str, "twi3");
+	fdt_set_all_pin(fdt_node_str, "pinctrl-0");
 #endif
 
 #ifdef CONFIG_I2C4_ENABLE
-#if defined(CONFIG_MACH_SUN7I) || \
-    defined(CONFIG_MACH_SUN8I_R40)
-	sunxi_gpio_set_cfgpin(SUNXI_GPI(2), SUN7I_GPI_TWI4);
-	sunxi_gpio_set_cfgpin(SUNXI_GPI(3), SUN7I_GPI_TWI4);
-	clock_twi_onoff(4, 1);
-#endif
+	sprintf(fdt_node_str, "twi4");
+	fdt_set_all_pin(fdt_node_str, "pinctrl-0");
 #endif
 
-#ifdef CONFIG_R_I2C_ENABLE
-	clock_twi_onoff(5, 1);
-	sunxi_gpio_set_cfgpin(SUNXI_GPL(0), SUN8I_H3_GPL_R_TWI);
-	sunxi_gpio_set_cfgpin(SUNXI_GPL(1), SUN8I_H3_GPL_R_TWI);
+#ifdef CONFIG_I2C5_ENABLE
+	sprintf(fdt_node_str, "twi5");
+	fdt_set_all_pin(fdt_node_str, "pinctrl-0");
+#endif
+
+#ifdef CONFIG_R_I2C0_ENABLE
+#if defined(CONFIG_MACH_SUN50IW11)
+	sunxi_gpio_set_cfgpin(SUNXI_GPL(5), SUN8I_H3_GPL_R_TWI);
+	sunxi_gpio_set_cfgpin(SUNXI_GPL(6), SUN8I_H3_GPL_R_TWI);
+#else
+#if defined(CONFIG_MACH_SUN50IW9)
+	sprintf(fdt_node_str, "twi5");
+#elif defined(CONFIG_MACH_SUN50IW10)
+	sprintf(fdt_node_str, "twi6");
+#else
+	sprintf(fdt_node_str, "twi4");
+#endif
+	fdt_set_all_pin(fdt_node_str, "pinctrl-0");
+#endif
+#ifdef CONFIG_R_I2C1_ENABLE
+	sprintf(fdt_node_str, "twi7");
+	fdt_set_all_pin(fdt_node_str, "pinctrl-0");
+#endif
 #endif
 }
-
-#if defined(CONFIG_ENV_IS_IN_MMC) && defined(CONFIG_ENV_IS_IN_FAT)
-enum env_location env_get_location(enum env_operation op, int prio)
+#ifdef CONFIG_ARM
+void enable_smp(void)
 {
-	switch (prio) {
-	case 0:
-		return ENVL_FAT;
-
-	case 1:
-		return ENVL_MMC;
-
-	default:
-		return ENVL_UNKNOWN;
-	}
+   /* SMP status is controlled by bit 6 of the CP15 Aux Ctrl Reg:ACTLR */
+   asm volatile("MRC     p15, 0, r0, c1, c0, 1");
+   asm volatile("ORR     r0, r0, #0x040");
+   asm volatile("MCR     p15, 0, r0, c1, c0, 1");
+}
+#else
+void __attribute__((weak)) enable_smp(void)
+{
+	return ;
 }
 #endif
+void smp_init(void)
+{
+    int cpu_status = 0;
+#if defined(CONFIG_SUNXI_NCAT) || defined(CONFIG_SUNXI_NCAT_V2)
+    cpu_status = readl(IOMEM_ADDR(SUNXI_CPUXCFG_BASE + 0x80));
+    cpu_status &= (0xf<<24);
+#else
+    /*old platform enable smp unconditionally*/
+    cpu_status = 1;
+#endif
+
+    /* note:
+          sbrom will enable smp bit when jmp to non-secure fel.
+          but normal brom not do this operation.
+          so should enable smp when run uboot by normal fel mode.
+      */
+    if(!cpu_status)
+        enable_smp();
+
+}
+
+
+int sunxi_plat_init(void)
+{
+	sunxi_probe_securemode();
+#ifdef CONFIG_SUNXI_DMA
+	sunxi_dma_init();
+#endif
+
+#ifdef CONFIG_ARM
+	extern int secure_os_memory_init(void);
+	if (sunxi_probe_secure_os()) {
+		smc_tee_inform_fdt((uint64_t)(unsigned long)working_fdt, gd->fdt_size);
+#if defined(CONFIG_SUNXI_EXTERN_SECURE_MM_LAYOUT)
+		secure_os_memory_init();
+#endif
+	}
+#endif
+	return 0;
+}
 
 /* add board specific code here */
 int board_init(void)
@@ -195,116 +199,77 @@ int board_init(void)
 
 	gd->bd->bi_boot_params = (PHYS_SDRAM_0 + 0x100);
 
-#ifndef CONFIG_ARM64
-	asm volatile("mrc p15, 0, %0, c0, c1, 1" : "=r"(id_pfr1));
-	debug("id_pfr1: 0x%08x\n", id_pfr1);
-	/* Generic Timer Extension available? */
-	if ((id_pfr1 >> CPUID_ARM_GENTIMER_SHIFT) & 0xf) {
-		uint32_t freq;
+	sunxi_plat_init();
 
-		debug("Setting CNTFRQ\n");
-
-		/*
-		 * CNTFRQ is a secure register, so we will crash if we try to
-		 * write this from the non-secure world (read is OK, though).
-		 * In case some bootcode has already set the correct value,
-		 * we avoid the risk of writing to it.
-		 */
-		asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r"(freq));
-		if (freq != COUNTER_FREQUENCY) {
-			debug("arch timer frequency is %d Hz, should be %d, fixing ...\n",
-			      freq, COUNTER_FREQUENCY);
-#ifdef CONFIG_NON_SECURE
-			printf("arch timer frequency is wrong, but cannot adjust it\n");
-#else
-			asm volatile("mcr p15, 0, %0, c14, c0, 0"
-				     : : "r"(COUNTER_FREQUENCY));
-#endif
-		}
-	}
-#endif /* !CONFIG_ARM64 */
+	int work_mode = get_boot_work_mode();
 
 	ret = axp_gpio_init();
 	if (ret)
 		return ret;
+#ifdef CONFIG_SUNXI_POWER
+	if (!axp_probe()) {
+		axp_set_dcdc_mode();
+		axp_set_power_supply_output();
+#if defined CONFIG_SUNXI_BMU && !defined CONFIG_AXP_LATE_INFO
+		gd->pmu_saved_status = bmu_get_poweron_source();
+		gd->pmu_runtime_chgcur = axp_get_battery_status();
 
-#ifdef CONFIG_SATAPWR
-	satapwr_pin = sunxi_name_to_gpio(CONFIG_SATAPWR);
-	gpio_request(satapwr_pin, "satapwr");
-	gpio_direction_output(satapwr_pin, 1);
-	/* Give attached sata device time to power-up to avoid link timeouts */
-	mdelay(500);
+		if (work_mode != WORK_MODE_BOOT) {
+			ret = axp_reset_capacity();
+			if (!ret) {
+				pr_msg("axp reset capacity fail!\n");
+			}
+		}
+#else
+		gd->pmu_saved_status = -1;
 #endif
-#ifdef CONFIG_MACPWR
-	macpwr_pin = sunxi_name_to_gpio(CONFIG_MACPWR);
-	gpio_request(macpwr_pin, "macpwr");
-	gpio_direction_output(macpwr_pin, 1);
+	}
 #endif
+	if ((work_mode == WORK_MODE_BOOT) ||
+		(work_mode == WORK_MODE_CARD_PRODUCT) ||
+		(work_mode == WORK_MODE_CARD_UPDATE))
+		sunxi_set_sramc_mode();
 
-#ifdef CONFIG_DM_I2C
-	/*
-	 * Temporary workaround for enabling I2C clocks until proper sunxi DM
-	 * clk, reset and pinctrl drivers land.
-	 */
-	i2c_init_board();
+	clock_set_corepll(uboot_spare_head.boot_data.run_clock);
+	tick_printf("CPU=%d MHz,PLL6=%d Mhz,AHB=%d Mhz, APB1=%dMhz  MBus=%dMhz\n",
+		clock_get_corepll(),
+		clock_get_pll6(), clock_get_ahb(),
+		clock_get_apb1(),clock_get_mbus());
+
+#ifdef CONFIG_SUNXI_OVERLAY
+	if (get_boot_work_mode() != WORK_MODE_BOOT) {
+		return 0;
+	}
+	if (!sunxi_overlay_apply_merged(working_fdt, gd->new_dtbo)) {
+		pr_err("sunxi overlay merged %sqv\n",
+			(fdt_overlay_apply_verbose(working_fdt, gd->new_dtbo) ? "fail":"ok"));
+	} else {
+		pr_msg("not need merged sunxi overlay\n");
+	}
 #endif
-
-	/* Uses dm gpio code so do this here and not in i2c_init_board() */
-	return soft_i2c_board_init();
-}
-
-int dram_init(void)
-{
-	gd->ram_size = get_ram_size((long *)PHYS_SDRAM_0, PHYS_SDRAM_0_SIZE);
 
 	return 0;
 }
 
-#if defined(CONFIG_NAND_SUNXI)
-static void nand_pinmux_setup(void)
+int dram_init(void)
 {
-	unsigned int pin;
+	uint dram_size = 0;
+	dram_size = uboot_spare_head.boot_data.dram_scan_size;
 
-	for (pin = SUNXI_GPC(0); pin <= SUNXI_GPC(19); pin++)
-		sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_NAND);
+	dram_size = dram_size > 2048 ? 2048 : dram_size;
 
-#if defined CONFIG_MACH_SUN4I || defined CONFIG_MACH_SUN7I
-	for (pin = SUNXI_GPC(20); pin <= SUNXI_GPC(22); pin++)
-		sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_NAND);
-#endif
-	/* sun4i / sun7i do have a PC23, but it is not used for nand,
-	 * only sun7i has a PC24 */
-#ifdef CONFIG_MACH_SUN7I
-	sunxi_gpio_set_cfgpin(SUNXI_GPC(24), SUNXI_GPC_NAND);
-#endif
+	if(dram_size)
+		gd->ram_size = dram_size * 1024 * 1024;
+	else
+		gd->ram_size = get_ram_size((long *)PHYS_SDRAM_0, PHYS_SDRAM_0_SIZE);
+
+	return 0;
 }
-
-static void nand_clock_setup(void)
-{
-	struct sunxi_ccm_reg *const ccm =
-		(struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
-
-	setbits_le32(&ccm->ahb_gate0, (CLK_GATE_OPEN << AHB_GATE_OFFSET_NAND0));
-#if defined CONFIG_MACH_SUN6I || defined CONFIG_MACH_SUN8I || \
-    defined CONFIG_MACH_SUN9I || defined CONFIG_MACH_SUN50I
-	setbits_le32(&ccm->ahb_reset0_cfg, (1 << AHB_GATE_OFFSET_NAND0));
-#endif
-	setbits_le32(&ccm->nand0_clk_cfg, CCM_NAND_CTRL_ENABLE | AHB_DIV_1);
-}
-
-void board_nand_init(void)
-{
-	nand_pinmux_setup();
-	nand_clock_setup();
-#ifndef CONFIG_SPL_BUILD
-	sunxi_nand_init();
-#endif
-}
-#endif
 
 #ifdef CONFIG_MMC
 static void mmc_pinmux_setup(int sdc)
 {
+	#if 0
 	unsigned int pin;
 	__maybe_unused int pins;
 
@@ -318,169 +283,15 @@ static void mmc_pinmux_setup(int sdc)
 		}
 		break;
 
-	case 1:
-		pins = sunxi_name_to_gpio_bank(CONFIG_MMC1_PINS);
-
-#if defined(CONFIG_MACH_SUN4I) || defined(CONFIG_MACH_SUN7I) || \
-    defined(CONFIG_MACH_SUN8I_R40)
-		if (pins == SUNXI_GPIO_H) {
-			/* SDC1: PH22-PH-27 */
-			for (pin = SUNXI_GPH(22); pin <= SUNXI_GPH(27); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUN4I_GPH_SDC1);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-		} else {
-			/* SDC1: PG0-PG5 */
-			for (pin = SUNXI_GPG(0); pin <= SUNXI_GPG(5); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUN4I_GPG_SDC1);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-		}
-#elif defined(CONFIG_MACH_SUN5I)
-		/* SDC1: PG3-PG8 */
-		for (pin = SUNXI_GPG(3); pin <= SUNXI_GPG(8); pin++) {
-			sunxi_gpio_set_cfgpin(pin, SUN5I_GPG_SDC1);
-			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(pin, 2);
-		}
-#elif defined(CONFIG_MACH_SUN6I)
-		/* SDC1: PG0-PG5 */
-		for (pin = SUNXI_GPG(0); pin <= SUNXI_GPG(5); pin++) {
-			sunxi_gpio_set_cfgpin(pin, SUN6I_GPG_SDC1);
-			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(pin, 2);
-		}
-#elif defined(CONFIG_MACH_SUN8I)
-		if (pins == SUNXI_GPIO_D) {
-			/* SDC1: PD2-PD7 */
-			for (pin = SUNXI_GPD(2); pin <= SUNXI_GPD(7); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUN8I_GPD_SDC1);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-		} else {
-			/* SDC1: PG0-PG5 */
-			for (pin = SUNXI_GPG(0); pin <= SUNXI_GPG(5); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUN8I_GPG_SDC1);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-		}
-#endif
-		break;
-
 	case 2:
 		pins = sunxi_name_to_gpio_bank(CONFIG_MMC2_PINS);
 
-#if defined(CONFIG_MACH_SUN4I) || defined(CONFIG_MACH_SUN7I)
-		/* SDC2: PC6-PC11 */
-		for (pin = SUNXI_GPC(6); pin <= SUNXI_GPC(11); pin++) {
+#if defined(CONFIG_MACH_SUN50IW6)
+		/* SDC2: PC4-PC14 */
+		for (pin = SUNXI_GPC(4); pin <= SUNXI_GPC(14); pin++) {
 			sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_SDC2);
 			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
 			sunxi_gpio_set_drv(pin, 2);
-		}
-#elif defined(CONFIG_MACH_SUN5I)
-		if (pins == SUNXI_GPIO_E) {
-			/* SDC2: PE4-PE9 */
-			for (pin = SUNXI_GPE(4); pin <= SUNXI_GPD(9); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUN5I_GPE_SDC2);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-		} else {
-			/* SDC2: PC6-PC15 */
-			for (pin = SUNXI_GPC(6); pin <= SUNXI_GPC(15); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_SDC2);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-		}
-#elif defined(CONFIG_MACH_SUN6I)
-		if (pins == SUNXI_GPIO_A) {
-			/* SDC2: PA9-PA14 */
-			for (pin = SUNXI_GPA(9); pin <= SUNXI_GPA(14); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUN6I_GPA_SDC2);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-		} else {
-			/* SDC2: PC6-PC15, PC24 */
-			for (pin = SUNXI_GPC(6); pin <= SUNXI_GPC(15); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_SDC2);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-
-			sunxi_gpio_set_cfgpin(SUNXI_GPC(24), SUNXI_GPC_SDC2);
-			sunxi_gpio_set_pull(SUNXI_GPC(24), SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(SUNXI_GPC(24), 2);
-		}
-#elif defined(CONFIG_MACH_SUN8I_R40)
-		/* SDC2: PC6-PC15, PC24 */
-		for (pin = SUNXI_GPC(6); pin <= SUNXI_GPC(15); pin++) {
-			sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_SDC2);
-			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(pin, 2);
-		}
-
-		sunxi_gpio_set_cfgpin(SUNXI_GPC(24), SUNXI_GPC_SDC2);
-		sunxi_gpio_set_pull(SUNXI_GPC(24), SUNXI_GPIO_PULL_UP);
-		sunxi_gpio_set_drv(SUNXI_GPC(24), 2);
-#elif defined(CONFIG_MACH_SUN8I) || defined(CONFIG_MACH_SUN50I)
-		/* SDC2: PC5-PC6, PC8-PC16 */
-		for (pin = SUNXI_GPC(5); pin <= SUNXI_GPC(6); pin++) {
-			sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_SDC2);
-			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(pin, 2);
-		}
-
-		for (pin = SUNXI_GPC(8); pin <= SUNXI_GPC(16); pin++) {
-			sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_SDC2);
-			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(pin, 2);
-		}
-#elif defined(CONFIG_MACH_SUN9I)
-		/* SDC2: PC6-PC16 */
-		for (pin = SUNXI_GPC(6); pin <= SUNXI_GPC(16); pin++) {
-			sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_SDC2);
-			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(pin, 2);
-		}
-#endif
-		break;
-
-	case 3:
-		pins = sunxi_name_to_gpio_bank(CONFIG_MMC3_PINS);
-
-#if defined(CONFIG_MACH_SUN4I) || defined(CONFIG_MACH_SUN7I) || \
-    defined(CONFIG_MACH_SUN8I_R40)
-		/* SDC3: PI4-PI9 */
-		for (pin = SUNXI_GPI(4); pin <= SUNXI_GPI(9); pin++) {
-			sunxi_gpio_set_cfgpin(pin, SUNXI_GPI_SDC3);
-			sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(pin, 2);
-		}
-#elif defined(CONFIG_MACH_SUN6I)
-		if (pins == SUNXI_GPIO_A) {
-			/* SDC3: PA9-PA14 */
-			for (pin = SUNXI_GPA(9); pin <= SUNXI_GPA(14); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUN6I_GPA_SDC3);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-		} else {
-			/* SDC3: PC6-PC15, PC24 */
-			for (pin = SUNXI_GPC(6); pin <= SUNXI_GPC(15); pin++) {
-				sunxi_gpio_set_cfgpin(pin, SUN6I_GPC_SDC3);
-				sunxi_gpio_set_pull(pin, SUNXI_GPIO_PULL_UP);
-				sunxi_gpio_set_drv(pin, 2);
-			}
-
-			sunxi_gpio_set_cfgpin(SUNXI_GPC(24), SUN6I_GPC_SDC3);
-			sunxi_gpio_set_pull(SUNXI_GPC(24), SUNXI_GPIO_PULL_UP);
-			sunxi_gpio_set_drv(SUNXI_GPC(24), 2);
 		}
 #endif
 		break;
@@ -489,108 +300,63 @@ static void mmc_pinmux_setup(int sdc)
 		printf("sunxi: invalid MMC slot %d for pinmux setup\n", sdc);
 		break;
 	}
+	#endif
 }
+
+/*
+
+int board_mmc_init(bd_t *bis)
+{
+    sunxi_mmc_init(bis->bi_card_num);
+
+    return 0;
+}
+*/
+void board_mmc_pre_init(int card_num)
+{
+    bd_t *bd;
+
+    bd = gd->bd;
+    //gd->bd->bi_card_num = card_num;
+    mmc_initialize(bd);
+
+}
+
+int board_mmc_get_num(void)
+{
+    return gd->boot_card_num;
+}
+
+
+void board_mmc_set_num(int num)
+{
+    gd->boot_card_num = num;
+}
+
 
 int board_mmc_init(bd_t *bis)
 {
 	__maybe_unused struct mmc *mmc0, *mmc1;
 	__maybe_unused char buf[512];
 
-	mmc_pinmux_setup(CONFIG_MMC_SUNXI_SLOT);
-	mmc0 = sunxi_mmc_init(CONFIG_MMC_SUNXI_SLOT);
+	mmc_pinmux_setup(board_mmc_get_num());
+	mmc0 = sunxi_mmc_init(board_mmc_get_num());
 	if (!mmc0)
 		return -1;
-
+#if 0
 #if CONFIG_MMC_SUNXI_SLOT_EXTRA != -1
 	mmc_pinmux_setup(CONFIG_MMC_SUNXI_SLOT_EXTRA);
 	mmc1 = sunxi_mmc_init(CONFIG_MMC_SUNXI_SLOT_EXTRA);
 	if (!mmc1)
 		return -1;
 #endif
+#endif
 
 	return 0;
 }
 #endif
 
-#ifdef CONFIG_SPL_BUILD
-void sunxi_board_init(void)
-{
-	int power_failed = 0;
 
-#ifdef CONFIG_SY8106A_POWER
-	power_failed = sy8106a_set_vout1(CONFIG_SY8106A_VOUT1_VOLT);
-#endif
-
-#if defined CONFIG_AXP152_POWER || defined CONFIG_AXP209_POWER || \
-	defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || \
-	defined CONFIG_AXP818_POWER
-	power_failed = axp_init();
-
-#if defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || \
-	defined CONFIG_AXP818_POWER
-	power_failed |= axp_set_dcdc1(CONFIG_AXP_DCDC1_VOLT);
-#endif
-	power_failed |= axp_set_dcdc2(CONFIG_AXP_DCDC2_VOLT);
-	power_failed |= axp_set_dcdc3(CONFIG_AXP_DCDC3_VOLT);
-#if !defined(CONFIG_AXP209_POWER) && !defined(CONFIG_AXP818_POWER)
-	power_failed |= axp_set_dcdc4(CONFIG_AXP_DCDC4_VOLT);
-#endif
-#if defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || \
-	defined CONFIG_AXP818_POWER
-	power_failed |= axp_set_dcdc5(CONFIG_AXP_DCDC5_VOLT);
-#endif
-
-#if defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || \
-	defined CONFIG_AXP818_POWER
-	power_failed |= axp_set_aldo1(CONFIG_AXP_ALDO1_VOLT);
-#endif
-	power_failed |= axp_set_aldo2(CONFIG_AXP_ALDO2_VOLT);
-#if !defined(CONFIG_AXP152_POWER)
-	power_failed |= axp_set_aldo3(CONFIG_AXP_ALDO3_VOLT);
-#endif
-#ifdef CONFIG_AXP209_POWER
-	power_failed |= axp_set_aldo4(CONFIG_AXP_ALDO4_VOLT);
-#endif
-
-#if defined(CONFIG_AXP221_POWER) || defined(CONFIG_AXP809_POWER) || \
-	defined(CONFIG_AXP818_POWER)
-	power_failed |= axp_set_dldo(1, CONFIG_AXP_DLDO1_VOLT);
-	power_failed |= axp_set_dldo(2, CONFIG_AXP_DLDO2_VOLT);
-#if !defined CONFIG_AXP809_POWER
-	power_failed |= axp_set_dldo(3, CONFIG_AXP_DLDO3_VOLT);
-	power_failed |= axp_set_dldo(4, CONFIG_AXP_DLDO4_VOLT);
-#endif
-	power_failed |= axp_set_eldo(1, CONFIG_AXP_ELDO1_VOLT);
-	power_failed |= axp_set_eldo(2, CONFIG_AXP_ELDO2_VOLT);
-	power_failed |= axp_set_eldo(3, CONFIG_AXP_ELDO3_VOLT);
-#endif
-
-#ifdef CONFIG_AXP818_POWER
-	power_failed |= axp_set_fldo(1, CONFIG_AXP_FLDO1_VOLT);
-	power_failed |= axp_set_fldo(2, CONFIG_AXP_FLDO2_VOLT);
-	power_failed |= axp_set_fldo(3, CONFIG_AXP_FLDO3_VOLT);
-#endif
-
-#if defined CONFIG_AXP809_POWER || defined CONFIG_AXP818_POWER
-	power_failed |= axp_set_sw(IS_ENABLED(CONFIG_AXP_SW_ON));
-#endif
-#endif
-	printf("DRAM:");
-	gd->ram_size = sunxi_dram_init();
-	printf(" %d MiB\n", (int)(gd->ram_size >> 20));
-	if (!gd->ram_size)
-		hang();
-
-	/*
-	 * Only clock up the CPU to full speed if we are reasonably
-	 * assured it's being powered with suitable core voltage
-	 */
-	if (!power_failed)
-		clock_set_pll1(CONFIG_SYS_CLK_FREQ);
-	else
-		printf("Failed to set core voltage! Can't set CPU frequency\n");
-}
-#endif
 
 #ifdef CONFIG_USB_GADGET
 int g_dnl_board_usb_cable_connected(void)
@@ -599,58 +365,7 @@ int g_dnl_board_usb_cable_connected(void)
 }
 #endif
 
-#ifdef CONFIG_SERIAL_TAG
-void get_board_serial(struct tag_serialnr *serialnr)
-{
-	char *serial_string;
-	unsigned long long serial;
 
-	serial_string = env_get("serial#");
-
-	if (serial_string) {
-		serial = simple_strtoull(serial_string, NULL, 16);
-
-		serialnr->high = (unsigned int) (serial >> 32);
-		serialnr->low = (unsigned int) (serial & 0xffffffff);
-	} else {
-		serialnr->high = 0;
-		serialnr->low = 0;
-	}
-}
-#endif
-
-/*
- * Check the SPL header for the "sunxi" variant. If found: parse values
- * that might have been passed by the loader ("fel" utility), and update
- * the environment accordingly.
- */
-static void parse_spl_header(const uint32_t spl_addr)
-{
-	struct boot_file_head *spl = (void *)(ulong)spl_addr;
-	if (memcmp(spl->spl_signature, SPL_SIGNATURE, 3) != 0)
-		return; /* signature mismatch, no usable header */
-
-	uint8_t spl_header_version = spl->spl_signature[3];
-	if (spl_header_version != SPL_HEADER_VERSION) {
-		printf("sunxi SPL version mismatch: expected %u, got %u\n",
-		       SPL_HEADER_VERSION, spl_header_version);
-		return;
-	}
-	if (!spl->fel_script_address)
-		return;
-
-	if (spl->fel_uEnv_length != 0) {
-		/*
-		 * data is expected in uEnv.txt compatible format, so "env
-		 * import -t" the string(s) at fel_script_address right away.
-		 */
-		himport_r(&env_htab, (char *)(uintptr_t)spl->fel_script_address,
-			  spl->fel_uEnv_length, '\n', H_NOCLEAR, 0, 0, NULL);
-		return;
-	}
-	/* otherwise assume .scr format (mkimage-type script) */
-	env_set_hex("fel_scriptaddr", spl->fel_script_address);
-}
 
 /*
  * Note this function gets called multiple times.
@@ -658,11 +373,12 @@ static void parse_spl_header(const uint32_t spl_addr)
  */
 static void setup_environment(const void *fdt)
 {
-	char serial_string[17] = { 0 };
-	unsigned int sid[4];
-	uint8_t mac_addr[6];
-	char ethaddr[16];
-	int i, ret;
+#ifdef CONFIG_USB
+	__maybe_unused unsigned int sid[4];
+	__maybe_unused uint8_t mac_addr[6];
+	__maybe_unused char ethaddr[16];
+	__maybe_unused int  ret;
+
 
 	ret = sunxi_get_sid(sid);
 	if (ret == 0 && sid[0] != 0) {
@@ -677,73 +393,36 @@ static void setup_environment(const void *fdt)
 		 * long time and changing a fixed mac-address with an
 		 * u-boot update is not good.
 		 */
-#if !defined(CONFIG_MACH_SUN4I) && !defined(CONFIG_MACH_SUN5I) && \
-    !defined(CONFIG_MACH_SUN6I) && !defined(CONFIG_MACH_SUN7I) && \
-    !defined(CONFIG_MACH_SUN8I_A23) && !defined(CONFIG_MACH_SUN8I_A33)
+
 		sid[3] = crc32(0, (unsigned char *)&sid[1], 12);
-#endif
+
 
 		/* Ensure the NIC specific bytes of the mac are not all 0 */
 		if ((sid[3] & 0xffffff) == 0)
 			sid[3] |= 0x800000;
 
-		for (i = 0; i < 4; i++) {
-			sprintf(ethaddr, "ethernet%d", i);
-			if (!fdt_get_alias(fdt, ethaddr))
-				continue;
+		strcpy(ethaddr, "ethaddr");
 
-			if (i == 0)
-				strcpy(ethaddr, "ethaddr");
-			else
-				sprintf(ethaddr, "eth%daddr", i);
+		/* Non OUI / registered MAC address */
+		mac_addr[0] = (0 << 4) | 0x02;
+		mac_addr[1] = (sid[0] >>  0) & 0xff;
+		mac_addr[2] = (sid[3] >> 24) & 0xff;
+		mac_addr[3] = (sid[3] >> 16) & 0xff;
+		mac_addr[4] = (sid[3] >>  8) & 0xff;
+		mac_addr[5] = (sid[3] >>  0) & 0xff;
 
-			if (env_get(ethaddr))
-				continue;
+		eth_env_set_enetaddr(ethaddr, mac_addr);
 
-			/* Non OUI / registered MAC address */
-			mac_addr[0] = (i << 4) | 0x02;
-			mac_addr[1] = (sid[0] >>  0) & 0xff;
-			mac_addr[2] = (sid[3] >> 24) & 0xff;
-			mac_addr[3] = (sid[3] >> 16) & 0xff;
-			mac_addr[4] = (sid[3] >>  8) & 0xff;
-			mac_addr[5] = (sid[3] >>  0) & 0xff;
-
-			eth_env_set_enetaddr(ethaddr, mac_addr);
-		}
-
-		if (!env_get("serial#")) {
-			snprintf(serial_string, sizeof(serial_string),
-				"%08x%08x", sid[0], sid[3]);
-
-			env_set("serial#", serial_string);
-		}
 	}
+#endif
 }
 
 int misc_init_r(void)
 {
 	__maybe_unused int ret;
-	uint boot;
-
-	env_set("fel_booted", NULL);
-	env_set("fel_scriptaddr", NULL);
-	env_set("mmc_bootdev", NULL);
-
-	boot = sunxi_get_boot_device();
-	/* determine if we are running in FEL mode */
-	if (boot == BOOT_DEVICE_BOARD) {
-		env_set("fel_booted", "1");
-		parse_spl_header(SPL_ADDR);
-	/* or if we booted from MMC, and which one */
-	} else if (boot == BOOT_DEVICE_MMC1) {
-		env_set("mmc_bootdev", "0");
-	} else if (boot == BOOT_DEVICE_MMC2) {
-		env_set("mmc_bootdev", "1");
-	}
 
 	setup_environment(gd->fdt_blob);
-
-#ifndef CONFIG_MACH_SUN9I
+#if 0
 	ret = sunxi_usb_phy_probe();
 	if (ret)
 		return ret;
@@ -774,31 +453,41 @@ int ft_board_setup(void *blob, bd_t *bd)
 	return 0;
 }
 
-#ifdef CONFIG_SPL_LOAD_FIT
-int board_fit_config_name_match(const char *name)
+static int reserve_bootlogo(void)
 {
-	struct boot_file_head *spl = (void *)(ulong)SPL_ADDR;
-	const char *cmp_str = (void *)(ulong)SPL_ADDR;
+#ifndef FPGA_PLATFORM
+	uint32_t *compressed_logo_size =
+		(uint32_t *)(CONFIG_SYS_TEXT_BASE + (3 * 1024 * 1024));
+	uint32_t *compressed_logo_buf =
+		(uint32_t *)(CONFIG_SYS_TEXT_BASE + (3 * 1024 * 1024) + 16);
 
-	/* Check if there is a DT name stored in the SPL header and use that. */
-	if (spl->dt_name_offset) {
-		cmp_str += spl->dt_name_offset;
-	} else {
-#ifdef CONFIG_DEFAULT_DEVICE_TREE
-		cmp_str = CONFIG_DEFAULT_DEVICE_TREE;
-#else
+	gd->boot_logo_addr = 0;
+	if (get_boot_work_mode() != WORK_MODE_BOOT) {
+		debug("no boot mode, dont read bootlogo\n");
 		return 0;
-#endif
-	};
-
-/* Differentiate the two Pine64 board DTs by their DRAM size. */
-	if (strstr(name, "-pine64") && strstr(cmp_str, "-pine64")) {
-		if ((gd->ram_size > 512 * 1024 * 1024))
-			return !strstr(name, "plus");
-		else
-			return !!strstr(name, "plus");
-	} else {
-		return strcmp(name, cmp_str);
 	}
-}
+	if (((uboot_spare_head.boot_data.func_mask &
+	      UBOOT_FUNC_MASK_BIT_BOOTLOGO) != UBOOT_FUNC_MASK_BIT_BOOTLOGO) ||
+	    (*compressed_logo_size == 0)) {
+		debug("no bootlogo from boot_package\n");
+		return 0;
+	}
+	gd->start_addr_sp -= ALIGN(*compressed_logo_size, 16);
+	gd->boot_logo_addr =
+		(ulong)map_sysmem(gd->start_addr_sp, *compressed_logo_size);
+	/* reserve logo_buf size addr */
+	gd->start_addr_sp -= 16;
+	*(uint *)(gd->boot_logo_addr - 16) = *compressed_logo_size;
+	memcpy((void *)gd->boot_logo_addr, compressed_logo_buf,
+	       *compressed_logo_size);
+	debug("reserve: 0x%lx from 0x%x: for boot logo in boot package\n",
+	      gd->boot_logo_addr, *compressed_logo_size);
 #endif
+	return 0;
+}
+
+int reserve_arch(void)
+{
+	reserve_bootlogo();
+	return 0;
+}

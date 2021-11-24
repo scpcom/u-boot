@@ -129,6 +129,7 @@ void print_size(uint64_t size, const char *s)
 	printf (" %ciB%s", c, s);
 }
 
+
 #define MAX_LINE_LENGTH_BYTES (64)
 #define DEFAULT_LINE_LENGTH_BYTES (16)
 int print_buffer(ulong addr, const void *data, uint width, uint count,
@@ -175,6 +176,14 @@ int print_buffer(ulong addr, const void *data, uint width, uint count,
 				x = lb.us[i] = *(volatile uint16_t *)data;
 			else
 				x = lb.uc[i] = *(volatile uint8_t *)data;
+#ifdef CONFIG_SUNXI_MEM_MAPPING_CHECK
+			extern int mem_mapping_check(u32 addr);
+			if (!mem_mapping_check((u32)data)) {
+				x = 0;
+				memset(lb.uc + width * i, 0, width);
+			}
+#endif
+
 #ifdef CONFIG_SYS_SUPPORT_64BIT_DATA
 			printf(" %0*llx", width * 2, (long long)x);
 #else

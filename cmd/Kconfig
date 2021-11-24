@@ -152,6 +152,7 @@ config CMD_BDI
 	help
 	  Print board info
 
+
 config CMD_CONFIG
 	bool "config"
 	select BUILD_BIN2C
@@ -214,7 +215,7 @@ config CMD_BOOTZ
 
 config CMD_BOOTI
 	bool "booti"
-	depends on ARM64
+	depends on ARM64 || RISCV
 	default y
 	help
 	  Boot an AArch64 Linux Kernel image from memory.
@@ -222,13 +223,13 @@ config CMD_BOOTI
 config CMD_BOOTEFI
 	bool "bootefi"
 	depends on EFI_LOADER
-	default y
+	default n
 	help
 	  Boot an EFI image from memory.
 
 config CMD_BOOTEFI_HELLO_COMPILE
 	bool "Compile a standard EFI hello world binary for testing"
-	depends on CMD_BOOTEFI && (ARM || X86)
+	depends on CMD_BOOTEFI && (ARM || X86 || RISCV)
 	default y
 	help
 	  This compiles a standard EFI hello world application with U-Boot so
@@ -258,7 +259,7 @@ config CMD_BOOTMENU
 
 config CMD_ELF
 	bool "bootelf, bootvx"
-	default y
+	default n
 	help
 	  Boot an ELF/vxWorks image from the memory.
 
@@ -271,7 +272,7 @@ config CMD_FDT
 
 config CMD_GO
 	bool "go"
-	default y
+	default n
 	help
 	  Start an application at a given address.
 
@@ -283,7 +284,7 @@ config CMD_RUN
 
 config CMD_IMI
 	bool "iminfo"
-	default y
+	default n
 	help
 	  Print header information for application image.
 
@@ -294,7 +295,7 @@ config CMD_IMLS
 
 config CMD_XIMG
 	bool "imxtract"
-	default y
+	default n
 	help
 	  Extract a part of a multi-image.
 
@@ -813,6 +814,11 @@ config CMD_NAND
 	default y if NAND_SUNXI
 	help
 	  NAND support.
+config CMD_SUNXI_NAND
+	bool "sunxi nand"
+	depends on SUNXI_NAND
+	help
+	  SUNXI NAND SUPPORT
 
 if CMD_NAND
 config CMD_NAND_TRIMFFS
@@ -1021,11 +1027,26 @@ config CMD_SETEXPR
 
 endmenu
 
+menu "Android support commands"
+
+config CMD_AB_SELECT
+	bool "ab_select"
+	default n
+	depends on ANDROID_AB
+	help
+	  On Android devices with more than one boot slot (multiple copies of
+	  the kernel and system images) this provides a command to select which
+	  slot should be used to boot from and register the boot attempt. This
+	  is used by the new A/B update model where one slot is updated in the
+	  background while running from the other slot.
+
+endmenu
+
 if NET
 
 menuconfig CMD_NET
 	bool "Network commands"
-	default y
+	default n
 
 if CMD_NET
 
@@ -1701,4 +1722,93 @@ config CMD_UBIFS
 	help
 	  UBIFS is a file system for flash devices which works on top of UBI.
 
+config UBI_OFFLINE_BURN
+	tristate "Enable offline burn for ubi"
+	depends on CMD_UBI
+	select CRC32
+	default n if CMD_UBI
+	help
+	  Enable offline burn for ubi
+
 endmenu
+
+menu "Sunxi cmd"
+config CMD_SUNXI_TIMER
+	bool "timer test"
+	help
+	  Activate this option to test sunxi timer.
+
+config CMD_SUNXI_SPRITE
+	bool "sprite test"
+	help
+	  Activate this option to test sunxi sprite.
+
+config CMD_SUNXI_EFEX
+	bool "efex test"
+	help
+	  Activate this option to test sunxi efex.
+
+config CMD_SUNXI_FLASH
+	bool "sunxi flash test"
+	default y
+	help
+	  Activate this option to test sunxi flash.
+
+config CMD_SUNXI_BURN
+	bool "pburn test"
+	depends on SUNXI_BURN
+	help
+	  Activate this option to test sunxi burn.
+
+config CMD_SUNXI_DMA
+	bool "sunxi dma test"
+	depends on SUNXI_DMA
+	help
+	  Activate this option to test sunxi dma.
+
+config CMD_SUNXI_EFEX
+	bool "sunxi efex test"
+	default y
+	help
+	  Activate this option to test sunxi fel mode.
+
+config CMD_FASTBOOT
+	bool "enable fastboot"
+	default n
+	select SUNXI_FASTBOOT
+	help
+	  enable fastboot
+
+config CMD_SUNXI_MEMTEST
+	bool "enable memtester"
+	default n
+	help
+	  enable sunxi memtester
+
+config CMD_PWM_LED
+	bool "pwm led"
+	default n
+	help
+	  set pwm led
+
+config CMD_SUNXI_AUTO_FEL
+	bool "enable auto fel"
+	default n
+	select SUNXI_BURN
+	help
+	  enable auto fel function by probe MP tools.
+
+config CMD_SUNXI_BOOTR
+	bool "enable bootr"
+	default n
+	help
+	  enable sunxi bootr
+
+config CMD_SUNXI_CE_TEST
+	bool "sunxi ce test cmd"
+	default n
+	help
+	  enable test for ce api
+
+
+endmenu 

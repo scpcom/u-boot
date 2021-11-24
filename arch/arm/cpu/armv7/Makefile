@@ -5,6 +5,10 @@
 
 extra-y	:= start.o
 
+ifeq ($(CONFIG_ARCH_SUNXI),y)
+extra-y	+= spare_head.o
+endif
+
 obj-y	+= cache_v7.o cache_v7_asm.o
 
 obj-y	+= cpu.o cp15.o

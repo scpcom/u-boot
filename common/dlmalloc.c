@@ -1,3 +1,9 @@
+/*
+ * Copyright 2000-2009
+ * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+*/
 #include <common.h>
 
 #if defined(CONFIG_UNIT_TEST)
@@ -2387,6 +2393,50 @@ int initf_malloc(void)
 
 	return 0;
 }
+
+void *malloc_align(size_t size, size_t align)
+{
+	signed long *ret, *ret_align, *ret_tem;
+	signed long  tem;
+	if (size <= 0 && align <=0) {
+		return 0;
+	}
+	if ((align & 0x3)){
+		return NULL;
+	}
+	size =  size + align;
+	ret = (signed long *)malloc(size);
+	if (!ret) {
+		return NULL;
+	}
+
+	if (!((signed long)ret & (align - 1))) {
+		/* the buffer is align
+		 * */
+		tem = (signed long)ret + align;
+		ret_align = (signed long *)(tem);
+		ret_tem = ret_align;
+		ret_tem--;
+		*ret_tem = (signed long)ret;
+	} else {
+		tem = (signed long)ret & ~(align-1);
+		tem = tem+align;
+		ret_align = (signed long *)(tem);
+		ret_tem = ret_align;
+		ret_tem--;
+		*ret_tem = (signed long)ret;
+	}
+	return (void *)ret_align;
+}
+
+void free_align(void *ptr)
+{
+	signed long *ret;
+	ret = (signed long *)ptr;
+	ret--;
+	free((void *)*ret);
+}
+
 
 /*
 

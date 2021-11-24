@@ -999,6 +999,9 @@ int file_fat_detectfs(void)
 	case IF_TYPE_MMC:
 		printf("MMC");
 		break;
+	case IF_TYPE_SUNXI_FLASH:
+		printf("SUNXI_FLASH");
+		break;
 	default:
 		printf("Unknown");
 	}

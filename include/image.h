@@ -1272,13 +1272,20 @@ static inline int fit_image_check_target_arch(const void *fdt, int node)
 
 #if defined(CONFIG_ANDROID_BOOT_IMAGE)
 struct andr_img_hdr;
+struct vendor_boot_img_hdr *get_vendor_hdr_addr(void);
 int android_image_check_header(const struct andr_img_hdr *hdr);
 int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 			     ulong *os_data, ulong *os_len);
 int android_image_get_ramdisk(const struct andr_img_hdr *hdr,
 			      ulong *rd_data, ulong *rd_len);
+int android_image_get_vendor_ramdisk(const struct andr_img_hdr *hdr,
+				ulong *rd_data, ulong *rd_len);
 int android_image_get_second(const struct andr_img_hdr *hdr,
 			      ulong *second_data, ulong *second_len);
+int android_image_get_recovery_dtbo(const struct andr_img_hdr *hdr,
+			      ulong *recovery_dtbo_data, ulong *recovery_dtbo_len);
+int android_image_get_dtb(const struct andr_img_hdr *hdr,
+			      ulong *dtb_data, ulong *dtb_len);
 ulong android_image_get_end(const struct andr_img_hdr *hdr);
 ulong android_image_get_kload(const struct andr_img_hdr *hdr);
 void android_print_contents(const struct andr_img_hdr *hdr);
@@ -1318,7 +1325,10 @@ void board_fit_image_post_process(void **p_image, size_t *p_size);
 
 #define FDT_ERROR	((ulong)(-1))
 
+#ifdef CONFIG_FIT
 ulong fdt_getprop_u32(const void *fdt, int node, const char *prop);
+#endif
+
 
 /**
  * fit_find_config_node() - Find the node for the best DTB in a FIT image

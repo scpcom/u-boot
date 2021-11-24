@@ -11,6 +11,7 @@ obj-y += help.o
 obj-y += version.o
 
 # command
+obj-$(CONFIG_CMD_AB_SELECT) += ab_select.o
 obj-$(CONFIG_CMD_AES) += aes.o
 obj-$(CONFIG_CMD_ARMFLASH) += armflash.o
 obj-y += blk_common.o
@@ -121,13 +122,14 @@ obj-$(CONFIG_CMD_TPM_TEST) += tpm_test.o
 obj-$(CONFIG_CMD_CROS_EC) += cros_ec.o
 obj-$(CONFIG_CMD_TSI148) += tsi148.o
 obj-$(CONFIG_CMD_UBI) += ubi.o
+obj-$(CONFIG_UBI_OFFLINE_BURN) += ubi_simu.o
 obj-$(CONFIG_CMD_UBIFS) += ubifs.o
 obj-$(CONFIG_CMD_UNIVERSE) += universe.o
 obj-$(CONFIG_CMD_UNZIP) += unzip.o
 obj-$(CONFIG_CMD_LZMADEC) += lzmadec.o
 
 obj-$(CONFIG_CMD_USB) += usb.o disk.o
-obj-$(CONFIG_CMD_FASTBOOT) += fastboot.o
+obj-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
 obj-$(CONFIG_CMD_FS_UUID) += fs_uuid.o
 
 obj-$(CONFIG_CMD_USB_MASS_STORAGE) += usb_mass_storage.o
@@ -148,6 +150,26 @@ obj-$(CONFIG_CMD_PMIC) += pmic.o
 obj-$(CONFIG_CMD_REGULATOR) += regulator.o
 
 obj-$(CONFIG_CMD_BLOB) += blob.o
+
+# sunxi
+obj-$(CONFIG_CMD_SUNXI_TIMER) += sunxi_timer.o
+obj-$(CONFIG_CMD_SUNXI_SPRITE) += sunxi_sprite.o
+obj-$(CONFIG_CMD_SUNXI_FLASH) += sunxi_flash.o
+obj-$(CONFIG_CMD_SUNXI_DMA) += sunxi_dma.o
+obj-$(CONFIG_CMD_SUNXI_EFEX) += sunxi_efex.o
+obj-$(CONFIG_CMD_SUNXI_NAND) += sunxi_nand.o
+obj-$(CONFIG_CMD_SUNXI_BURN) += sunxi_burn.o
+obj-$(CONFIG_CMD_SUNXI_BOOTR) += sunxi_bootr.o
+ifdef CONFIG_SUNXI_SECURE_STORAGE
+obj-y += sunxi_svudata.o
+endif
+obj-$(CONFIG_CMD_SUNXI_AUTO_FEL) += sunxi_auto_fel.o
+
+obj-$(CONFIG_CMD_PWM_LED) += cmd_pwm_led.o
+
+obj-$(CONFIG_CMD_SUNXI_MEMTEST) += sunxi_memtest.o ./memtest/mem_tests.o
+
+obj-$(CONFIG_CMD_SUNXI_CE_TEST) += sunxi_ce_test.o
 
 obj-$(CONFIG_X86) += x86/
 endif # !CONFIG_SPL_BUILD

@@ -30,7 +30,10 @@
 #include <image.h>
 
 #ifndef CONFIG_SYS_BOOTM_LEN
-/* use 8MByte as default max gunzip size */
+/* use 8MByte as default max gunzip size
+ * want to change the CONFIG_SYS_BOOTM_LEN
+ * to the partition header file
+ * */
 #define CONFIG_SYS_BOOTM_LEN	0x800000
 #endif
 
@@ -154,9 +157,13 @@ static int bootm_find_os(cmd_tbl_t *cmdtp, int flag, int argc,
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	case IMAGE_FORMAT_ANDROID:
 		images.os.type = IH_TYPE_KERNEL;
+#ifdef CONFIG_SUNXI_COMP_GZ
+		images.os.comp = IH_COMP_GZIP;
+#else
 		images.os.comp = IH_COMP_NONE;
-		images.os.os = IH_OS_LINUX;
+#endif
 
+		images.os.os = IH_OS_LINUX;
 		images.os.end = android_image_get_end(os_hdr);
 		images.os.load = android_image_get_kload(os_hdr);
 		images.ep = images.os.load;
@@ -207,6 +214,46 @@ static int bootm_find_os(cmd_tbl_t *cmdtp, int flag, int argc,
 	return 0;
 }
 
+#ifdef CONFIG_OF_SEPARATE
+int use_android_image_dtb(void)
+{
+	int err;
+	void *buf;
+	u32 new_fdt_totalsize;
+	ulong dtb_data;
+	ulong dtb_len;
+	buf = map_sysmem(images.os.start, 0);
+	if (buf && genimg_get_format(buf) == IMAGE_FORMAT_ANDROID) {
+		if (android_image_get_dtb(buf, &dtb_data, &dtb_len)) {
+			puts("Cannot get android dtb\n");
+			return -1;
+		}
+
+		err = fdt_check_header((void *)dtb_data);
+		if (err < 0) {
+			printf("libfdt fdt_check_header(): %s\n", fdt_strerror(err));
+			return -1;
+		} else {
+			debug("android fdt check ok, fdt size %lu\n", dtb_len);
+		}
+
+		new_fdt_totalsize = fdt_totalsize(dtb_data);
+		if (new_fdt_totalsize > (gd->fdt_size)) {
+			printf("new fdt(%u) biger than now fdt(%lu)\n",
+			 new_fdt_totalsize, gd->fdt_size);
+			return -1;
+		}
+
+		memcpy((void *)gd->fdt_blob, (void *)dtb_data, new_fdt_totalsize);
+
+		/* fdt_size is the space reserved by uboot for fdt, now set to new fdt */
+		fdt_set_totalsize((void *)gd->fdt_blob, gd->fdt_size);
+	}
+
+	return 0;
+}
+#endif
+
 /**
  * bootm_find_images - wrapper to find and locate various images
  * @flag: Ignored Argument
@@ -223,10 +270,14 @@ static int bootm_find_os(cmd_tbl_t *cmdtp, int flag, int argc,
  *     0, if all existing images were loaded correctly
  *     1, if an image is found but corrupted, or invalid
  */
+int sunxi_update_fdt_para_for_kernel(void);
+
 int bootm_find_images(int flag, int argc, char * const argv[])
 {
-	int ret;
+	 __attribute__((unused)) int ret;
 
+#if !defined(CONFIG_SUNXI_INITRD_ROUTINE)
+	/* ramdisk manually processed, pass*/
 	/* find ramdisk */
 	ret = boot_get_ramdisk(argc, argv, &images, IH_INITRD_ARCH,
 			       &images.rd_start, &images.rd_end);
@@ -234,8 +285,42 @@ int bootm_find_images(int flag, int argc, char * const argv[])
 		puts("Ramdisk image is corrupt or invalid\n");
 		return 1;
 	}
+#endif
+
 
 #if IMAGE_ENABLE_OF_LIBFDT
+#ifdef CONFIG_ARCH_SUNXI
+#if defined(CONFIG_OF_SEPARATE) && !defined(CONFIG_SUNXI_NECESSARY_REPLACE_FDT)
+/* If CONFIG_SUNXI_REPLACE_FDT_FROM_PARTITION is defined,
+ * the dtb in the partition will be used and will not be executed here.
+ *
+ * If CONFIG_SUNXI_REPLACE_FDT_FROM_PARTITION is not defined,
+ * Will use dtb in the Android image.
+ * */
+#ifndef CONFIG_SUNXI_REPLACE_FDT_FROM_PARTITION
+	if (use_android_image_dtb()) {
+		puts("Use android image dtb fail!\n");
+		return 1;
+	}
+#endif
+#endif
+	images.ft_addr = (char *)gd->fdt_blob;
+	images.ft_len  = gd->fdt_size;
+	set_working_fdt_addr((ulong)images.ft_addr);
+
+	/* set this env variable for  function boot_relocate_fdt.
+	     use fdt in place
+	  */
+	env_set("fdt_high", "0xffffffff");
+#if defined(CONFIG_OF_SEPARATE) && !defined(CONFIG_SUNXI_NECESSARY_REPLACE_FDT)
+/* If CONFIG_SUNXI_REPLACE_FDT_FROM_PARTITION is defined,
+ * this function will be called earlier,
+ * so there is no need to call this function again. */
+#ifndef CONFIG_SUNXI_REPLACE_FDT_FROM_PARTITION
+	sunxi_update_fdt_para_for_kernel();
+#endif
+#endif
+#else
 	/* find flattened device tree */
 	ret = boot_get_fdt(flag, argc, argv, IH_ARCH_DEFAULT, &images,
 			   &images.ft_addr, &images.ft_len);
@@ -244,6 +329,7 @@ int bootm_find_images(int flag, int argc, char * const argv[])
 		return 1;
 	}
 	set_working_fdt_addr((ulong)images.ft_addr);
+#endif
 #endif
 
 #if IMAGE_ENABLE_FIT
@@ -292,12 +378,12 @@ static int bootm_find_other(cmd_tbl_t *cmdtp, int flag, int argc,
  */
 static void print_decomp_msg(int comp_type, int type, bool is_xip)
 {
-	const char *name = genimg_get_type_name(type);
+	 __attribute__((unused)) const char *name = genimg_get_type_name(type);
 
 	if (comp_type == IH_COMP_NONE)
-		printf("   %s %s ... ", is_xip ? "XIP" : "Loading", name);
+		debug("   %s %s ... ", is_xip ? "XIP" : "Loading", name);
 	else
-		printf("   Uncompressing %s ... ", name);
+		debug("   Uncompressing %s ... ", name);
 }
 
 /**
@@ -418,7 +504,7 @@ int bootm_decomp_image(int comp, ulong load, ulong image_start, int type,
 		return handle_decomp_error(comp, image_len, unc_len, ret);
 	*load_end = load + image_len;
 
-	puts("OK\n");
+	debug("OK\n");
 
 	return 0;
 }
@@ -439,11 +525,16 @@ static int bootm_load_os(bootm_headers_t *images, unsigned long *load_end,
 	void *load_buf, *image_buf;
 	int err;
 
+#ifdef CONFIG_ENV_IS_IN_SUNXI_FLASH
+	ulong bootm_len = env_get_hex("load_boot_len_max", CONFIG_SYS_BOOTM_LEN);
+#else
+	ulong bootm_len = CONFIG_SYS_BOOTM_LEN;
+#endif
 	load_buf = map_sysmem(load, 0);
 	image_buf = map_sysmem(os.image_start, image_len);
 	err = bootm_decomp_image(os.comp, load, os.image_start, os.type,
 				 load_buf, image_buf, image_len,
-				 CONFIG_SYS_BOOTM_LEN, load_end);
+				 bootm_len, load_end);
 	if (err) {
 		bootstage_error(BOOTSTAGE_ID_DECOMP_IMAGE);
 		return err;
@@ -881,7 +972,7 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	case IMAGE_FORMAT_ANDROID:
-		printf("## Booting Android Image at 0x%08lx ...\n", img_addr);
+		debug("## Booting Android Image at 0x%08lx ...\n", img_addr);
 		if (android_image_get_kernel(buf, images->verify,
 					     os_data, os_len))
 			return NULL;
@@ -917,6 +1008,11 @@ static int bootm_host_load_image(const void *fit, int req_image_type)
 	void *load_buf;
 	int ret;
 
+#ifdef CONFIG_ENV_IS_IN_SUNXI_FLASH
+	ulong bootm_len = env_get_hex("load_boot_len_max", CONFIG_SYS_BOOTM_LEN);
+#else
+	ulong bootm_len = CONFIG_SYS_BOOTM_LEN;
+#endif
 	memset(&images, '\0', sizeof(images));
 	images.verify = 1;
 	noffset = fit_image_load(&images, (ulong)fit,
@@ -938,7 +1034,7 @@ static int bootm_host_load_image(const void *fit, int req_image_type)
 	/* Allow the image to expand by a factor of 4, should be safe */
 	load_buf = malloc((1 << 20) + len * 4);
 	ret = bootm_decomp_image(imape_comp, 0, data, image_type, load_buf,
-				 (void *)data, len, CONFIG_SYS_BOOTM_LEN,
+				 (void *)data, len, bootm_len,
 				 &load_end);
 	free(load_buf);
 

@@ -112,4 +112,6 @@ static inline void *malloc_cache_aligned(size_t size)
 }
 #endif
 
+#define CACHE_LINE_SIZE (64)
+
 #endif /* __ALIGNMEM_H */

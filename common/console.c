@@ -18,8 +18,11 @@
 #include <exports.h>
 #include <environment.h>
 #include <watchdog.h>
+#include <private_uboot.h>
+#include <sunxi_board.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+int script_parser_fetch(char *node_path, char *prop_name, int value[], int count);
 
 static int on_console(const char *name, const char *value, enum env_op op,
 	int flags)
@@ -359,6 +362,34 @@ void fputs(int file, const char *s)
 		console_puts(file, s);
 }
 
+void uputs(const char *s);
+
+int uprintf(int log_level, const char *fmt, ...)
+{
+	va_list args;
+	uint i, msecond;
+	char printbuffer[CONFIG_SYS_PBSIZE - 12];
+	char printbuffer_with_timestamp[CONFIG_SYS_PBSIZE];
+
+	if ((log_level > gd->debug_mode) && (log_level >= 0)) {
+		return 0;
+	}
+
+	va_start(args, fmt);
+
+	/* For this to work, printbuffer must be larger than
+	 * anything we ever want to print.
+	 */
+	msecond = get_timer_masked();
+	vsprintf(printbuffer, fmt, args);
+	i = sprintf(printbuffer_with_timestamp, "[%02u.%03u]%s",
+		    msecond / 1000, msecond % 1000, printbuffer);
+	va_end(args);
+	/* Print the string */
+	uputs(printbuffer_with_timestamp);
+	return i;
+}
+
 int fprintf(int file, const char *fmt, ...)
 {
 	va_list args;
@@ -449,11 +480,36 @@ static void pre_console_putc(const char c)
 	unmap_sysmem(buffer);
 }
 
+#if 0
+typedef struct serial_hw
+{
+	volatile unsigned int rbr;		/* 0 */
+	volatile unsigned int ier;		/* 1 */
+	volatile unsigned int fcr;		/* 2 */
+	volatile unsigned int lcr;		/* 3 */
+	volatile unsigned int mcr;		/* 4 */
+	volatile unsigned int lsr;		/* 5 */
+	volatile unsigned int msr;		/* 6 */
+	volatile unsigned int sch;		/* 7 */
+}serial_hw_t;
+
+
+
+static void pre_console_puts(const char *s)
+{
+	serial_hw_t *serial_ctrl_base = (serial_hw_t *)(SUNXI_UART0_BASE);
+	while (*s) {
+		while((serial_ctrl_base->lsr & ( 1 << 6 )) == 0);
+		serial_ctrl_base->rbr = *s++;
+	}
+}
+#else
 static void pre_console_puts(const char *s)
 {
 	while (*s)
 		pre_console_putc(*s++);
 }
+#endif
 
 static void print_pre_console_buffer(int flushpoint)
 {
@@ -488,6 +544,8 @@ static inline void print_pre_console_buffer(int flushpoint) {}
 
 void putc(const char c)
 {
+	if (gd->debug_mode == 0)
+		return;
 #ifdef CONFIG_SANDBOX
 	/* sandbox can send characters to stdout before it has a console */
 	if (!gd || !(gd->flags & GD_FLG_SERIAL_READY)) {
@@ -516,20 +574,20 @@ void putc(const char c)
 		return;
 #endif
 
+	pre_console_putc(c);
 	if (!gd->have_console)
-		return pre_console_putc(c);
+		return;
 
 	if (gd->flags & GD_FLG_DEVINIT) {
 		/* Send to the standard output */
 		fputc(stdout, c);
 	} else {
 		/* Send directly to the handler */
-		pre_console_putc(c);
 		serial_putc(c);
 	}
 }
 
-void puts(const char *s)
+void uputs(const char *s)
 {
 #ifdef CONFIG_DEBUG_UART
 	if (!gd || !(gd->flags & GD_FLG_SERIAL_READY)) {
@@ -564,6 +622,48 @@ void puts(const char *s)
 	} else {
 		/* Send directly to the handler */
 		pre_console_puts(s);
+		serial_puts(s);
+	}
+}
+
+
+void puts(const char *s)
+{
+	if (gd->debug_mode == 0)
+		return;
+#ifdef CONFIG_DEBUG_UART
+	if (!gd || !(gd->flags & GD_FLG_SERIAL_READY)) {
+		while (*s) {
+			int ch = *s++;
+
+			printch(ch);
+		}
+		return;
+	}
+#endif
+#ifdef CONFIG_CONSOLE_RECORD
+	if (gd && (gd->flags & GD_FLG_RECORD) && gd->console_out.start)
+		membuff_put(&gd->console_out, s, strlen(s));
+#endif
+#ifdef CONFIG_SILENT_CONSOLE
+	if (gd->flags & GD_FLG_SILENT)
+		return;
+#endif
+
+#ifdef CONFIG_DISABLE_CONSOLE
+	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
+		return;
+#endif
+
+	pre_console_puts(s);
+	if (!gd->have_console)
+		return;
+
+	if (gd->flags & GD_FLG_DEVINIT) {
+		/* Send to the standard output */
+		fputs(stdout, s);
+	} else {
+		/* Send directly to the handler */
 		serial_puts(s);
 	}
 }
@@ -736,9 +836,16 @@ int console_announce_r(void)
 int console_init_f(void)
 {
 	gd->have_console = 1;
-
+	int debug_mode;
 	console_update_silent();
-
+	if (get_boot_work_mode() == WORK_MODE_BOOT)
+		script_parser_fetch("/soc/platform", "debug_mode", &debug_mode, 4);
+	else
+		debug_mode = 8;
+	gd->debug_mode = debug_mode;
+#if CONFIG_IS_ENABLED(PRE_CONSOLE_BUFFER)
+	memset((char *)(CONFIG_PRE_CON_BUF_ADDR + gd->precon_buf_idx), 0, CONFIG_PRE_CON_BUF_SZ - gd->precon_buf_idx);
+#endif
 	print_pre_console_buffer(PRE_CONSOLE_FLUSHPOINT1_SERIAL);
 
 	return 0;
@@ -747,25 +854,25 @@ int console_init_f(void)
 void stdio_print_current_devices(void)
 {
 	/* Print information */
-	puts("In:    ");
+	debug("In:    ");
 	if (stdio_devices[stdin] == NULL) {
-		puts("No input devices available!\n");
+		debug("No input devices available!\n");
 	} else {
-		printf ("%s\n", stdio_devices[stdin]->name);
+		debug ("%s\n", stdio_devices[stdin]->name);
 	}
 
-	puts("Out:   ");
+	debug("Out:   ");
 	if (stdio_devices[stdout] == NULL) {
-		puts("No output devices available!\n");
+		debug("No output devices available!\n");
 	} else {
-		printf ("%s\n", stdio_devices[stdout]->name);
+		debug ("%s\n", stdio_devices[stdout]->name);
 	}
 
-	puts("Err:   ");
+	debug("Err:   ");
 	if (stdio_devices[stderr] == NULL) {
-		puts("No error devices available!\n");
+		debug("No error devices available!\n");
 	} else {
-		printf ("%s\n", stdio_devices[stderr]->name);
+		debug ("%s\n", stdio_devices[stderr]->name);
 	}
 }
 

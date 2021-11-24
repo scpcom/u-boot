@@ -16,6 +16,7 @@
 #include <fdt_support.h>
 #include <mapmem.h>
 #include <asm/io.h>
+#include "sunxi_flash.h"
 
 #define MAX_LEVEL	32		/* how deeply nested we will go */
 #define SCRATCHPAD	1024		/* bytes of scratchpad memory */
@@ -34,7 +35,7 @@ static int is_printable_string(const void *data, int len);
 /*
  * The working_fdt points to our working flattened device tree.
  */
-struct fdt_header *working_fdt;
+__attribute__((section(".data"))) struct fdt_header *working_fdt;
 
 void set_working_fdt_addr(ulong addr)
 {
@@ -251,7 +252,7 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	/*
 	 * Set the value of a property in the working_fdt.
 	 */
-	} else if (argv[1][0] == 's') {
+	} else if (strncmp(argv[1], "set", 3) == 0) {
 		char *pathp;		/* path */
 		char *prop;		/* property */
 		int  nodeoffset;	/* node offset from libfdt */
@@ -681,6 +682,11 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			extrasize = 0;
 		fdt_shrink_to_minimum(working_fdt, extrasize);
 	}
+#ifdef CONFIG_SUNXI_FDT_SAVE
+	else if (strncmp(argv[1], "save", 4) == 0) {
+		save_fdt_to_flash(working_fdt, fdt_totalsize(working_fdt));
+	}
+#endif
 	else {
 		/* Unrecognized command */
 		return CMD_RET_USAGE;
@@ -1099,6 +1105,9 @@ static char fdt_help_text[] =
 	"fdt checksign [<addr>]              - check FIT signature\n"
 	"                                        <start> - addr of key blob\n"
 	"                                                  default gd->fdt_blob\n"
+#endif
+#ifdef CONFIG_SUNXI_FDT_SAVE
+	"fdt save                           - write fdt to flash\n"
 #endif
 	"NOTE: Dereference aliases by omitting the leading '/', "
 		"e.g. fdt print ethernet0.";

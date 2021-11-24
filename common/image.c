@@ -1498,11 +1498,14 @@ int image_setup_linux(bootm_headers_t *images)
 		}
 	}
 
+#if !defined(CONFIG_SUNXI_FDT_ADDR)
+	/*manually relocated, pass*/
 	if (IMAGE_ENABLE_OF_LIBFDT) {
 		ret = boot_relocate_fdt(lmb, of_flat_tree, &of_size);
 		if (ret)
 			return ret;
 	}
+#endif
 
 	if (IMAGE_ENABLE_OF_LIBFDT && of_size) {
 		ret = image_setup_libfdt(images, *of_flat_tree, of_size, lmb);

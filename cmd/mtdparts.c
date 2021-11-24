@@ -2128,3 +2128,86 @@ U_BOOT_CMD(
 	"define flash/nand partitions", mtdparts_help_text
 );
 /***************************************************/
+
+static int _sunxi_do_mtdparts(cmd_tbl_t *cmdtp, int flag, int argc,
+		       char * const argv[])
+{
+	int ret;
+
+	/*normal boot : env is not ready, so use default.*/
+	if (!(gd->flags & GD_FLG_ENV_READY))
+		set_default_env(NULL);
+
+	ret = do_mtdparts(cmdtp, flag, argc, argv);
+
+	return ret;
+}
+
+int sunxi_do_mtdparts(int flag, int argc, char * const argv[])
+{
+	return _sunxi_do_mtdparts(NULL, flag, argc, argv);
+}
+
+char *sunxi_get_mtdparts_name(u16 mtd_partnum)
+{
+	struct part_info *part;
+
+	if (current_mtd_dev) {
+		if (mtd_partnum <= current_mtd_dev->num_parts) {
+			part = mtd_part_info(current_mtd_dev, mtd_partnum);
+			if (part)
+				return part->name;
+			else
+				printf("%s, null part.\n", __func__);
+		}
+	}
+	return NULL;
+}
+
+u64 sunxi_get_mtdpart_size(u16 mtd_partnum)
+{
+	struct part_info *part;
+
+	if (current_mtd_dev) {
+		if (mtd_partnum <= current_mtd_dev->num_parts) {
+			part = mtd_part_info(current_mtd_dev, mtd_partnum);
+			if (part)
+				return part->size;
+			else
+				printf("%s, null part.\n", __func__);
+		}
+	}
+	return 0;
+}
+
+u64 sunxi_get_mtdpart_offset(u16 mtd_partnum)
+{
+	struct part_info *part;
+
+	if (current_mtd_dev) {
+		if (mtd_partnum <= current_mtd_dev->num_parts) {
+			part = mtd_part_info(current_mtd_dev, mtd_partnum);
+			if (part)
+				return part->offset;
+			else
+				printf("%s, null part.\n", __func__);
+		}
+	}
+	return 0;
+}
+
+u16 sunxi_get_mtd_num_parts(void)
+{
+	if (current_mtd_dev)
+		return current_mtd_dev->num_parts;
+	else
+		return 0;
+}
+
+void sunxi_set_defualt_mtdpart(const char *mtdids, const char *mtdparts)
+{
+	if (mtdids)
+		mtdids_default = mtdids;
+	if (mtdparts)
+		mtdparts_default = mtdparts;
+}

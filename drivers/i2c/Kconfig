@@ -469,6 +469,162 @@ config SYS_I2C_IHS
         help
           Support for gdsys IHS I2C driver on FPGA bus.
 
+config SYS_I2C_SUNXI
+	bool "Sunxi I2C driver"
+	select SYS_I2C
+	help
+	  Support for Sunxi I2C controller.
+if SYS_I2C_SUNXI
+if I2C0_ENABLE
+config SYS_SUNXI_I2C0_SPEED
+	int "I2C0 Channel  speed"
+	default 40000000
+	help
+	 Sunxi I2C0 Channel speed
+
+config SYS_SUNXI_I2C0_SLAVE
+	hex "I2C0 Slave"
+	default 0
+	help
+	 Sunxi I2C0 Slave
+endif
+if I2C1_ENABLE
+config SYS_SUNXI_I2C1_SPEED
+	int "I2C1 Channel  speed"
+	default 40000000
+	help
+	 Sunxi I2C Channel speed
+
+config SYS_SUNXI_I2C1_SLAVE
+	hex "I2C1 Slave"
+	default 0
+	help
+	 Sunxi I2C1 Slave
+endif
+if I2C2_ENABLE
+config SYS_SUNXI_I2C2_SPEED
+	int "I2C2 Channel  speed"
+	default 40000000
+	help
+	 Sunxi I2C2 Channel speed
+
+config SYS_SUNXI_I2C2_SLAVE
+	hex "I2C2 Slave"
+	default 0
+	help
+	 Sunxi I2C2 Slave
+endif
+
+if I2C3_ENABLE
+config SYS_SUNXI_I2C3_SPEED
+	int "I2C3 Channel  speed"
+	default 40000000
+	help
+	 Sunxi I2C3 Channel speed
+
+config SYS_SUNXI_I2C3_SLAVE
+	hex "I2C3 Slave"
+	default 0
+	help
+	 Sunxi I2C3 Slave
+endif
+if I2C4_ENABLE
+config SYS_SUNXI_I2C4_SPEED
+	int "I2C4 Channel  speed"
+	default 40000000
+	help
+	 Sunxi I2C4 Channel speed
+
+config SYS_SUNXI_I2C4_SLAVE
+	hex "I2C4 Slave"
+	default 0
+	help
+	 Sunxi I2C4 Slave
+endif
+if I2C5_ENABLE
+config SYS_SUNXI_I2C5_SPEED
+	int "I2C5 Channel  speed"
+	default 40000000
+	help
+	 Sunxi I2C5 Channel speed
+
+config SYS_SUNXI_I2C5_SLAVE
+	hex "I2C5 Slave"
+	default 0
+	help
+	 Sunxi I2C5 Slave
+endif
+if R_I2C0_ENABLE
+config SYS_SUNXI_R_I2C0_SPEED
+	int "I2C Channel  speed"
+	default 40000000
+	help
+	 Sunxi I2C Channel speed
+
+config SYS_SUNXI_R_I2C0_SLAVE
+	hex "I2C Slave"
+	default 0
+	help
+	 Sunxi I2C Slave
+endif
+if R_I2C1_ENABLE
+config SYS_SUNXI_R_I2C1_SPEED
+	int "R_I2C1 Channel  speed"
+	default 40000000
+	help
+	 Sunxi R_I2C1 Channel speed
+
+config SYS_SUNXI_R_I2C1_SLAVE
+	hex "R_I2C1 Slave"
+	default 0
+	help
+	 Sunxi R_I2C1 Slave
+endif
+
+config AXP152_SUNXI_I2C_SLAVE
+	hex "AXP152 I2C Slave"
+	depends on R_I2C0_ENABLE && SUNXI_AXP152_POWER
+	default 0
+	help
+	 Sunxi AXP152 I2C Slave
+
+config AXP1530_SUNXI_I2C_SLAVE
+	hex "AXP1530 I2C Slave"
+	depends on R_I2C0_ENABLE && AXP1530_POWER
+	default 0
+	help
+	 Sunxi AXP1530 I2C Slave
+
+config AXP858_SUNXI_I2C_SLAVE
+	hex "AXP858 I2C Slave"
+	depends on R_I2C0_ENABLE && AXP858_POWER
+	default 0
+	help
+	 Sunxi AXP858 I2C Slave
+
+config AXP81X_SUNXI_I2C_SLAVE
+	hex "AXP81X I2C Slave"
+	depends on R_I2C0_ENABLE && AXP81X_POWER
+	default 0
+	help
+	 Sunxi AXP81X I2C Slave
+
+config AXP806_SUNXI_I2C_SLAVE
+	hex "AXP806 I2C Slave"
+	depends on R_I2C0_ENABLE && AXP806_POWER
+	default 0
+	help
+	 Sunxi AXP806 I2C Slave
+
+config AXP2202_SUNXI_I2C_SLAVE
+	hex "AXP2202 I2C Slave"
+	depends on R_I2C0_ENABLE && AXP2202_POWER
+	default 0
+	help
+	 Sunxi AXP2202 I2C Slave
+endif
+
+
 source "drivers/i2c/muxes/Kconfig"
 
 endmenu

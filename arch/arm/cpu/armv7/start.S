@@ -93,7 +93,7 @@ ENTRY(c_runtime_cpu_setup)
 /*
  * If I-cache is enabled invalidate it
  */
-#ifndef CONFIG_SYS_ICACHE_OFF
+#if !CONFIG_IS_ENABLED(SYS_ICACHE_OFF)
 	mcr	p15, 0, r0, c7, c5, 0	@ invalidate icache
 	mcr     p15, 0, r0, c7, c10, 4	@ DSB
 	mcr     p15, 0, r0, c7, c5, 4	@ ISB
@@ -151,12 +151,27 @@ ENTRY(cpu_init_cp15)
 	bic	r0, r0, #0x00000007	@ clear bits 2:0 (-CAM)
 	orr	r0, r0, #0x00000002	@ set bit 1 (--A-) Align
 	orr	r0, r0, #0x00000800	@ set bit 11 (Z---) BTB
-#ifdef CONFIG_SYS_ICACHE_OFF
+#if CONFIG_IS_ENABLED(SYS_ICACHE_OFF)
 	bic	r0, r0, #0x00001000	@ clear bit 12 (I) I-cache
 #else
 	orr	r0, r0, #0x00001000	@ set bit 12 (I) I-cache
 #endif
 	mcr	p15, 0, r0, c1, c0, 0
+
+#ifdef SUNXI_ARM_A53
+	/*
+	 *clear AFE,TRE bit in sctrl
+	 *non-secure: reset value is unknow
+	 *secure    : default value is 0
+	 *notice    : we must set the TRE bit to enable the memory
+	 *            arttribute configuration from the section table.
+	 */
+	MRC     p15, 0, r0, c1, c0, 0   @Read SCTLR
+	BIC     r0, r0, #(1<<28)        @clr TRE bit
+	BIC     r0, r0, #(1<<29)        @clr AEF bit
+	MCR     p15, 0, r0, c1, c0, 0   @Write SCTLR
+#endif
+
 
 #ifdef CONFIG_ARM_ERRATA_716044
 	mrc	p15, 0, r0, c1, c0, 0	@ read system control register

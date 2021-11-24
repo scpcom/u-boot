@@ -9,6 +9,7 @@ ifneq (,$(filter $(SOC), mx31 mx35 mx5 mx6 mx7 vf610))
 obj-y += imx_watchdog.o
 endif
 obj-$(CONFIG_S5P)               += s5p_wdt.o
+obj-$(CONFIG_SUNXI_WATCHDOG) += sunxi_wdt.o
 obj-$(CONFIG_XILINX_TB_WATCHDOG) += xilinx_tb_wdt.o
 obj-$(CONFIG_OMAP_WATCHDOG) += omap_wdt.o
 obj-$(CONFIG_DESIGNWARE_WATCHDOG) += designware_wdt.o

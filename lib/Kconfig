@@ -64,7 +64,7 @@ config TPL_STRTO
 config USE_PRIVATE_LIBGCC
 	bool "Use private libgcc"
 	depends on HAVE_PRIVATE_LIBGCC
-	default y if HAVE_PRIVATE_LIBGCC && ((ARM && !ARM64) || MIPS)
+	default y if HAVE_PRIVATE_LIBGCC && ((ARM && !ARM64) || MIPS) && (!CMD_SUNXI_JPEG)
 	help
 	  This option allows you to use the built-in libgcc implementation
 	  of U-Boot instead of the one provided by the compiler.
@@ -174,6 +174,31 @@ config TPM
 	  for the low-level TPM interface, but only one TPM is supported at
 	  a time by the TPM library.
 
+config OPENSSL
+	bool "Openssl support"
+	help
+	  This enables support for X509 certificate decoding.
+
+config CRYPTO
+	bool "Use Crypto lib support"
+	default n
+	help
+	  This enables support for the crypto lib which is support rsa/ecc/aes/hash.
+
+endmenu
+
+menu "Android Verified Boot"
+
+config LIBAVB
+	bool "Android Verified Boot 2.0 support"
+	depends on ANDROID_BOOT_IMAGE
+	default n
+	help
+	  This enables support of Android Verified Boot 2.0 which can be used
+	  to assure the end user of the integrity of the software running on a
+	  device. Introduces such features as boot chain of trust, rollback
+	  protection etc.
+
 endmenu
 
 menu "Hashing Support"
@@ -274,6 +299,11 @@ config ERRNO_STR
 	  - if errno is null or positive number - a pointer to "Success" message
 	  - if errno is negative - a pointer to errno related message
 
+config HEXDUMP
+	bool "Enable hexdump"
+	help
+	  This enables functions for printing dumps of binary data.
+
 config OF_LIBFDT
 	bool "Enable the FDT library"
 	default y if OF_CONTROL
@@ -288,6 +318,20 @@ config OF_LIBFDT_OVERLAY
 	bool "Enable the FDT library overlay support"
 	help
 	  This enables the FDT library (libfdt) overlay support.
+
+config SUNXI_OVERLAY
+	bool "Enable the SXUNI FDT library overlay support"
+	depends on OF_LIBFDT_OVERLAY
+	default n
+	help
+	  This enables the SUNXI FDT library (libfdt) overlay support.
+
+config SUNXI_ANDROID_OVERLAY
+	bool "Enable the SXUNI ANDROID FDT library overlay support"
+	depends on OF_LIBFDT_OVERLAY
+	default n
+	help
+	  This enables the SUNXI ANDROID FDT library (libufdt) overlay support.
 
 config SPL_OF_LIBFDT
 	bool "Enable the FDT library for SPL"

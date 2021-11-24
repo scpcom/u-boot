@@ -72,6 +72,99 @@ u32 fdt_getprop_u32_default(const void *fdt, const char *path,
 }
 
 /**
+ * fdt_getprop_u32 - Find a node and return it's property or a default
+ *
+ * @fdt: ptr to device tree
+ * @nodeoffset:  by fdt_path_offset() function
+ * @prop: property name
+ * @val: return value if the property is found
+ * @note return value is the num of  the u32 element
+ */
+int fdt_getprop_u32(const void *fdt, int nodeoffset,
+			const char *prop, uint32_t *val)
+{
+	int len;
+	const fdt32_t* data=NULL;
+
+	data = fdt_getprop(fdt, nodeoffset, prop, &len);
+	if((data == NULL) || (len ==0) || (len % 4 != 0))
+	{
+		return -FDT_ERR_INTERNAL;
+	}
+	if(val != NULL)
+	{
+		const uint32_t *p = data;
+		int j ;
+		for (j = 0, p = data; j < len/4; j++)
+		{
+			*val = fdt32_to_cpu(p[j]);
+			val++;
+		}
+	}
+	return len/4;
+}
+
+/**
+ * fdt_getprop_u64 - Find a node and return it's property or a default
+ *
+ * @fdt: ptr to device tree
+ * @nodeoffset: by fdt_path_offset() function
+ * @prop: property name
+ * @val: return value if the property is found
+ * @note return value is the num of the u64 element
+ */
+int fdt_getprop_u64(const void *fdt, int nodeoffset,
+			const char *name, uint64_t *val)
+{
+	int len;
+	const fdt64_t *data = NULL;
+
+	data = fdt_getprop(fdt, nodeoffset, name, &len);
+	if ((data == NULL) || (len == 0) || (len % 8 != 0)) {
+		return -FDT_ERR_INTERNAL;
+	}
+
+	if (val != NULL) {
+		const uint64_t *p = data;
+		int j ;
+		for (j = 0, p = data; j < len/8; j++) {
+			*val = fdt64_to_cpu(p[j]);
+			val++;
+		}
+	}
+	return len/8;
+}
+
+
+/**
+ * fdt_getprop_string - Find a node and return it's property or a default
+ *
+ * @fdt: ptr to device tree
+ * @nodeoffset:  by fdt_path_offset() function
+ * @prop: property name
+ * @val: return value if the property is found
+ * @note: return value is the len of the string
+ */
+
+int fdt_getprop_string(const void *fdt, int nodeoffset,
+			const char *name, char **val)
+{
+	int len;
+	char* data=NULL;
+
+	*val = NULL;
+	data = (void*)fdt_getprop(fdt, nodeoffset, name, &len);
+	if(data != NULL)
+	{
+		if(val != NULL) *val =  data;
+		return len;
+	}
+	return -FDT_ERR_NOTFOUND;
+}
+
+
+
+/**
  * fdt_find_and_setprop: Find a node and set it's property
  *
  * @fdt: ptr to device tree
@@ -1383,7 +1476,7 @@ unsigned int fdt_create_phandle(void *fdt, int nodeoffset)
 		phandle = fdt_alloc_phandle(fdt);
 		ret = fdt_set_phandle(fdt, nodeoffset, phandle);
 		if (ret < 0) {
-			printf("Can't set phandle %u: %s\n", phandle,
+			printf("Can't set phandle %d: %s\n", phandle,
 			       fdt_strerror(ret));
 			return 0;
 		}

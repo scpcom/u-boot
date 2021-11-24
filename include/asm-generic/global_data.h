@@ -52,6 +52,7 @@ typedef struct global_data {
 	unsigned long env_has_init;	/* Bitmask of boolean of struct env_location offsets */
 	int env_load_location;
 
+	unsigned long ram_base;
 	unsigned long ram_top;		/* Top address of RAM used by U-Boot */
 	unsigned long relocaddr;	/* Start address of U-Boot in RAM */
 	phys_size_t ram_size;		/* RAM size */
@@ -72,7 +73,10 @@ typedef struct global_data {
 
 	const void *fdt_blob;		/* Our device tree, NULL if none */
 	void *new_fdt;			/* Relocated FDT */
+	void *new_ext_fdt;		/* Relocated EXTERNAL FDT */
+	void *new_dtbo;			/*Relocated dtbo */
 	unsigned long fdt_size;		/* Space reserved for relocated FDT */
+	unsigned long fdt_ext_size;	/* Space reserved for relocated EXTERNAL FDT */
 #ifdef CONFIG_OF_LIVE
 	struct device_node *of_root;
 #endif
@@ -121,6 +125,44 @@ typedef struct global_data {
 	struct list_head log_head;	/* List of struct log_device */
 	int log_fmt;			/* Mask containing log format info */
 #endif
+#ifdef CONFIG_ARCH_SUNXI
+	long           securemode;
+	void          *parameter_mod_buf;
+	long           boot_card_num;
+	ulong          lockflag;
+	ulong          chargemode;
+
+	ulong          parameter_reloc_buf;
+	ulong          parameter_reloc_size;
+
+	ulong          malloc_noncache_start;
+
+	long           key_pressd_value;
+	long           axp_power_soft_id;
+	long           power_step_level;
+	long           pmu_suspend_chgcur;
+	long           pmu_runtime_chgcur;
+	long           limit_vol;
+	long           limit_cur;
+	long           limit_pcvol;
+	long           limit_pccur;
+	ulong          force_download_uboot;
+	ulong          vbus_status;//0: unknow 1:exist 2:not exist
+	ulong          debug_mode;
+	long           force_shell;
+	long           user_debug_mode;
+	ulong          layer_para;
+	ulong          layer_hd;
+	ulong          bootfile_mode;
+	int            pmu_saved_status;
+	int 		   need_shutdown;
+	int            logo_status_multiboot;
+	int            ir_detect_status;
+	bool			uboot_shell;
+	ulong          boot_logo_addr;
+
+#endif
+
 } gd_t;
 #endif
 

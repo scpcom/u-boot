@@ -11,10 +11,31 @@
 
 #include <linux/libfdt.h>
 
+/**
+ * arch_fixup_fdt() - Write arch-specific information to fdt
+ *
+ * Defined in arch/$(ARCH)/lib/bootm-fdt.c
+ *
+ * @blob:	FDT blob to write to
+ * @return 0 if ok, or -ve FDT_ERR_... on failure
+ */
+int arch_fixup_fdt(void *blob);
+
+void ft_cpu_setup(void *blob, bd_t *bd);
+
+void ft_pci_setup(void *blob, bd_t *bd);
+
 u32 fdt_getprop_u32_default_node(const void *fdt, int off, int cell,
 				const char *prop, const u32 dflt);
 u32 fdt_getprop_u32_default(const void *fdt, const char *path,
 				const char *prop, const u32 dflt);
+int fdt_getprop_u32(const void *fdt, int nodeoffset,
+			const char *name, uint32_t *val);
+int fdt_getprop_u64(const void *fdt, int nodeoffset,
+			const char *name,uint64_t *val);
+int fdt_getprop_string(const void *fdt, int nodeoffset,
+			const char *name, char **val);
+
 
 /**
  * Add data to the root of the FDT before booting the OS.

@@ -9,6 +9,8 @@
 #ifndef _SPI_H_
 #define _SPI_H_
 
+#include <common.h>
+
 /* SPI mode flags */
 #define SPI_CPHA	BIT(0)			/* clock phase */
 #define SPI_CPOL	BIT(1)			/* clock polarity */
@@ -115,12 +117,7 @@ struct spi_slave {
 #define SPI_XFER_MMAP_END	BIT(3)	/* Memory Mapped End */
 };
 
-/**
- * Initialization, must be called once on start up.
- *
- * TODO: I don't think we really need this.
- */
-void spi_init(void);
+int spi_init(void);
 
 /**
  * spi_do_alloc_slave - Allocate a new SPI slave (internal)
@@ -403,6 +400,15 @@ struct dm_spi_ops {
 		    void *din, unsigned long flags);
 
 	/**
+	 * Optimized handlers for SPI memory-like operations.
+	 *
+	 * Optimized/dedicated operations for interactions with SPI memory. This
+	 * field is optional and should only be implemented if the controller
+	 * has native support for memory like operations.
+	 */
+	const struct spi_controller_mem_ops *mem_ops;
+
+	/**
 	 * Set transfer speed.
 	 * This sets a new speed to be applied for next spi_xfer().
 	 * @bus:	The SPI bus
@@ -492,14 +498,15 @@ int spi_find_bus_and_cs(int busnum, int cs, struct udevice **busp,
  * device and slave device.
  *
  * If no such slave exists, and drv_name is not NULL, then a new slave device
- * is automatically bound on this chip select.
+ * is automatically bound on this chip select with requested speed and mode.
  *
- * Ths new slave device is probed ready for use with the given speed and mode.
+ * Ths new slave device is probed ready for use with the speed and mode
+ * from platdata when available or the requested values.
  *
  * @busnum:	SPI bus number
  * @cs:		Chip select to look for
- * @speed:	SPI speed to use for this slave
- * @mode:	SPI mode to use for this slave
+ * @speed:	SPI speed to use for this slave when not available in platdata
+ * @mode:	SPI mode to use for this slave when not available in platdata
  * @drv_name:	Name of driver to attach to this chip select
  * @dev_name:	Name of the new device thus created
  * @busp:	Returns bus device

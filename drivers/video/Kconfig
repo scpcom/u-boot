@@ -658,4 +658,6 @@ config VIDEO_DT_SIMPLEFB
 	  The video output is initialized by U-Boot, and kept by the
 	  kernel.
 
+source "drivers/video/sunxi/Kconfig"
+
 endmenu

@@ -4,6 +4,14 @@ menu "ARM architecture"
 config SYS_ARCH
 	default "arm"
 
+config SYS_ICACHE_OFF
+	bool "Do not use Instruction Cache"
+	default n
+
+config SYS_DCACHE_OFF
+	bool "Do not use Data Cache"
+	default n
+
 config ARM64
 	bool
 	select PHYS_64BIT
@@ -73,6 +81,54 @@ config ARM_ASM_UNIFIED
 # Used for compatibility with asm files copied from the kernel
 config THUMB2_KERNEL
 	bool
+
+config SYS_ICACHE_OFF
+	bool "Do not enable icache"
+	default n
+	help
+	  Do not enable instruction cache in U-Boot.
+
+config SPL_SYS_ICACHE_OFF
+	bool "Do not enable icache in SPL"
+	depends on SPL
+	default SYS_ICACHE_OFF
+	help
+	  Do not enable instruction cache in SPL.
+
+config SYS_DCACHE_OFF
+	bool "Do not enable dcache"
+	default n
+	help
+	  Do not enable data cache in U-Boot.
+
+config SPL_SYS_DCACHE_OFF
+	bool "Do not enable dcache in SPL"
+	depends on SPL
+	default SYS_DCACHE_OFF
+	help
+	  Do not enable data cache in SPL.
+
+config SYS_ARM_CACHE_CP15
+	bool "CP15 based cache enabling support"
+	help
+	  Select this if your processor suports enabling caches by using
+	  CP15 registers.
+
+config SYS_ARM_MMU
+	bool "MMU-based Paged Memory Management Support"
+	select SYS_ARM_CACHE_CP15
+	help
+	  Select if you want MMU-based virtualised addressing space
+	  support by paged memory management.
+
+config SYS_ARM_MPU
+	bool 'Use the ARM v7 PMSA Compliant MPU'
+	help
+	  Some ARM systems without an MMU have instead a Memory Protection
+	  Unit (MPU) that defines the type and permissions for regions of
+	  memory.
+	  If your CPU has an MPU then you should choose 'y' here unless you
+	  know that you do not want to use the MPU.
 
 # If set, the workarounds for these ARM errata are applied early during U-Boot
 # startup. Note that in general these options force the workarounds to be
@@ -255,7 +311,7 @@ config SYS_ARCH_TIMER
 config ARM_SMCCC
 	bool "Support for ARM SMC Calling Convention (SMCCC)"
 	depends on CPU_V7 || ARM64
-	select ARM_PSCI_FW
+	#select ARM_PSCI_FW
 	help
 	  Say Y here if you want to enable ARM SMC Calling Convention.
 	  This should be enabled if U-Boot needs to communicate with system
@@ -348,7 +404,7 @@ config ARM64_SUPPORT_AARCH32
 
 choice
 	prompt "Target select"
-	default TARGET_HIKEY
+	default ARCH_ARM_SUNXI
 
 config ARCH_AT91
 	bool "Atmel AT91"
@@ -709,7 +765,7 @@ config ARCH_SOCFPGA
 	imply HW_WATCHDOG
 	imply SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
 
-config ARCH_SUNXI
+config ARCH_SUNXI_XXX
 	bool "Support sunxi (Allwinner) SoCs"
 	select BINMAN
 	select CMD_GPIO
@@ -747,6 +803,26 @@ config ARCH_SUNXI
 	imply SPL_POWER_SUPPORT
 	imply SPL_SERIAL_SUPPORT
 	imply USB_GADGET
+
+config ARCH_ARM_SUNXI
+	bool "Support arm sunxi (Allwinner) SoCs"
+	#select CMD_GPIO
+	#select CMD_USB if DISTRO_DEFAULTS
+	#select DM
+	#select DM_ETH
+	#select DM_GPIO
+	#select DM_KEYBOARD
+	#select DM_SERIAL
+	select OF_BOARD_SETUP
+	select OF_CONTROL
+	select SPECIFY_CONSOLE_INDEX
+	select SYS_NS16550
+	select SYS_THUMB_BUILD if !ARM64
+	select USE_TINY_PRINTF
+	imply CMD_GPT
+	imply FAT_WRITE
+	imply OF_LIBFDT_OVERLAY
+	imply PRE_CONSOLE_BUFFER
 
 config ARCH_VF610
 	bool "Freescale Vybrid"
