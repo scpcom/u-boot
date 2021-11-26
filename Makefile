@@ -1516,9 +1516,15 @@ define filechk_version.h
 endef
 
 DIRTY:=$(shell echo `git describe --dirty|grep -o dirty$$`)
-DEF_DOT_CONFIG_HASH=$(shell echo `cat .tmp_config_from_defconfig.o.md5sum`)
-CUR_DOT_CONFIG_HASH=$(shell echo `md5sum .config| awk '{printf $$1}'`)
-CONFIG_DIRTY:=$(shell if [ $(DEF_DOT_CONFIG_HASH) = $(CUR_DOT_CONFIG_HASH) ]; \
+DEF_DOT_CONFIG_HASH=$(shell if [ -e .tmp_config_from_defconfig.o.md5sum ]; \
+	then echo `cat .tmp_config_from_defconfig.o.md5sum`; \
+	else echo ""; \
+	fi)
+CUR_DOT_CONFIG_HASH=$(shell if [ -e .config ]; \
+	then echo `md5sum .config| awk '{printf $$1}'`; \
+	else echo ""; \
+	fi)
+CONFIG_DIRTY:=$(shell if [ x$(DEF_DOT_CONFIG_HASH) = x$(CUR_DOT_CONFIG_HASH) ]; \
 	then echo ""; \
 	else echo "-config-dirty"; \
 	fi)
