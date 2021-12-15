@@ -13,8 +13,13 @@
 #ifndef	SUNXI_IMAGE_H
 #define	SUNXI_IMAGE_H
 
-#include <linux/compiler_attributes.h>
+#include <linux/compiler.h>
 #include <linux/types.h>
+
+#define __packed   __attribute__((packed))
+
+#define ALIGN(x, a) __ALIGN_MASK((x), (typeof(x))(a)-1)
+#define __ALIGN_MASK(x, mask) (((x)+(mask))&~(mask))
 
 #define BOOT0_MAGIC		"eGON.BT0"
 #define BROM_STAMP_VALUE	0x5f0a6c39
