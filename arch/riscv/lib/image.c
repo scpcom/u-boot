@@ -52,6 +52,9 @@ int booti_setup(ulong image, ulong *relocated_addr, ulong *size)
 	}
 	*size = lhdr->image_size;
 	*relocated_addr = gd->ram_base + lhdr->text_offset;
+#ifdef CONFIG_ARCH_SUNXI
+	*relocated_addr |= 0x40000000;
+#endif
 
 	unmap_sysmem(lhdr);
 
