@@ -15,6 +15,20 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_SUNXI_REPLACE_FDT_FROM_PARTITION
 
+static void sunxi_env_update(const char *varname, const char *value)
+{
+	char *old_value = env_get(varname);
+	char  new_value[128] = {0};
+
+	if (old_value)
+		strncpy(new_value, old_value, sizeof(new_value)-1);
+	else
+		strncpy(new_value, value, sizeof(new_value)-1);
+	debug("update %s=%s\n", varname, new_value);
+
+	env_set(varname, new_value);
+}
+
 static int parse_replace_fdt(char *replace_fdt,
 		 char *partition_name, char *partition_type, char *file_name)
 {
@@ -157,6 +171,7 @@ static int __load_fdt_file_from_fat(int partno, char *file_name, void *buffer)
 		pr_err("load file(%s) error\n", file_name);
 		return -1;
 	}
+	sunxi_env_update("bootdev", part_info);
 	return 0;
 }
 
@@ -216,8 +231,13 @@ int sunxi_replace_fdt(void)
 	char partition_type[128] = {0};
 	char file_name[128] = {0};
 
+	sunxi_env_update("fdtfile", FDTFILE);
+
 	if (replace_fdt) {
 		parse_replace_fdt(replace_fdt, partition_name, partition_type, file_name);
+		if (strcmp(file_name, "${fdtfile}") == 0) {
+			strncpy(file_name, env_get("fdtfile"), sizeof(file_name)-1);
+		}
 		if (strcmp(partition_type, "raw") == 0) {
 			pr_msg("replaced fdt : partition type (%s)\n", partition_type);
 			if (sunxi_replace_fdt_from_raw(partition_name)) {
