@@ -60,12 +60,20 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 	return 0;
 }
 
+void update_bootargs(void);
+int sunxi_get_lcd_op_finished(void);
 int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
 
 	/* Consume 'booti' */
 	argc--; argv++;
+
+#ifdef CONFIG_DISP2_SUNXI
+	while (!sunxi_get_lcd_op_finished()) {
+		mdelay(10);
+	}
+#endif
 
 	if (booti_start(cmdtp, flag, argc, argv, &images))
 		return 1;
@@ -82,6 +90,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #elif CONFIG_ARM64
 	images.os.arch = IH_ARCH_ARM64;
 #endif
+	update_bootargs();
 	ret = do_bootm_states(cmdtp, flag, argc, argv,
 #ifdef CONFIG_SYS_BOOT_RAMDISK_HIGH
 			      BOOTM_STATE_RAMDISK |
