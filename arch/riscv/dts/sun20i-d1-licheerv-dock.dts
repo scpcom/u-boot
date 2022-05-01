@@ -221,23 +221,23 @@
 	screen1_output_type      = <1>;
 	screen1_output_mode      = <4>;
 
-	screen0_output_format    = <0>;
-	screen0_output_bits      = <0>;
-	screen0_output_eotf      = <4>;
-	screen0_output_cs        = <257>;
-	screen0_output_dvi_hdmi  = <2>;
-	screen0_output_range     = <2>;
-	screen0_output_scan      = <0>;
-	screen0_output_aspect_ratio = <8>;
+	screen1_output_format    = <0>;
+	screen1_output_bits      = <0>;
+	screen1_output_eotf      = <4>;
+	screen1_output_cs        = <257>;
+	screen1_output_dvi_hdmi  = <2>;
+	screen1_output_range     = <2>;
+	screen1_output_scan      = <0>;
+	screen1_output_aspect_ratio = <8>;
 
 	dev1_output_type         = <1>;
 	dev1_output_mode         = <4>;
-	dev1_screen_id           = <0>;
+	dev1_screen_id           = <1>;
 	dev1_do_hpd              = <0>;
 
 	dev0_output_type         = <4>;
 	dev0_output_mode         = <10>;
-	dev0_screen_id           = <1>;
+	dev0_screen_id           = <0>;
 	dev0_do_hpd              = <1>;
 
 	def_output_dev           = <0>;
