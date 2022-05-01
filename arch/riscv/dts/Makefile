@@ -5,6 +5,7 @@ dtb-$(CONFIG_TARGET_SIFIVE_FU540) += hifive-unleashed-a00.dtb
 
 dtb-$(CONFIG_ARCH_SUNXI) += \
 	sun20i-d1-licheerv-86panel.dtb \
+	sun20i-d1-licheerv-dock.dtb \
 	sun20i-d1-nezha.dtb \
 	sun20i-d1-nezha-lcd.dtb \
 	sun20i-d1-nezha-min.dtb
