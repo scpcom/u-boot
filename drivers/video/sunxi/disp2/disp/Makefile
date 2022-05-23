@@ -16,6 +16,7 @@ disp-$(CONFIG_EINK_PANEL_USED) += de/disp_eink_manager.o de/eink_pipeline_manage
 disp-objs += lcd/panels.o lcd/lcd_source.o lcd/default_panel.o
 
 
+disp-$(CONFIG_LCD_SUPPORT_ST7701S_RGB) += lcd/st7701s_rgb.o
 disp-$(CONFIG_LCD_SUPPORT_HE0801A068) += lcd/he0801a068.o
 disp-$(CONFIG_EINK_PANEL_USED) += lcd/default_eink.o
 disp-$(CONFIG_LCD_SUPPORT_LT070ME05000) += lcd/lt070me05000.o

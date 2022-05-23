@@ -162,7 +162,9 @@ __lcd_panel_t* panel_array[] = {
 #ifdef CONFIG_LCD_SUPPORT_TFT08006
 	&tft08006_panel,
 #endif
-
+#ifdef CONFIG_LCD_SUPPORT_ST7701S_RGB
+        &st7701s_rgb_panel,
+#endif
 	/* add new panel below */
 
 	NULL,
