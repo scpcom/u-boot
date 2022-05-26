@@ -269,5 +269,9 @@ extern __lcd_panel_t tft08006_panel;
 extern __lcd_panel_t st7701s_rgb_panel;
 #endif
 
+#ifdef CONFIG_LCD_SUPPORT_NV3052C_RGB
+extern __lcd_panel_t nv3052c_rgb_panel;
+#endif
+
 
 #endif
