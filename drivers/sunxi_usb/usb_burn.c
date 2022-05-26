@@ -719,6 +719,7 @@ int __sunxi_read_key_by_name(void *buffer, uint buff_len, int *read_len)
 		}
 
 		/* convert hex key to char,so that dragonkey tool can display it */
+		key_info->len = key_data_len*2;
 		hex2char((void *)(key_info->key_data), (void *)(data_buff), key_data_len);
 		*read_len +=key_data_len*2;
 		return 0;
@@ -1347,6 +1348,15 @@ static int sunxi_pburn_state_loop(void  *buffer)
 	switch(sunxi_usb_pburn_status)
 	{
 		case SUNXI_USB_PBURN_IDLE:
+			/*
+			 * pms id:45549
+			 * Provide the invalidate sunxi_ubuf->rx_req_buffer patch to the customer,
+			 * the probability of occurrence is from 100% -> 10%,
+			 * so further add the patch of invalidate sunxi_ubuf,
+			 * the probability of occurrence is from 10% -> 0%.
+			 *
+			 */
+			invalidate_dcache_range((unsigned long)sunxi_ubuf, (unsigned long)ALIGN(sizeof(sunxi_ubuf_t), CONFIG_SYS_CACHELINE_SIZE));
 			if(sunxi_ubuf->rx_ready_for_data == 1)
 			{
 				sunxi_usb_pburn_status = SUNXI_USB_PBURN_SETUP;
@@ -1355,6 +1365,7 @@ static int sunxi_pburn_state_loop(void  *buffer)
 			break;
 
 		case SUNXI_USB_PBURN_SETUP:
+			invalidate_dcache_range((unsigned long)sunxi_ubuf->rx_req_buffer, (unsigned long)ALIGN(sunxi_ubuf->rx_req_length, CONFIG_SYS_CACHELINE_SIZE));
 
 			sunxi_usb_dbg("SUNXI_USB_PBURN_SETUP\n");
 			if (sunxi_ubuf->rx_req_length == (u32)sizeof(struct sunxi_efex_cbw_t))

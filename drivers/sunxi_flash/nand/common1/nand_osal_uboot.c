@@ -55,7 +55,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /*nand common1 version rule vx.ab date time
  * x >= 1 ; 00 <= ab <= 99;*/
-#define NAND_COMMON1_DRV_VERSION "v1.20 2021-04-26 9:33"
+#define NAND_COMMON1_DRV_VERSION "v2.04 2021-10-22 17:13"
 
 /*
  *1755--AW1755--A50

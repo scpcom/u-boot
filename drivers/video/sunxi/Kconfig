@@ -251,3 +251,17 @@ menu "Display engine feature select"
 source "drivers/video/sunxi/disp2/disp/Kconfig"
 endmenu
 
+config SUNXI_TV_FASTLOGO
+	bool "SUNXI_TV_FASTLOGO"
+	depends on (SUNXI_FLASH)
+	imply SUNXI_ARM_SOFT_FP
+	default n
+	---help---
+	  fastlogo
+
+config SUNXI_FASTLOGO_JPEG
+	bool "SUNXI_FASTLOGO_JPEG"
+	depends on (SUNXI_FLASH)
+	default n
+	---help---
+	  fastlogo jepg decode support

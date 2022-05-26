@@ -1307,6 +1307,13 @@ config TI_SECURE_DEVICE
 	  authenticated) and the code. See the doc/README.ti-secure
 	  file for further details.
 
+config SUNXI_ARM_SOFT_FP
+	bool "use soft fp implement from gcc"
+	help
+	 Support comparison of image and flash before burning,
+	 if image is larger than flash, will exit burning.
+	default n
+
 source "arch/arm/mach-aspeed/Kconfig"
 
 source "arch/arm/mach-at91/Kconfig"

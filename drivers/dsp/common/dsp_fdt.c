@@ -35,14 +35,16 @@ int match_compatible(const char *path,
 {
 	int nodeoff = 0;
 	char *pstr = NULL;
+	int pstr_num = 0;
 
+	DSP_DEBUG("dsp:---- name [%s] msg -----\n", path);
 	nodeoff = fdt_path_offset(working_fdt, path);
 	if (nodeoff < 0) {
 		DSP_DEBUG("dsp:find [%s] node err\n", path);
 		return -1;
 	}
 
-	pstr = (char *)fdt_getprop(working_fdt, nodeoff, "compatible", NULL);
+	pstr = (char *)fdt_getprop(working_fdt, nodeoff, "compatible", &pstr_num);
 	if (pstr != NULL) {
 		/* match string of compatible  */
 		if (strcmp(pstr, compatible_str) == 0) {
@@ -50,12 +52,13 @@ int match_compatible(const char *path,
 			return 0;
 
 		} else {
-			DSP_DEBUG("dsp:match [%s] compatible err\n", path);
+			DSP_DEBUG("dsp:expect compatible:[%s], but use compatible:[%s]\n",\
+						compatible_str, pstr);
 			return -1;
 		}
 
 	} else {
-		DSP_DEBUG("dsp:find [%s] compatible err\n", path);
+		DSP_DEBUG("dsp:find compatible err\n");
 		return -1;
 	}
 
@@ -134,8 +137,8 @@ int dts_uart_msg(struct dts_msg_t *pmsg, u32 dsp_id)
 			continue;
 		} else {
 			DSP_DEBUG("dsp%d:dts can find config [%s]\n",\
-											dsp_id,\
-											str);
+						dsp_id,\
+						str);
 			break;
 		}
 	}
@@ -241,5 +244,53 @@ int dts_gpio_int_msg(struct dts_msg_t *pmsg, u32 dsp_id)
 	DSP_DEBUG("%d\n", pmsg->gpio_int.gpio_e);
 	DSP_DEBUG("%d\n", pmsg->gpio_int.gpio_f);
 	DSP_DEBUG("%d\n", pmsg->gpio_int.gpio_g);
+	return 0;
+}
+
+
+int dts_sharespace_msg(struct dts_msg_t *pmsg, u32 dsp_id)
+{
+	const char *compatible_str = DSP_SHARE_SPACE;
+	int i = 0;
+	int nodeoff = 0;
+	int ret = 0;
+	char str[30];
+	u32 reg_data[8];
+
+	memset(reg_data, 0, sizeof(reg_data));
+	memset(str, 0, sizeof(str));
+	sprintf(str, "share_space%d", dsp_id);
+	ret = match_compatible(str, compatible_str, &nodeoff);
+	if (ret < 0) {
+		DSP_DEBUG("dsp%d:dts no config [%s]\n", dsp_id, str);
+		return -1;
+	}
+	DSP_DEBUG("dsp%d:dts can find config [%s]\n", dsp_id, str);
+
+	ret = match_status(nodeoff);
+	if (ret < 0) {
+		pmsg->dts_sharespace.status = DTS_CLOSE;
+		return -1;
+	}
+
+	pmsg->dts_sharespace.status = DTS_OPEN;
+
+	ret = fdt_getprop_u32(working_fdt, nodeoff, "reg", reg_data);
+	if (ret < 0) {
+		memset((void *)&pmsg->dts_sharespace, 0,
+				sizeof(struct dts_sharespace_t));
+		return -1;
+	}
+
+	for (i = 0; i < 8; i++) {
+		DSP_DEBUG("dsp%d:dts reg[%d]=0x%x\n", dsp_id, i, reg_data[i]);
+	}
+	pmsg->dts_sharespace.dsp_write_addr = reg_data[0];
+	pmsg->dts_sharespace.dsp_write_size = reg_data[1];
+	pmsg->dts_sharespace.arm_write_addr = reg_data[2];
+	pmsg->dts_sharespace.arm_write_size = reg_data[3];
+	pmsg->dts_sharespace.dsp_log_addr = reg_data[4];
+	pmsg->dts_sharespace.dsp_log_size = reg_data[5];
+
 	return 0;
 }

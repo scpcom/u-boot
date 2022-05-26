@@ -57,7 +57,7 @@ enum usb_device_speed {
 static uchar sunxi_usb_ep0_buffer[SUNXI_USB_EP0_BUFFER_SIZE];
 
 sunxi_udc_t  			  sunxi_udc_source;
-static sunxi_ubuf_t   			  sunxi_ubuf;
+static sunxi_ubuf_t	sunxi_ubuf __aligned(CONFIG_SYS_CACHELINE_SIZE) = { 0 };
 sunxi_usb_setup_req_t     *sunxi_udev_active;
 
 static uint usb_dma_trans_unaliged_bytes;

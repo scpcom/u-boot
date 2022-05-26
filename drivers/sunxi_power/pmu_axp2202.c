@@ -386,6 +386,27 @@ int pmu_axp2202_set_bus_vol_limit(int vol)
 	return 0;
 }
 
+int pmu_axp2202_set_bc12_mode(const char *name, int mode)
+{
+	u8 reg_value = 0, mask = 0;
+
+	if (!strncmp(name, "bc12_mode", sizeof("bc12_mode"))) {
+		axp_err("\nb12_mode: %d\n", mode);
+		mask = AXP2202_bc12_CLK_EN;
+	}
+
+	if (pmic_bus_read(AXP2202_RUNTIME_ADDR, AXP2202_CLK_EN, &reg_value))
+		return -1;
+
+	reg_value &= ~(1 << mask);
+	reg_value |= (mode << mask);
+
+	if (pmic_bus_write(AXP2202_RUNTIME_ADDR, AXP2202_CLK_EN, reg_value))
+		return -1;
+
+	return 0;
+}
+
 static int pmu_axp2202_set_dcdc_mode(const char *name, int mode)
 {
 	u8 reg_value = 0, mask = 0;
@@ -407,6 +428,8 @@ static int pmu_axp2202_set_dcdc_mode(const char *name, int mode)
 
 	if (pmic_bus_write(AXP2202_RUNTIME_ADDR, AXP2202_DCDC_MODESET, reg_value))
 		return -1;
+
+	pmu_axp2202_set_bc12_mode(name, mode);
 
 	return 0;
 }

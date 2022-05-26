@@ -46,7 +46,7 @@
  */
 #define BIT_RUN_STALL		(0)
 #define BIT_START_VEC_SEL	(1)
-
+#define BIT_DSP_CLKEN		(2)
 /*
  * DSP PRID Register
  */
@@ -98,6 +98,20 @@
 #define BIT_DSP1_CFG_RST	(20)
 #define BIT_DSP1_DBG_RST	(21)
 
+#define PRCM_DSP0_CLK_CFG_REG	(0x1b0)
+#define BIT_DSP0_SCLK_GATING	(31)
+#define BIT_DSP0_CLK_SRC_SEL	(24)
+#define BIT_DSP0_CLK_DIV_RATIO_N (8)
+#define BIT_DSP0_FACTOR_M	(0)
+
+#define PRCM_DSP1_CLK_CFG_REG	(0x1b4)
+#define BIT_DSP1_SCLK_GATING	(31)
+#define BIT_DSP1_CLK_SRC_SEL	(24)
+#define BIT_DSP1_CLK_DIV_RATIO_N (8)
+#define BIT_DSP1_FACTOR_M	(0)
+
+#define PRCM_DSP0_LOCALRAM_REMAP_REG (0x0380)
+#define BIT_DSP0_LOCALRAM	(0)
 
 #ifdef CONFIG_MACH_SUN50IW11
 /* sync dsp sdk /freertos/arch/sun50iw11p1/include/platform.h */

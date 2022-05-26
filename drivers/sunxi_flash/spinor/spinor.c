@@ -23,7 +23,8 @@
 #include <asm/io.h>
 
 #include "../flash_interface.h"
-
+#include "../../mtd/spi/sf_internal.h"
+#include "../../spi/spi-sunxi.h"
 
 static struct spi_flash *flash;
 
@@ -54,12 +55,20 @@ static const char *_spi_flash_update_block(struct spi_flash *flash, u32 offset,
 		size_t len, const char *buf, char *cmp_buf, size_t *skipped)
 {
 	char *ptr = (char *)buf;
+	uint i = 0;
 
 	spinor_debug("offset=%x sector, nor_sector_size=%d bytes, len=%d bytes\n",
 	      offset/flash->sector_size, flash->sector_size, len);
 	/* Read the entire sector so to allow for rewriting */
 	if (spi_flash_read(flash, offset, flash->sector_size, cmp_buf))
 		return "read";
+
+	while (*(cmp_buf + i) == 0xff) {
+		i++;
+		if (i == flash->sector_size)
+			goto already_erase;
+	}
+
 	/* Compare only what is meaningful (len) */
 	if (memcmp(cmp_buf, buf, len) == 0) {
 		spinor_debug("Skip region %x size %zx: no change\n",
@@ -67,9 +76,12 @@ static const char *_spi_flash_update_block(struct spi_flash *flash, u32 offset,
 		*skipped += len;
 		return NULL;
 	}
+
 	/* Erase the entire sector */
 	if (spi_flash_erase(flash, offset, flash->sector_size))
 		return "erase";
+
+already_erase:
 	/* If it's a partial sector, copy the data into the temp-buffer */
 	if (len != flash->sector_size) {
 		memcpy(cmp_buf, buf, len);
@@ -207,6 +219,7 @@ _sunxi_flash_spinor_write(uint start_block, uint nblock, void *buffer)
 		*/
 		erase_align_ofs = offset % erase_size;
 		erase_align_size = erase_size - erase_align_ofs;
+		erase_align_size = erase_align_size > len ? len : erase_align_size;
 
 		/*read data from flash*/
 		if(spi_flash_read(flash, erase_align_addr, erase_size, align_buf)) {
@@ -404,12 +417,17 @@ static int
 sunxi_flash_spinor_download_spl(unsigned char *buffer, int len, unsigned int ext)
 {
 	u8 read_cmd = flash->read_opcode;
+	struct sunxi_spi_slave *sspi = get_sspi();
+	boot_spinor_info_t *boot_info;
 
 	debug("%s read cmd: 0x%x\n",__func__, read_cmd);
 	if(gd->bootfile_mode  == SUNXI_BOOT_FILE_NORMAL
 		 || gd->bootfile_mode  == SUNXI_BOOT_FILE_PKG) {
 
 		boot0_file_head_t    *boot0  = (boot0_file_head_t *)buffer;
+		boot_info = (boot_spinor_info_t *)boot0->prvt_head.storage_data;
+		boot_info->sample_delay = sspi->right_sample_delay;
+		boot_info->sample_mode = sspi->right_sample_mode;
 
 		/* set read cmd for boot0: single/dual/quad */
 		boot0->prvt_head.storage_data[0] = read_cmd;
@@ -426,6 +444,10 @@ sunxi_flash_spinor_download_spl(unsigned char *buffer, int len, unsigned int ext
 		sbrom_toc0_config_t  *toc0_config = NULL;
 
 		toc0_config = (sbrom_toc0_config_t *)(buffer + 0x80);
+		boot_info = (boot_spinor_info_t *)toc0_config->storage_data;
+		boot_info->sample_delay = sspi->right_sample_delay;
+		boot_info->sample_mode = sspi->right_sample_mode;
+
 		toc0_config->storage_data[0] = read_cmd;
 		toc0->check_sum = sunxi_sprite_generate_checksum(buffer,
 			toc0->length, toc0->check_sum);

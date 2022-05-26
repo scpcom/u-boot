@@ -44,6 +44,28 @@
 extern char *spd_name[];
 extern struct sunxi_mmc_priv mmc_host[4];
 
+
+int sunxi_auto_pow_mode(unsigned int bit)
+{
+	int ret = 0, val = 0;
+	val = readl(IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_VAL_REG));
+	if (val & (1 << bit)) {
+		val = readl(IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
+		val |= (1 << bit);
+		ret = 1;
+	} else {
+		val = readl(IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
+		val &= ~(1 << bit);
+		//cfg->io_is_1v8 = 0;
+		ret = 0;
+	}
+	writel(val, IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
+	return ret;
+}
+
+
+
+
 static int mmc_clear_timing_para(int sdc_no)
 {
 	struct sunxi_mmc_priv *mmcpriv = &mmc_host[sdc_no];
@@ -96,11 +118,15 @@ static int mmc_get_sdly_auto_sample(int sdc_no)
 #if 1
 	struct sunxi_mmc_priv *mmcpriv = &mmc_host[sdc_no];
 	u32 *p = (u32 *)&mmcpriv->cfg.sdly.tm4_smx_fx[0];
+	int tm = mmcpriv->timing_mode;
+	u8 *sdly = NULL;
+	u8 *dsdly = NULL;
 	int spd_md, f;
 	u32 val;
 	int work_mode = uboot_spare_head.boot_data.work_mode;
 	struct boot_sdmmc_private_info_t *priv_info =
 		(struct boot_sdmmc_private_info_t *)(uboot_spare_head.boot_data.sdcard_spare_data);
+
 /*
 	if (sdc_no != 2) {
 		MMCINFO("don't support auto sample\n");
@@ -123,41 +149,49 @@ static int mmc_get_sdly_auto_sample(int sdc_no)
 	for (f = 0; f < 5; f++)
 		MMCINFO("0x%x 0x%x\n", p[f*2 + 0], p[f*2 + 1]);
 #endif
+	if (tm == SUNXI_MMC_TIMING_MODE_4) {
+		sdly = mmcpriv->tm4.sdly;
+		dsdly = mmcpriv->tm4.dsdly;
+	} else if (tm == SUNXI_MMC_TIMING_MODE_5) {
+		sdly = mmcpriv->tm5.sdly;
+		dsdly = mmcpriv->tm5.dsdly;
+	}
+
 	for (spd_md = 0; spd_md < MAX_SPD_MD_NUM; spd_md++) {
 		if (spd_md == HS400) {
 			val = p[spd_md*2 + 0];
 			for (f = 0; f < 4; f++) {
-				mmcpriv->tm4.dsdly[f] = (val>>(f*8)) & 0xFF;
+				dsdly[f] = (val>>(f*8)) & 0xFF;
 				/*MMCINFO("hs400 dsdly-0 0x%x\n", mmcpriv->tm4.dsdly[f]);*/
 			}
 
 			val = p[spd_md*2 + 1];
 			for (f = 4; f < MAX_CLK_FREQ_NUM; f++) {
-				mmcpriv->tm4.dsdly[f] = (val>>((f-4)*8)) & 0xFF;
+				dsdly[f] = (val>>((f-4)*8)) & 0xFF;
 				/*MMCINFO("hs400 dsdly-1 0x%x\n", mmcpriv->tm4.dsdly[f]);*/
 			}
 
 			val = p[spd_md*2 + 2 + 0];
 			for (f = 0; f < 4; f++) {
-				mmcpriv->tm4.sdly[spd_md*MAX_CLK_FREQ_NUM + f] = (val>>(f*8)) & 0xFF;
+				sdly[spd_md*MAX_CLK_FREQ_NUM + f] = (val>>(f*8)) & 0xFF;
 				/*MMCINFO("hs400 sdly-0 0x%x\n", mmcpriv->tm4.sdly[spd_md*MAX_CLK_FREQ_NUM + f]);*/
 			}
 
 			val = p[spd_md*2 + 2 + 1];
 			for (f = 4; f < MAX_CLK_FREQ_NUM; f++) {
-				mmcpriv->tm4.sdly[spd_md*MAX_CLK_FREQ_NUM + f] = (val>>((f-4)*8)) & 0xFF;
+				sdly[spd_md*MAX_CLK_FREQ_NUM + f] = (val>>((f-4)*8)) & 0xFF;
 				/*MMCINFO("hs400 sdly-1 0x%x\n", mmcpriv->tm4.sdly[spd_md*MAX_CLK_FREQ_NUM + f]);*/
 			}
 		} else {
 			val = p[spd_md*2 + 0];
 			for (f = 0; f < 4; f++) {
-				mmcpriv->tm4.sdly[spd_md*MAX_CLK_FREQ_NUM + f] = (val>>(f*8)) & 0xFF;
+				sdly[spd_md*MAX_CLK_FREQ_NUM + f] = (val>>(f*8)) & 0xFF;
 				/*MMCINFO("sdly-0 0x%x\n", mmcpriv->tm4.sdly[spd_md*MAX_CLK_FREQ_NUM + f]);*/
 			}
 
 			val = p[spd_md*2 + 1];
 			for (f = 4; f < MAX_CLK_FREQ_NUM; f++) {
-				mmcpriv->tm4.sdly[spd_md*MAX_CLK_FREQ_NUM + f] = (val>>((f-4)*8)) & 0xFF;
+				sdly[spd_md*MAX_CLK_FREQ_NUM + f] = (val>>((f-4)*8)) & 0xFF;
 				/*MMCINFO("sdly-1 0x%x\n", mmcpriv->tm4.sdly[spd_md*MAX_CLK_FREQ_NUM + f]);*/
 			}
 		}
@@ -324,6 +358,7 @@ static void mmc_get_para_from_fex(int sdc_no)
 	struct sunxi_mmc_pininfo *pin_default = &mmcpriv->pin_default;
 	struct sunxi_mmc_pininfo *pin_disable = &mmcpriv->pin_disable;
 	int nodeoffset = 0;
+	int tm = mmcpriv->timing_mode;
 	int i, imd, ifreq;
 	char ctmp[30];
 	u32 handle[10] = {0};
@@ -366,13 +401,9 @@ static void mmc_get_para_from_fex(int sdc_no)
 			MMCDBG("get card0_boot_para:sdc_io_1v8 fail\n");
 		} else {
 			if (rval == 1) {
-				MMCDBG("card0 io is 1.8V.\n");
-				ret = readl(IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
-				ret |= (1 << 2);
-				writel(ret, IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
 				cfg->io_is_1v8 = 1;
 			} else {
-				MMCDBG("card0 io is 3V.\n");
+				MMCDBG("card0 try use io 3V.\n");
 			}
 		}
 
@@ -381,6 +412,10 @@ static void mmc_get_para_from_fex(int sdc_no)
 				MMCINFO("get card0 default pin fail\n");
 				return ;
 		}
+
+		ret = sunxi_auto_pow_mode(pin_default->pin_set[0].port-1);
+		if (!ret)
+			cfg->io_is_1v8 = 0;
 
 		/*avoid the error print from fdt_get_all_pin*/
 		pin_disable->pin_count = fdt_getprop_u32(working_fdt, nodeoffset, "pinctrl-1", handle);
@@ -613,7 +648,10 @@ static void mmc_get_para_from_fex(int sdc_no)
 		ret = fdt_getprop_u32(working_fdt, nodeoffset, "sdc_tm4_win_th", (uint32_t *)(&rval));
 		if (ret < 0) {
 			MMCDBG("get sdc0 sdc_tm4_win_th fail.\n");
-			cfg->tm4_timing_window_th = 12;
+			if (tm == SUNXI_MMC_TIMING_MODE_5)
+				cfg->tm4_timing_window_th = 5;
+			else
+				cfg->tm4_timing_window_th = 12;
 		} else {
 			if ((rval < 4) || (rval > 64))
 				cfg->tm4_timing_window_th = 12;
@@ -653,7 +691,7 @@ static void mmc_get_para_from_fex(int sdc_no)
 			cfg->host_caps_mask = 0x0;
 		} else {
 			cfg->host_caps_mask = rval;
-			MMCDBG("get sdc0 sdc_dis_host_caps 0x%x.\n", cfg->host_caps_mask);
+			MMCINFO("get sdc0 sdc_dis_host_caps 0x%x.\n", cfg->host_caps_mask);
 		}
 
 		ret = fdt_getprop_u32(working_fdt, nodeoffset, "sdc_kernel_no_limit", (uint32_t *)(&rval));
@@ -705,13 +743,9 @@ static void mmc_get_para_from_fex(int sdc_no)
 			MMCDBG("get card2_boot_para:sdc_io_1v8 fail\n");
 		} else {
 			if (rval == 1) {
-				MMCDBG("card2 io is 1.8V.\n");
-				ret = readl(IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
-				ret |= (1 << 2);
-				writel(ret, IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
 				cfg->io_is_1v8 = 1;
 			} else {
-				MMCDBG("card2 io is 3V.\n");
+				MMCDBG("card2 try set io t 3V.\n");
 			}
 		}
 
@@ -720,6 +754,10 @@ static void mmc_get_para_from_fex(int sdc_no)
 			MMCDBG("get card2 default pin fail\n");
 			return ;
 		}
+
+		ret = sunxi_auto_pow_mode(pin_default->pin_set[0].port-1);
+		if (!ret)
+			cfg->io_is_1v8 = 0;
 
 		/*avoid the error print from fdt_get_all_pin*/
 		pin_disable->pin_count = fdt_getprop_u32(working_fdt, nodeoffset, "pinctrl-1", handle);
@@ -941,7 +979,10 @@ static void mmc_get_para_from_fex(int sdc_no)
 		ret = fdt_getprop_u32(working_fdt, nodeoffset, "sdc_tm4_win_th", (uint32_t *)(&rval));
 		if (ret < 0) {
 			MMCDBG("get sdc2 sdc_tm4_win_th fail.\n");
-			cfg->tm4_timing_window_th = 12;
+			if (tm == SUNXI_MMC_TIMING_MODE_5)
+				cfg->tm4_timing_window_th = 5;
+			else
+				cfg->tm4_timing_window_th = 12;
 		} else {
 			if ((rval < 4) || (rval > 64))
 				cfg->tm4_timing_window_th = 12;
@@ -955,11 +996,11 @@ static void mmc_get_para_from_fex(int sdc_no)
 			MMCDBG("get sdc2 sdc_tm4_r_cycle fail.\n");
 			cfg->tm4_tune_r_cycle = 0x0;
 		} else {
-			if ((rval < 1) || (rval > 40))
+			if ((rval < 1) || (rval > 255))
 				cfg->tm4_tune_r_cycle = 15;
 			else
 				cfg->tm4_tune_r_cycle = rval;
-			MMCDBG("get sdc2 sdc_tm4_r_cycle %d.\n", cfg->tm4_tune_r_cycle);
+			MMCINFO("get sdc2 sdc_tm4_r_cycle %d.\n", cfg->tm4_tune_r_cycle);
 		}
 
 		ret = fdt_getprop_u32(working_fdt, nodeoffset, "sdc_tm4_hs200_max_freq", (uint32_t *)(&rval));
@@ -1058,7 +1099,7 @@ static void mmc_get_para_from_fex(int sdc_no)
 			cfg->host_caps_mask = 0x0;
 		} else {
 			cfg->host_caps_mask = rval;
-			MMCDBG("get sdc2 sdc_dis_host_caps 0x%x.\n", cfg->host_caps_mask);
+			MMCINFO("get sdc2 sdc_dis_host_caps 0x%x.\n", cfg->host_caps_mask);
 		}
 
 		ret = fdt_getprop_u32(working_fdt, nodeoffset, "sdc_kernel_no_limit", (uint32_t *)(&rval));
@@ -1135,4 +1176,63 @@ int sunxi_host_mmc_config(int sdc_no)
 	}
 ERR:
 	return ret;
+}
+
+int __attribute__((weak)) sunxi_mmc_get_src_clk_no(int sdc_no, int mod_hz, int tm) {
+	unsigned int pll = CCM_MMC_CTRL_PLL6X2;
+
+	if (tm == 4 || tm ==5) {
+#ifdef CCM_MMC2_CTRL_PLL6X2
+		pll = CCM_MMC2_CTRL_PLL6X2;
+#elif CCM_MMC_CTRL_PLL6X2
+		pll = CCM_MMC_CTRL_PLL6X2;
+#else
+		MMCINFO("There is no 2X pll!\n");
+		return -1;
+#endif
+	} else if (tm == 1) {
+#if (!(defined(CONFIG_MACH_SUN8IW7) || defined(CONFIG_MACH_SUN8IW11)))
+		pll = CCM_MMC_CTRL_PLL6X2;
+#else
+		pll = CCM_MMC_CTRL_PLL6;
+#endif
+	} else if (tm == 0) {
+#ifdef CCM_MMC_CTRL_PLL6
+		pll = CCM_MMC_CTRL_PLL6;
+#else
+		MMCINFO("There is no 1X pll!\n");
+		return -1;
+#endif
+
+	}
+
+	return pll;
+}
+
+int __attribute__((weak)) sunxi_host_src_clk(int sdc_no, int src_clk, int tm) {
+	unsigned int pll_hz = clock_get_pll6() * 2 *1000000;
+	if (tm == 1) {
+#if (!(defined(CONFIG_MACH_SUN8IW7) || defined(CONFIG_MACH_SUN8IW11)))
+		pll_hz = clock_get_pll6() * 2 *1000000;
+#else
+		pll_hz = clock_get_pll6() * 1000000;
+#endif
+	} else if (tm == 5 || tm == 4) {
+#ifdef CCM_MMC2_CTRL_PLL6X2
+		pll_hz = clock_get_pll6() * 2 *1000000;
+#elif CCM_MMC_CTRL_PLL6X2
+		pll_hz = clock_get_pll6() * 2 *1000000;
+#else
+		MMCINFO("There is no 2X pll!\n");
+		return -1;
+#endif
+	} else if (tm == 0) {
+#ifdef CCM_MMC_CTRL_PLL6
+		pll_hz = clock_get_pll6() * 1000000;
+#else
+		MMCINFO("There is no 1X pll!\n");
+		return -1;
+#endif
+	}
+	return pll_hz;
 }

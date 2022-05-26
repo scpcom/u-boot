@@ -157,7 +157,9 @@ static int bootm_find_os(cmd_tbl_t *cmdtp, int flag, int argc,
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	case IMAGE_FORMAT_ANDROID:
 		images.os.type = IH_TYPE_KERNEL;
-#ifdef CONFIG_SUNXI_COMP_GZ
+#if defined(CONFIG_SUNXI_COMP_DETECT)
+		images.os.comp = IH_COMP_DETECT;
+#elif defined(CONFIG_SUNXI_COMP_GZ)
 		images.os.comp = IH_COMP_GZIP;
 #else
 		images.os.comp = IH_COMP_NONE;
@@ -427,6 +429,21 @@ int bootm_decomp_image(int comp, ulong load, ulong image_start, int type,
 		       uint unc_len, ulong *load_end)
 {
 	int ret = 0;
+
+#ifdef CONFIG_SUNXI_COMP_DETECT
+
+	#define GZIP_MAGIC 0x8b1f
+
+	if (comp == IH_COMP_DETECT) {
+		if ((*(unsigned int *)image_buf & 0xffff) == GZIP_MAGIC) {
+			comp = IH_COMP_GZIP;
+			printf("Detect comp gzip\n");
+		} else {
+			comp = IH_COMP_NONE;
+			printf("Detect comp none\n");
+		}
+	}
+#endif
 
 	*load_end = load;
 	print_decomp_msg(comp, type, load == image_start);

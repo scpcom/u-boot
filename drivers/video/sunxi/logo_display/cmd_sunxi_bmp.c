@@ -66,7 +66,7 @@ static int do_sunxi_bmp_info(cmd_tbl_t *cmdtp, int flag, int argc,
 					   load_addr, filename,      NULL};
 
 		addr = simple_strtoul(argv[1], NULL, 16);
-		memcpy(load_addr, argv[1], 9);
+		memcpy(load_addr, argv[1], strlen(argv[1]));
 		memset(filename, 0, 32);
 		memcpy(filename, argv[2], strlen(argv[2]));
 		partno =
@@ -378,10 +378,10 @@ static int sunxi_bmp_probe_info(unsigned long addr)
 	}
 	debug("bmp picture dectede\n");
 
-	pr_msg("Image size    : %d x %d\n", bmp->header.width,
+	tick_printf("Image size    : %d x %d\n", bmp->header.width,
 	       (bmp->header.height & 0x80000000) ? (-bmp->header.height)
 						 : (bmp->header.height));
-	pr_msg("Bits per pixel: %d\n", bmp->header.bit_count);
+	tick_printf("Bits per pixel: %d\n", bmp->header.bit_count);
 
 	return 0;
 }

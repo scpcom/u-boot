@@ -373,7 +373,9 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 	announce_and_cleanup(fake);
 
 	if (!fake) {
-		if (sunxi_probe_secure_monitor())
+
+		/*we could run 32bit os on 64bit platform, which have monitor*/
+		if (sunxi_probe_secure_monitor() && (sunxi_get_force_32bit_os() == 0))
 			sunxi_smc_call_atf(ARM_SVC_RUNNSOS,(ulong)kernel_entry, (ulong)r2,  1);
 		else
 			kernel_entry(0, machid, r2);

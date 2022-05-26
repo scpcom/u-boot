@@ -20,8 +20,13 @@
 #include <asm/arch-sunxi/dma.h>
 #include <linux/types.h>
 #include <asm/arch/clock.h>
+#include <fdt_support.h>
+#include <private_boot0.h>
 
 #include "spic.h"
+#include "../sunxi-spinand.h"
+
+#define SPIC_DEBUG 0
 
 static inline __u32 get_reg(__u32 addr)
 {
@@ -80,13 +85,16 @@ static int spi0_change_clk(unsigned int dclk_src_sel, unsigned int dclk)
 
 	sclk0_src_sel = dclk_src_sel;
 	sclk0 = dclk;
-
+#if defined(CONFIG_MACH_SUN8IW21)
+	sclk0_src = 300;
+#else
 	if (sclk0_src_sel == 0x0)
 		sclk0_src = 24;
 	else if (sclk0_src_sel < 0x3)
 		sclk0_src = clock_get_pll6();
 	else
 		sclk0_src = 2 * clock_get_pll6();
+#endif
 
 	/* sclk0: 2*dclk */
 	/* sclk0_pre_ratio_n */
@@ -153,7 +161,8 @@ static int spic0_clk_request(void)
 	set_reg(SUNXI_CCM_BASE + 0x096c, reg_val);
 
 	/* 2. configure spic's sclk0 */
-#if defined(CONFIG_MACH_SUN50IW11) || defined(CONFIG_MACH_SUN8IW20)
+#if defined(CONFIG_MACH_SUN50IW11) || defined(CONFIG_MACH_SUN8IW20) ||	\
+	defined(CONFIG_MACH_SUN8IW21)
 	ret = spi0_change_clk(1, 10);
 #else
 	ret = spi0_change_clk(3, 10);
@@ -169,7 +178,8 @@ static int spic0_set_clk(unsigned int clk)
 {
 	int ret;
 
-#if defined(CONFIG_MACH_SUN50IW11) || defined(CONFIG_MACH_SUN8IW20)
+#if defined(CONFIG_MACH_SUN50IW11) || defined(CONFIG_MACH_SUN8IW20) ||	\
+	defined(CONFIG_MACH_SUN8IW21)
 	ret = spi0_change_clk(1, clk);
 #else
 	ret = spi0_change_clk(3, clk);
@@ -182,6 +192,38 @@ static int spic0_set_clk(unsigned int clk)
 	pr_info("set spic0 clk to %u Mhz\n", clk);
 	return 0;
 }
+
+#ifdef SPIC_DEBUG
+static void spi_print_info(void)
+{
+	char buf[1024] = {0};
+	snprintf(buf, sizeof(buf)-1,
+			"sspi->base_addr = 0x%x, the SPI control register:\n"
+			"[VER] 0x%02x = 0x%08x, [GCR] 0x%02x = 0x%08x, [TCR] 0x%02x = 0x%08x\n"
+			"[ICR] 0x%02x = 0x%08x, [ISR] 0x%02x = 0x%08x, [FCR] 0x%02x = 0x%08x\n"
+			"[FSR] 0x%02x = 0x%08x, [WCR] 0x%02x = 0x%08x, [CCR] 0x%02x = 0x%08x\n"
+			"[SDC] 0x%02x = 0x%08x, [BCR] 0x%02x = 0x%08x, [TCR] 0x%02x = 0x%08x\n"
+			"[BCC] 0x%02x = 0x%08x, [DMA] 0x%02x = 0x%08x\n",
+			SPI_BASE,
+			SPI_VAR, readl((const volatile void *)SPI_VAR),
+			SPI_GCR, readl((const volatile void *)SPI_GCR),
+			SPI_TCR, readl((const volatile void *)SPI_TCR),
+			SPI_IER, readl((const volatile void *)SPI_IER),
+			SPI_ISR, readl((const volatile void *)SPI_ISR),
+
+			SPI_FCR, readl((const volatile void *)SPI_FCR),
+			SPI_FSR, readl((const volatile void *)SPI_FSR),
+			SPI_WCR, readl((const volatile void *)SPI_WCR),
+			SPI_CCR, readl((const volatile void *)SPI_CCR),
+			SPI_SDC, readl((const volatile void *)SPI_SDC),
+
+			SPI_MBC, readl((const volatile void *)SPI_MBC),
+			SPI_MTC, readl((const volatile void *)SPI_MTC),
+			SPI_BCC, readl((const volatile void *)SPI_BCC),
+			SPI_DMA, readl((const volatile void *)SPI_DMA));
+			printf("%s\n", buf);
+}
+#endif
 
 /* init spi0 */
 int spic0_init(void)
@@ -236,6 +278,10 @@ int spic0_init(void)
 
 	set_reg(SPI_FCR, SPI_TXFIFO_RST | (SPI_TX_WL << 16) | SPI_RX_WL);
 	set_reg(SPI_IER, SPI_ERROR_INT);
+
+#ifdef SPIC_DEBUG
+	spi_print_info();
+#endif
 	return 0;
 }
 
@@ -307,7 +353,7 @@ static void spic0_sel_ss(unsigned int ssx)
 	set_reg(SPI_TCR, rval);
 }
 
-static void spic0_set_sample_mode(unsigned int smod)
+static void spic0_set_sdm(unsigned int smod)
 {
 	unsigned int rval = get_reg(SPI_TCR) & (~(1 << 13));
 
@@ -315,10 +361,19 @@ static void spic0_set_sample_mode(unsigned int smod)
 	set_reg(SPI_TCR, rval);
 }
 
-static void spic0_set_sample(unsigned int sample)
+static void spic0_set_sdc(unsigned int sample)
 {
 	unsigned int rval = get_reg(SPI_TCR) & (~(1 << 11));
+
 	rval |= sample << 11;
+	set_reg(SPI_TCR, rval);
+}
+
+static void spic0_set_sdc1(unsigned int sample)
+{
+	unsigned int rval = get_reg(SPI_TCR) & (~(1 << 15));
+
+	rval |= sample << 15;
 	set_reg(SPI_TCR, rval);
 }
 
@@ -339,6 +394,30 @@ void spic0_config_io_mode(unsigned int rxmode, unsigned int dbc,
 		set_reg(SPI_BCC, (1 << 28) | (dbc << 24) | stc);
 	else if (rxmode == 2)
 		set_reg(SPI_BCC, (1 << 29) | (dbc << 24) | stc);
+}
+
+void spic0_samp_dl_sw_status(unsigned int status)
+{
+	unsigned int rval = get_reg(SPI_SDC);
+
+	if (status)
+		rval |= SPI_SAMP_DL_SW_EN;
+	else
+		rval &= ~SPI_SAMP_DL_SW_EN;
+
+	set_reg(SPI_SDC, rval);
+}
+
+void spic0_samp_mode(unsigned int status)
+{
+	unsigned int rval = get_reg(SPI_GCR);
+
+	if (status)
+		rval |= SPI_SAMP_MODE_EN;
+	else
+		rval &= ~SPI_SAMP_MODE_EN;
+
+	set_reg(SPI_GCR, rval);
 }
 
 static int xfer_by_cpu(unsigned int tcnt, char *txbuf,
@@ -419,7 +498,7 @@ static int spic0_dma_start(unsigned int tx_mode, unsigned int addr,
 	sunxi_dma_set dma_set;
 
 	dma_set.loop_mode = 0;
-	dma_set.wait_cyc = 32;
+	dma_set.wait_cyc = 8;
 	dma_set.data_block_size = 0;
 
 	if (tx_mode) {
@@ -530,6 +609,7 @@ static int xfer_by_dma(unsigned int tcnt, char *txbuf,
 	set_reg(SPI_MBC, tcnt + rcnt + dummy_cnt);
 
 	/* start transmit */
+
 	set_reg(SPI_TCR, get_reg(SPI_TCR) | SPI_EXCHANGE);
 	if(tcnt) {
 		if(tcnt <= 64) {
@@ -618,21 +698,214 @@ static int spic0_is_burn_mode(void)
 		return 1;
 }
 
+static void spic0_set_sample_mode(unsigned int mode)
+{
+	unsigned int sample_mode[7] = {
+		DELAY_NORMAL_SAMPLE, DELAY_0_5_CYCLE_SAMPLE,
+		DELAY_1_CYCLE_SAMPLE, DELAY_1_5_CYCLE_SAMPLE,
+		DELAY_2_CYCLE_SAMPLE, DELAY_2_5_CYCLE_SAMPLE,
+		DELAY_3_CYCLE_SAMPLE
+	};
+	spic0_set_sdm((sample_mode[mode] >> 8) & 0xf);
+	spic0_set_sdc((sample_mode[mode] >> 4) & 0xf);
+	spic0_set_sdc1(sample_mode[mode] & 0xf);
+}
+
+static void spic0_set_sample_delay(unsigned int sample_delay)
+{
+	unsigned int rval = get_reg(SPI_SDC)&(~(0x3f << 0));
+
+	rval |= sample_delay;
+	set_reg(SPI_SDC, rval);
+}
+
+int update_right_delay_para(struct mtd_info *mtd)
+{
+	struct aw_spinand *spinand = mtd_to_spinand(mtd);
+	unsigned int sample_delay;
+	unsigned int start_backup = 0, end_backup = 0;
+	unsigned int mode, startry_mode = 0, endtry_mode = 6, block = 0;
+	unsigned int ret, val;
+	int fdt_off;
+	unsigned int half_cycle_ps, sample_delay_ps = 160;
+	unsigned int min_delay = 0, max_delay = 0, right_sample_delay;
+
+	size_t retlen;
+	u_char *cache_source;
+	u_char *cache_target;
+	u_char *cache_boot0;
+	int len = mtd->writesize;
+
+	struct erase_info instr;
+	instr.addr = block * mtd->erasesize;
+	instr.len = (endtry_mode - startry_mode + 1) * mtd->erasesize;
+
+	spinand->msglevel &= ~SPINAND_MSG_EN;
+	cache_boot0 = calloc(1, instr.len);
+	mtd->_read(mtd, instr.addr, instr.len, &retlen, cache_boot0);
+	mtd->_erase(mtd, &instr);
+
+	/* re-initialize from device tree */
+	fdt_off = fdt_path_offset(working_fdt, "spi0/spi-nand");
+	if (fdt_off < 0) {
+		pr_info("get spi-nand node from fdt failed\n");
+		return -EINVAL;
+	}
+	ret = fdt_getprop_u32(working_fdt, fdt_off, "spi-max-frequency", &val);
+	if (ret < 0) {
+		pr_err("can't get spi-max-frequency\n");
+		return -EINVAL;
+	}
+	spic0_set_clk(val / 1000 / 1000);
+	/* How much (ps) is required for half a cycle */
+	half_cycle_ps = 1 * 1000 * 1000  / (val / 1000 / 1000) / 2;
+
+	cache_source = calloc(1, len);
+	cache_target = calloc(1, len);
+	memset(cache_source, 0xa5, len);
+
+	spic0_samp_mode(1);
+	spic0_samp_dl_sw_status(1);
+	for (mode = startry_mode; mode <= endtry_mode; mode++) {
+		spic0_set_sample_mode(mode);
+		for (sample_delay = 0; sample_delay < 64; sample_delay++) {
+			spic0_set_sample_delay(sample_delay);
+			mtd->_write(mtd, block * mtd->erasesize +
+					sample_delay * mtd->writesize,
+					len, &retlen, cache_source);
+		}
+
+		for (sample_delay = 0; sample_delay < 64; sample_delay++) {
+			spic0_set_sample_delay(sample_delay);
+			memset(cache_target, 0, len);
+			mtd->_read(mtd, block * mtd->erasesize +
+					sample_delay * mtd->writesize,
+					len, &retlen, cache_target);
+
+			if (strncmp((char *)cache_source, (char *)cache_target,
+						len) == 0) {
+				pr_debug("mode:%d delat:%d time:%dps[OK]\n",
+						mode, sample_delay,
+						mode * half_cycle_ps +
+						sample_delay * sample_delay_ps);
+				if (!start_backup) {
+					start_backup = mode * half_cycle_ps +
+						sample_delay * sample_delay_ps;
+					end_backup = mode * half_cycle_ps +
+						sample_delay * sample_delay_ps;
+				} else {
+					end_backup = mode * half_cycle_ps +
+						sample_delay * sample_delay_ps;
+				}
+			} else {
+				pr_debug("mode:%d delay:%d time:%dps [ERROR]\n",
+						mode, sample_delay,
+						mode * half_cycle_ps +
+						sample_delay * sample_delay_ps);
+				if (!start_backup)
+					continue;
+				else {
+					if (!min_delay)
+						min_delay = start_backup;
+					else if (start_backup < min_delay)
+						min_delay = start_backup;
+					if (end_backup > max_delay)
+						max_delay = end_backup;
+
+					start_backup = 0;
+					end_backup = 0;
+				}
+			}
+		}
+
+		if ((start_backup < min_delay || !min_delay) && start_backup)
+			min_delay = start_backup;
+		if (end_backup > max_delay)
+			max_delay = end_backup;
+
+		start_backup = 0;
+		end_backup = 0;
+
+		block++;
+	}
+
+	right_sample_delay = (min_delay + max_delay) / 2;
+	if (!right_sample_delay) {
+		spic0_samp_mode(0);
+		spic0_samp_dl_sw_status(0);
+		if ((val / 1000 / 1000) >= 60)
+			spinand->right_sample_mode = DELAY_1_CYCLE_SAMPLE;
+		else if ((val / 1000 / 1000) <= 24)
+			spinand->right_sample_mode = DELAY_NORMAL_SAMPLE;
+		else
+			spinand->right_sample_mode = DELAY_0_5_CYCLE_SAMPLE;
+	} else {
+
+		spinand->right_sample_delay =
+			(right_sample_delay % half_cycle_ps) / sample_delay_ps;
+		spinand->right_sample_mode =
+			right_sample_delay / half_cycle_ps;
+		spic0_set_sample_delay(spinand->right_sample_delay);
+	}
+	pr_info("Sample mode:%d  min_delay:%d max_delay:%d right_delay:%d)\n",
+			spinand->right_sample_mode,
+			min_delay, max_delay,
+			spinand->right_sample_delay);
+	spic0_set_sample_mode(spinand->right_sample_mode);
+
+	mtd->_write(mtd, instr.addr, instr.len, &retlen, cache_boot0);
+
+	spinand->msglevel |= SPINAND_MSG_EN;
+	free(cache_source);
+	free(cache_target);
+	free(cache_boot0);
+	return 0;
+}
+
+int set_right_delay_para(struct mtd_info *mtd)
+{
+	struct aw_spinand *spinand = mtd_to_spinand(mtd);
+	boot0_file_head_t *boot0;
+	boot_spinand_para_t *boot_info;
+	size_t retlen;
+	boot0 = calloc(1, 2048);
+
+	mtd->_read(mtd, 0, 2048, &retlen, (u_char *)boot0);
+
+	boot_info = (boot_spinand_para_t *)boot0->prvt_head.storage_data;
+
+	pr_info("spinand sample_mode:%d sample_delay:%d\n",
+			boot_info->sample_mode, boot_info->sample_delay);
+	spic0_set_sample_mode(boot_info->sample_mode);
+
+	if (boot_info->sample_delay != 0xaaaaffff) {
+		spic0_samp_mode(1);
+		spic0_samp_dl_sw_status(1);
+		spic0_set_sample_delay(boot_info->sample_delay);
+		spinand->right_sample_delay = boot_info->sample_delay;
+		spinand->right_sample_mode = boot_info->sample_mode;
+	}
+
+	spic0_set_clk(boot_info->FrequencePar);
+	free(boot0);
+	return 0;
+}
+
 int spic0_change_mode(unsigned int clk)
 {
 	spic0_set_trans_mode(0);
-
 	if (clk >= 60) {
 		spic0_set_clk(clk);
-		spic0_set_sample_mode(0);
-		spic0_set_sample(1);
+		spic0_set_sdm(0);
+		spic0_set_sdc(1);
 	} else if (clk <= 24) {
 		spic0_set_clk(clk);
-		spic0_set_sample_mode(1);
-		spic0_set_sample(0);
+		spic0_set_sdm(1);
+		spic0_set_sdc(0);
 	} else {
-		pr_err("not support mode\n");
-		return -EINVAL;
+		spic0_set_clk(clk);
+		spic0_set_sdm(0);
+		spic0_set_sdc(0);
 	}
 	return 0;
 }

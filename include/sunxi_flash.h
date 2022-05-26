@@ -120,4 +120,16 @@ struct map_info {
 	unsigned int crc;
 };
 
+extern int sunxi_nand_info_dump(void *buffer);
+extern void sunxi_nand_page_table(void *buffer);
+extern void sunxi_nand_phy_page(int start_page, int nbyte, void *pmem);
+extern void sunxi_nand_boot0_dump(void *mem, int start, int print_flag);
+extern int nand_read_uboot_data(unsigned char *buf, unsigned int len);
+extern void sunxi_nand_logic_history_data_dump(int start_sector, int sector_num, void *pmem, unsigned int print_flag);
+extern int NAND_Uboot_Force_Erase(void);
+extern void sunxi_nand_test_read_write_normal(void);
+extern void sunxi_nand_wperf_test(int *write_speed);
+extern void sunxi_nand_rperf_test(int *read_speed);
+
+extern int nand_get_uboot_total_len(void);
 #endif /* __SUNXI_FLASH_H__ */

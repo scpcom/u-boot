@@ -34,4 +34,11 @@
 
 /*efuse power ctl*/
 #define EFUSE_HV_SWITCH			(SUNXI_RTC_BASE + 0x204)
+
+#define SID_GET_SOC_VER
+#define SID_SOC_VER_OFFSET	(22)
+#define SID_SOC_VER_MASK	(0xF)
+
+#define SUN50IW11P1_VERSION_C	(0xC)
+
 #endif    /*  #ifndef __SID_H__  */

@@ -25,9 +25,11 @@
 #define SPI_FSR		(SPI_BASE + 0x1c)
 #define SPI_WCR		(SPI_BASE + 0x20)
 #define SPI_CCR		(SPI_BASE + 0x24)
+#define SPI_SDC		(SPI_BASE + 0x28)
 #define SPI_MBC		(SPI_BASE + 0x30)
 #define SPI_MTC		(SPI_BASE + 0x34)
 #define SPI_BCC		(SPI_BASE + 0x38)
+#define SPI_DMA		(SPI_BASE + 0x88)
 #define SPI_TXD		(SPI_BASE + 0x200)
 #define SPI_RXD		(SPI_BASE + 0x300)
 
@@ -80,6 +82,17 @@
 
 #define SPI_MASTER_DUAL	(1U << 28)
 
+/* sample delay mode */
+#define SPI_SAMP_MODE_EN	(1U << 2)
+#define SPI_SAMP_DL_SW_EN	(1U << 7)
+#define DELAY_NORMAL_SAMPLE	(0x100)
+#define DELAY_0_5_CYCLE_SAMPLE	(0x000)
+#define DELAY_1_CYCLE_SAMPLE	(0x010)
+#define DELAY_1_5_CYCLE_SAMPLE	(0x110)
+#define DELAY_2_CYCLE_SAMPLE	(0x101)
+#define DELAY_2_5_CYCLE_SAMPLE	(0x001)
+#define DELAY_3_CYCLE_SAMPLE	(0x011)
+
 #define SPI_NAND_READY		(1U << 0)
 #define SPI_NAND_ERASE_FAIL	(1U << 2)
 #define SPI_NAND_WRITE_FAIL	(1U << 3)
@@ -121,6 +134,9 @@
 int spic0_init(void);
 int spic0_exit(void);
 int spic0_change_mode(unsigned int clk);
+void spic0_samp_dl_sw_status(unsigned int status);
+int update_right_delay_para(struct mtd_info *mtd);
+int set_right_delay_para(struct mtd_info *mtd);
 
 #define SPI0_MODE_NOTSET 0
 #define SPI0_MODE_AUTOSET 1

@@ -1512,7 +1512,7 @@ int fdt_get_all_pin(int nodeoffset,const char* pinctrl_name,user_gpio_set_t* gpi
 			strcpy(gpio_list[gpio_list_index].gpio_name, pin_name[j]);
 			gpio_list[gpio_list_index].port = port_name[j][1] - 'A'+1;
 			gpio_list[gpio_list_index].port_num = tmp_value;
-			gpio_list[gpio_list_index].mul_sel = tmp_mul&0x7;
+			gpio_list[gpio_list_index].mul_sel = tmp_mul & 0xf;
 			gpio_list[gpio_list_index].pull = pull;
 			gpio_list[gpio_list_index].drv_level = drive;
 			gpio_list[gpio_list_index].data = 0;

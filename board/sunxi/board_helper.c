@@ -25,7 +25,9 @@
 #include <sunxi-ir.h>
 #include <smc.h>
 #include <mmc.h>
+#include <linux/mtd/aw-spinand.h>
 #include <boot_gui.h>
+#include "../../drivers/spi/spi-sunxi.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -53,6 +55,11 @@ int update_fdt_dram_para(void *dtb_base)
 
 	pr_msg("(weak)update dtb dram start\n");
 	gd->bd->bi_dram[0].size = (phys_size_t)uboot_spare_head.boot_data.dram_scan_size * 1024 * 1024;
+	if (arch_fixup_fdt(dtb_base) < 0) {
+		printf("ERROR: arch-specific fdt fixup failed\n");
+		return -1;
+	}
+
 	nodeoffset = fdt_path_offset(dtb_base, "/dram");
 	if (nodeoffset < 0) {
 		pr_err("## error: %s : %s\n", __func__, fdt_strerror(nodeoffset));
@@ -713,21 +720,26 @@ int sunxi_update_fdt_para_for_kernel(void)
 		break;
 	case STORAGE_EMMC:
 		fdt_enable_node("mmc2", 1);
+		fdt_enable_node("sunxi_mmc2", 1);
 		break;
 	case STORAGE_EMMC0:
 		fdt_enable_node("mmc0", 1);
+		fdt_enable_node("sunxi_mmc0", 1);
 		break;
 	case STORAGE_EMMC3:
 		fdt_enable_node("mmc3", 1);
+		fdt_enable_node("sunxi_mmc3", 1);
 		break;
 	case STORAGE_SD:
 		fdt_enable_node("mmc0", 1);
+		fdt_enable_node("sunxi_mmc0", 1);
 		{
 			uint32_t dragonboard_test = 0;
 			script_parser_fetch("/soc/target", "dragonboard_test",
 						(int *)&dragonboard_test, 0);
 			if (dragonboard_test == 1) {
 				fdt_enable_node("mmc2", 1);
+				fdt_enable_node("sunxi_mmc2", 1);
 #ifdef CONFIG_SUNXI_SDMMC
 				mmc_update_config_for_dragonboard(2);
 #ifdef CONFIG_MMC3_SUPPORT
@@ -778,6 +790,24 @@ int sunxi_update_fdt_para_for_kernel(void)
 			pr_err("##add mem rsv error: %s : %s\n", __func__,
 			       fdt_strerror(ret));
 	}
+#endif
+#ifdef CONFIG_SPI_SAMP_DL_EN
+#ifdef CONFIG_SUNXI_SPINOR
+	struct sunxi_spi_slave *info = get_sspi();
+#else
+	struct aw_spinand *info = get_spinand();
+#endif
+	int nodeoffset = 0;
+	nodeoffset = fdt_path_offset(working_fdt, "spi0");
+	if (nodeoffset < 0) {
+		pr_err("## error: %s : %s\n", __func__,
+				fdt_strerror(nodeoffset));
+		return -1;
+	}
+	fdt_setprop_u32(working_fdt, nodeoffset,
+			"sample_mode", info->right_sample_mode);
+	fdt_setprop_u32(working_fdt, nodeoffset,
+			"sample_delay", info->right_sample_delay);
 #endif
 
 	/* fix dram para */

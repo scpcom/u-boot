@@ -141,10 +141,10 @@ static void sunxi_mmc_clk_io_onoff(int sdc_no, int onoff, int reset_clk)
 	   */
 }
 
-
 static int mmc_config_delay(struct sunxi_mmc_priv *mmcpriv)
 {
 	unsigned int rval = 0;
+	unsigned int tmp = 0;
 	unsigned int spd_md, freq;
 	u8 odly, sdly, dsdly = 0;
 
@@ -154,10 +154,12 @@ static int mmc_config_delay(struct sunxi_mmc_priv *mmcpriv)
 		odly = mmcpriv->tm5.odly[spd_md*MAX_CLK_FREQ_NUM+freq];
 	else
 		odly = mmcpriv->tm5.def_odly[spd_md*MAX_CLK_FREQ_NUM+freq];
+
 	if (mmcpriv->tm5.sdly[spd_md*MAX_CLK_FREQ_NUM+freq] != 0xFF)
 		sdly = mmcpriv->tm5.sdly[spd_md*MAX_CLK_FREQ_NUM+freq];
 	else
 		sdly = mmcpriv->tm5.def_sdly[spd_md*MAX_CLK_FREQ_NUM+freq];
+
 	mmcpriv->tm5.cur_odly = odly;
 	mmcpriv->tm5.cur_sdly = sdly;
 
@@ -167,11 +169,6 @@ static int mmc_config_delay(struct sunxi_mmc_priv *mmcpriv)
 	rval |= (((odly&0x1)<<16) | ((odly&0x1)<<17));
 	sunxi_r_op(mmcpriv, writel(rval, &mmcpriv->reg->drv_dl));
 
-	rval = readl(&mmcpriv->reg->ntsr);
-	rval &= (~(0x3<<4));
-	rval |= ((sdly&0x3)<<4);
-	writel(rval, &mmcpriv->reg->ntsr);
-
 	if (spd_md == HS400) {
 		if (mmcpriv->tm5.dsdly[freq] != 0xFF)
 			dsdly = mmcpriv->tm5.dsdly[freq];
@@ -179,10 +176,6 @@ static int mmc_config_delay(struct sunxi_mmc_priv *mmcpriv)
 			dsdly = mmcpriv->tm5.def_dsdly[freq];
 		mmcpriv->tm5.cur_dsdly = dsdly;
 
-		rval = readl(&mmcpriv->reg->ds_dl);
-		rval &= (~SDXC_CfgDly);
-		rval |= ((dsdly&SDXC_CfgDly) | SDXC_EnableDly);
-		writel(rval, &mmcpriv->reg->ds_dl);
 /*
 		rval = readl(&mmcpriv->reg->ntsr);
 		rval |= 0x1;
@@ -192,10 +185,33 @@ static int mmc_config_delay(struct sunxi_mmc_priv *mmcpriv)
 		rval |= (0x1 << 7);
 		writel(rval, &mmcpriv->reg->ntdc);
 */
+		tmp = (dsdly / 16 + 3) % 4;
+		rval = readl(&mmcpriv->reg->ntsr);
+		rval &= (~(0x3<<8));
+		rval |= ((tmp&0x3)<<8) | 0x1;
+		writel(rval, &mmcpriv->reg->ntsr);
+
+		tmp = dsdly % 16;
+		rval = readl(&mmcpriv->reg->ntdc);
+		rval &= (~SDXC_CfgDly);
+		rval |= ((tmp&SDXC_CfgNewDly) | SDXC_EnableDly);
+		writel(rval, &mmcpriv->reg->ntdc);
+	} else {
+		rval = readl(&mmcpriv->reg->ntsr);
+		rval &= (~(0x3<<8));
+		rval |= ((sdly&0x3)<<8);
+		writel(rval, &mmcpriv->reg->ntsr);
 	}
+
+	/*enable hw skew auto mode*/
+	rval = readl(&mmcpriv->reg->skew_ctrl);
+	/*rval &= ~(0xf);*/
+	rval |= (0x1<<4);
+	writel(rval, &mmcpriv->reg->skew_ctrl);
 
 	MMCDBG("%s: spd_md:%d, freq:%d, odly: %d; sdly: %d; dsdly: %d\n",
 			__FUNCTION__, spd_md, freq, odly, sdly, dsdly);
+	MMCDBG("%s: skew_ctrl :%d\n", __FUNCTION__, readl(&mmcpriv->reg->skew_ctrl));
 
 	return 0;
 }
@@ -215,15 +231,19 @@ static int mmc_set_mod_clk(struct sunxi_mmc_priv *priv, unsigned int hz)
 	 * The MMC clock has an extra /2 post-divider when operating in the new
 	 * mode.
 	 */
-	if (mmc->speed_mode == HSSDR52_SDR25)
-		mod_hz = hz * 2;/* 2xclk: SDR 1/4/8; */
-	else
+	if (mmc->speed_mode == HSDDR52_DDR50 ||
+			mmc->speed_mode == HS400)
 		mod_hz = hz * 4;/* 4xclk: DDR 4/8(HS); HS400; */
+	else
+		mod_hz = hz * 2;/* 2xclk: SDR 1/4/8; */
 	if (mod_hz <= 24000000) {
 		pll = CCM_MMC_CTRL_OSCM24;
 		pll_hz = 24000000;
 	} else {
-#ifdef CCM_MMC_CTRL_PLL6X2
+#ifdef CCM_MMC2_CTRL_PLL6X2
+		pll = CCM_MMC2_CTRL_PLL6X2;
+		pll_hz = clock_get_pll6() * 2 *1000000;
+#elif CCM_MMC_CTRL_PLL6X2
 		pll = CCM_MMC_CTRL_PLL6X2;
 		pll_hz = clock_get_pll6() * 2 *1000000;
 #else
@@ -291,6 +311,10 @@ static int mmc_set_mod_clk(struct sunxi_mmc_priv *priv, unsigned int hz)
 	}
 
 #else
+	val = readl(&priv->reg->ntsr);
+	val |= SUNXI_MMC_NTSR_MODE_SEL_NEW;
+	writel(val, &priv->reg->ntsr);
+
 	sunxi_r_op(priv, writel(pll | CCM_MMC_CTRL_N(n) |
 	       CCM_MMC_CTRL_M(div), priv->mclkreg));
 #endif

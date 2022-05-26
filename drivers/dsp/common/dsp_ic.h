@@ -25,16 +25,17 @@
 #define DSP_STATUS_STR		"allwinner,sun8iw20p1-dsp"
 #define DSP_GPIO_INT_STR	"allwinner,sun8iw20p1-dsp-gpio-int"
 #define DSP_UART_STR		"allwinner,sun8iw20p1-dsp-uart"
+#define DSP_SHARE_SPACE		"allwinner,sun8iw20p1-dsp-share-space"
 #elif defined(CONFIG_MACH_SUN20IW1)
-#include "../sun20iw1/platform.h"
+#include "../sun8iw20/platform.h"
 #define ADDR_TPYE	u64
 #define DSP_STATUS_STR		"allwinner,sun20iw1-dsp"
 #define DSP_GPIO_INT_STR	"allwinner,sun20iw1-dsp-gpio-int"
 #define DSP_UART_STR		"allwinner,sun20iw1-dsp-uart"
+#define DSP_SHARE_SPACE		"allwinner,sun20iw1-dsp-share-space"
 #elif defined(CONFIG_MACH_SUN50IW11)
 #include "../sun50iw11/platform.h"
 #define ADDR_TPYE	u32
 #define DSP_UART_STR	"allwinner,sun50iw11-dsp-uart"
 #endif
-
 #endif

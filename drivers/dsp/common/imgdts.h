@@ -44,6 +44,20 @@ struct dts_gpio_int_t {
 	unsigned int gpio_g;
 };
 
+struct dts_sharespace_t {
+	/* sharespace status */
+	unsigned int status;
+	/* dsp write space msg */
+	unsigned int dsp_write_addr;
+	unsigned int dsp_write_size;
+	/* arm write space msg */
+	unsigned int arm_write_addr;
+	unsigned int arm_write_size;
+	/* dsp log space msg */
+	unsigned int dsp_log_addr;
+	unsigned int dsp_log_size;
+};
+
 /* dts msg about dsp */
 struct dts_msg_t {
 	/* dsp status */
@@ -52,6 +66,8 @@ struct dts_msg_t {
 	struct dts_uart_msg_t uart_msg;
 	/* gpio int */
 	struct dts_gpio_int_t gpio_int;
+	/* shacespace */
+	struct dts_sharespace_t dts_sharespace;
 };
 
 #endif

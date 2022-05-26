@@ -3277,8 +3277,17 @@ void mmc_update_config_for_dragonboard(int card_no)
 
 	nodeoffset = fdt_path_offset(working_fdt, prop_path);
 	if (nodeoffset < 0) {
-		MMCINFO("can't find node \"%s\" \n", prop_path);
-		return ;
+		MMCINFO("can't find node \"%s\" try sunxi_mmc\n", prop_path);
+		if (card_no == 2)
+			strcpy(prop_path, "suxni_mmc2");
+		else
+			strcpy(prop_path, "sunxi_mmc3");
+
+		nodeoffset = fdt_path_offset(working_fdt, prop_path);
+		if (nodeoffset < 0) {
+			MMCINFO("can't find node \"%s\"\n", prop_path);
+			return ;
+		}
 	}
 	ret = fdt_delprop(working_fdt, nodeoffset, "mmc-hs400-1_8v");
 	if (ret == 0) {
@@ -3332,6 +3341,9 @@ void mmc_update_config_for_sdly(struct mmc *mmc)
 	int null_hs200, null_hs400, null_hsddr;
 	int clear_hs200, clear_hs400 = 0, clear_hsddr;
 	u32 max_hs200 = 0, max_hs400 = 0, max_hsddr = 0, min_val, defval;
+	int tm = priv->timing_mode;
+	u8 *sdly_cfg = NULL;
+	u8 *dsdly_cfg = NULL;
 
 	if (priv->mmc_no == 2)
 		strcpy(prop_path, "mmc2");
@@ -3339,11 +3351,22 @@ void mmc_update_config_for_sdly(struct mmc *mmc)
 		strcpy(prop_path, "mmc0");
 	else
 		strcpy(prop_path, "mmc3");
+
 	nodeoffset = fdt_path_offset(working_fdt, prop_path);
 	if (nodeoffset < 0) {
-		MMCINFO("can't find node \"%s\",will add new node\n",
-				prop_path);
-		goto __ERROR_END;
+		MMCINFO("can't find node \"%s\" try sunxi-mmc\n", prop_path);
+		if (priv->mmc_no == 2)
+			strcpy(prop_path, "sunxi_mmc2");
+		else if (priv->mmc_no == 0)
+			strcpy(prop_path, "sunxi_mmc0");
+		else
+			strcpy(prop_path, "sunxi_mmc3");
+		nodeoffset = fdt_path_offset(working_fdt, prop_path);
+		if (nodeoffset < 0) {
+			MMCINFO("can't find node \"%s\" \n",
+					prop_path);
+			goto __ERROR_END;
+		}
 	}
 
 	f3210 = sdly->tm4_smx_fx[0 * 2 + 0]; //sdly->tm4_sm0_f3210;
@@ -3454,6 +3477,13 @@ KERNEL_NO_USE_HS400_CMD:
 		goto __NORMAL_RET;
 	}
 
+	if (tm == SUNXI_MMC_TIMING_MODE_4) {
+		sdly_cfg = priv->tm4.sdly;
+		dsdly_cfg = priv->tm4.dsdly;
+	} else if (tm == SUNXI_MMC_TIMING_MODE_5) {
+		sdly_cfg = priv->tm5.sdly;
+		dsdly_cfg = priv->tm5.dsdly;
+	}
 	/*
 	* 1. check sample point cfg for each hsddr/hs200/hs400.
 	* 2. don't support speed mode which has no valid sample point cfg.
@@ -3464,7 +3494,7 @@ KERNEL_NO_USE_HS400_CMD:
 		imd = HSDDR52_DDR50;
 		/*1-25MHz; 2-50MHz; 3-100MHz;4-150MHz; 5-200MHz*/
 		for (ifreq = 2; ifreq >= 2; ifreq--) {
-			dly = priv->tm4.sdly[imd*MAX_CLK_FREQ_NUM + ifreq];
+			dly = sdly_cfg[imd*MAX_CLK_FREQ_NUM + ifreq];
 			if (dly != 0xFF) {
 				max_hsddr = sunxi_select_freq(mmc, imd, ifreq);
 				MMCDBG("hsddr %d-%d\n", ifreq, max_hsddr);
@@ -3478,7 +3508,7 @@ KERNEL_NO_USE_HS400_CMD:
 		imd = HS200_SDR104;
 		/*1-25MHz; 2-50MHz; 3-100MHz;4-150MHz; 5-200MHz*/
 		for (ifreq = 5; ifreq >= 2; ifreq--) {
-			dly = priv->tm4.sdly[imd*MAX_CLK_FREQ_NUM + ifreq];
+			dly = sdly_cfg[imd*MAX_CLK_FREQ_NUM + ifreq];
 			if (dly != 0xFF) {
 				max_hs200 = sunxi_select_freq(mmc, imd, ifreq);
 				MMCDBG("hs200 %d-%d\n", ifreq, max_hs200);
@@ -3494,9 +3524,9 @@ KERNEL_NO_USE_HS400_CMD:
 		/*1-25MHz; 2-50MHz; 3-100MHz;4-150MHz; 5-200MHz*/
 		for (ifreq = 5; ifreq >= 2; ifreq--) {
 			imd = HS200_SDR104;
-			dly = priv->tm4.sdly[imd*MAX_CLK_FREQ_NUM + ifreq];
+			dly = sdly_cfg[imd*MAX_CLK_FREQ_NUM + ifreq];
 			imd = HS400;
-			dsdly = priv->tm4.dsdly[ifreq];
+			dsdly = dsdly_cfg[ifreq];
 			if ((dly != 0xff) && (dsdly != 0xff)) {
 				max_hs400 = sunxi_select_freq(mmc, imd, ifreq);
 				MMCDBG("hs400 %d-%d\n", ifreq, max_hs400);
@@ -3784,6 +3814,7 @@ int mmc_init(struct mmc *mmc)
 			MMCINFO("%s: mmc init fail, err %d\n", __FUNCTION__, err);
 			goto ERR_RET;
 		}
+
 		if (work_mode == WORK_MODE_BOOT && cfg->sample_mode == AUTO_SAMPLE_MODE) {
 			if (cfg->force_boot_tuning)
 				need_tuning = 1;
@@ -3791,8 +3822,23 @@ int mmc_init(struct mmc *mmc)
 				if (((priv_info->ext_para0 & 0xFF000000) == EXT_PARA0_ID)
 					&& (priv_info->ext_para0 & EXT_PARA0_TUNING_SUCCESS_FLAG))
 					MMCDBG("%s: tuning procedure is executed!\n", __FUNCTION__);
-				else
-					need_tuning = 1;
+				else {
+
+					/* if boot0 didn't read mmc parameter or have any other problems, try to read it here.*/
+					err = mmc_read_info(priv->mmc_no, NULL,
+					  SUNXI_SDMMC_PARAMETER_REGION_SIZE_BYTE - sizeof(struct sunxi_sdmmc_parameter_region_header), (void *)priv_info);
+					if (err) {
+						MMCINFO("%s: read mmc parameter fail, err %d\n", __FUNCTION__, err);
+						need_tuning = 1;
+					} else if (((priv_info->ext_para0 & 0xFF000000) == EXT_PARA0_ID)
+					&& (priv_info->ext_para0 & EXT_PARA0_TUNING_SUCCESS_FLAG)) {
+						need_tuning = 0;
+						MMCDBG("%s: read mmc parameter ok\n", __FUNCTION__);
+					} else {
+						need_tuning = 1;
+					}
+				}
+
 			}
 
 			if (need_tuning) {

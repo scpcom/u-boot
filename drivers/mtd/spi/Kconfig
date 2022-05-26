@@ -78,6 +78,11 @@ config SF_DEFAULT_SPEED
 	  speed and mode from platdata values computed from
 	  available node.
 
+config SPI_SAMP_DL_EN
+	bool "SPI flash support sample delay"
+	help
+	  when set,enable sample delay specified at SAMP_DL_SW
+
 if SPI_FLASH
 
 config SPI_FLASH_SFDP_SUPPORT
@@ -176,7 +181,7 @@ endif
 config SPI_FLASH_USE_4K_SECTORS
 	bool "Use small 4096 B erase sectors"
 	depends on SPI_FLASH
-	default y
+	default n
 	help
 	  Many flash memories support erasing small (4096 B) sectors. Depending
 	  on the usage this feature may provide performance gain in comparison

@@ -93,13 +93,15 @@ static inline int general_check_ecc(unsigned char ecc,
 		unsigned char limit_from, unsigned char limit_to,
 		unsigned char err_from, unsigned char err_to)
 {
+	struct aw_spinand *spinand = get_spinand();
+
 	if (ecc < limit_from) {
 		return ECC_GOOD;
 	} else if (ecc >= limit_from && ecc <= limit_to) {
 		pr_debug("ecc limit 0x%x\n", ecc);
 		return ECC_LIMIT;
 	} else if (ecc >= err_from && ecc <= err_to) {
-		pr_err("ecc error 0x%x\n", ecc);
+		SPINAND_MSG(spinand, "ecc error 0x%x\n", ecc);
 		return ECC_ERR;
 	} else {
 		pr_err("unknown ecc value 0x%x\n", ecc);
@@ -109,39 +111,45 @@ static inline int general_check_ecc(unsigned char ecc,
 
 static int check_ecc_bit2_limit1_err2_limit3(unsigned char ecc)
 {
+	struct aw_spinand *spinand = get_spinand();
+
 	if (ecc == 0) {
 		return ECC_GOOD;
 	} else if (ecc == 1 || ecc == 3) {
 		pr_debug("ecc limit 0x%x\n", ecc);
 		return ECC_LIMIT;
 	} else {
-		pr_err("ecc error 0x%x\n", ecc);
+		SPINAND_MSG(spinand, "ecc error 0x%x\n", ecc);
 		return ECC_ERR;
 	}
 }
 
 static int check_ecc_bit3_limit5_err2(unsigned char ecc)
 {
+	struct aw_spinand *spinand = get_spinand();
+
 	if (ecc <= 1) {
 		return ECC_GOOD;
 	} else if (ecc == 3 || ecc == 5) {
 		pr_debug("ecc limit 0x%x\n", ecc);
 		return ECC_LIMIT;
 	} else {
-		pr_err("ecc error 0x%x\n", ecc);
+		SPINAND_MSG(spinand, "ecc error 0x%x\n", ecc);
 		return ECC_ERR;
 	}
 }
 
 static int check_ecc_bit4_limit5_7_err8_limit12(unsigned char ecc)
 {
+	struct aw_spinand *spinand = get_spinand();
+
 	if (ecc <=4) {
 		return ECC_GOOD;
 	} else if ((ecc >= 5 && ecc <= 7) || (ecc >= 12)) {
 		pr_debug("ecc limit 0x%x\n", ecc);
 		return ECC_LIMIT;
 	} else {
-		pr_err("ecc err 0x%x\n", ecc);
+		SPINAND_MSG(spinand, "ecc err 0x%x\n", ecc);
 		return ECC_ERR;
 	}
 }

@@ -40,6 +40,7 @@
 #include <linux/errno.h>
 #include <spare_head.h>
 #include <sunxi_board.h>
+#include <private_uboot.h>
 
 /*
  * Pointer to initial global data area
@@ -168,7 +169,7 @@ static int show_dram_config(void)
 #else
 	size = gd->ram_size;
 #endif
-
+	size = uboot_spare_head.boot_data.dram_scan_size ? (phys_size_t)uboot_spare_head.boot_data.dram_scan_size * 1024 * 1024 : size;
 	print_size(size, "");
 	board_add_ram_info(0);
 	putc('\n');

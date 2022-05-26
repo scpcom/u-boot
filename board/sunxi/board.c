@@ -60,6 +60,11 @@ int  __attribute__((weak)) clock_set_corepll(int frequency)
 	return 0;
 }
 
+int  __attribute__((weak)) rtc_set_dcxo_off(void)
+{
+	return 0;
+}
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_SUNXI_OVERLAY
@@ -225,12 +230,16 @@ int board_init(void)
 #endif
 	}
 #endif
+
+	rtc_set_dcxo_off();
+
 	if ((work_mode == WORK_MODE_BOOT) ||
 		(work_mode == WORK_MODE_CARD_PRODUCT) ||
 		(work_mode == WORK_MODE_CARD_UPDATE))
 		sunxi_set_sramc_mode();
-
-	clock_set_corepll(uboot_spare_head.boot_data.run_clock);
+	int boot_clock;
+	script_parser_fetch(FDT_PATH_TARGET, "boot_clock", &boot_clock, uboot_spare_head.boot_data.run_clock);
+	clock_set_corepll(boot_clock);
 	tick_printf("CPU=%d MHz,PLL6=%d Mhz,AHB=%d Mhz, APB1=%dMhz  MBus=%dMhz\n",
 		clock_get_corepll(),
 		clock_get_pll6(), clock_get_ahb(),

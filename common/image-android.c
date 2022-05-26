@@ -398,12 +398,9 @@ int android_image_get_dtb(const struct andr_img_hdr *hdr,
 			*dtb_data += ALIGN(hdr->recovery_dtbo_size, hdr->page_size);
 
 			*dtb_len = hdr->dtb_size;
-			/* dtb buff no exit */
-			if (fdt_check_header((void *)*dtb_data) < 0) {
-				part_start = sunxi_partition_get_offset_byname("boot");
-				if (part_start != 0) {
-						sunxi_flash_read(part_start + (*dtb_data - (unsigned long)hdr)/512, ALIGN(hdr->dtb_size, 512)/512, (char *)(*dtb_data));
-				}
+			part_start = sunxi_partition_get_offset_byname("boot");
+			if (part_start != 0) {
+					sunxi_flash_read(part_start + (*dtb_data - (unsigned long)hdr)/512, ALIGN(hdr->dtb_size, 512)/512, (char *)(*dtb_data));
 			}
 		}
 	}

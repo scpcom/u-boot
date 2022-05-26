@@ -415,6 +415,29 @@ int sunxi_sprite_download_boot0(void *buffer, int production_media)
 	rtc_set_bootmode_flag(0);
 }
 
+void sunxi_get_logical_offset_param(int storage_type, u32 *logic_offset,
+				    int *total_sectors)
+{
+	/*
+	 * for nand, no phyread available, so this is not relevant
+	 * for mmc, part offset is physical offset, offset should be taken care in start value, refer by logic_offset here
+	 * for nor, part offset is logical offset, offset should be taken care in end value, refer by total_sectors here
+	 */
+	if (storage_type == STORAGE_EMMC || storage_type == STORAGE_EMMC3 ||
+	    storage_type == STORAGE_SD || storage_type == STORAGE_EMMC0) {
+		*logic_offset = MMC_LOGICAL_OFFSET;
+	} else {
+		*logic_offset = 0;
+	}
+
+	*total_sectors = sunxi_sprite_size();
+#ifdef CONFIG_SUNXI_SPINOR
+	if (storage_type == STORAGE_NOR) {
+		*total_sectors -= SPINOR_LOGICAL_OFFSET;
+	}
+#endif
+}
+
 int gpt_convert_to_sunxi_mbr(void *sunxi_mbr_buf, char *gpt_buf, int storage_type)
 {
 	u32 data_len	  = 0;
@@ -427,6 +450,8 @@ int gpt_convert_to_sunxi_mbr(void *sunxi_mbr_buf, char *gpt_buf, int storage_typ
 	int crc32_total;
 	int mbr_size = 0;
 	u64 start_sector;
+	int total_sectors;
+	u32 logic_offset = 0;
 
 	/* mbr_size = 256; [> hardcode, TODO: fixit <] */
 	/* mbr_size = mbr_size * (1024/512); */
@@ -472,7 +497,8 @@ int gpt_convert_to_sunxi_mbr(void *sunxi_mbr_buf, char *gpt_buf, int storage_typ
 		printf("%d starting_lba:%llx ending_lba:%llx\n", i, pgpt_entry->starting_lba, pgpt_entry->ending_lba);
 		if (i == 0) {
 			/* mbr_size = pgpt_entry->ending_lba - 511; */
-			mbr_size = pgpt_entry->starting_lba;
+			sunxi_get_logical_offset_param(storage_type, &logic_offset, &total_sectors);
+			mbr_size = pgpt_entry->starting_lba - logic_offset;
 			printf("mbr sector size:%x\n", mbr_size);
 		}
 
@@ -528,29 +554,6 @@ __weak int sunxi_sprite_erase_flash(void *mbr)
 	return 0;
 }
 #endif
-
-void sunxi_get_logical_offset_param(int storage_type, u32 *logic_offset,
-				    int *total_sectors)
-{
-	/*
-	 * for nand, no phyread available, so this is not relevant
-	 * for mmc, part offset is physical offset, offset should be taken care in start value, refer by logic_offset here
-	 * for nor, part offset is logical offset, offset should be taken care in end value, refer by total_sectors here
-	 */
-	if (storage_type == STORAGE_EMMC || storage_type == STORAGE_EMMC3 ||
-	    storage_type == STORAGE_SD || storage_type == STORAGE_EMMC0) {
-		*logic_offset = MMC_LOGICAL_OFFSET;
-	} else {
-		*logic_offset = 0;
-	}
-
-	*total_sectors = sunxi_sprite_size();
-#ifdef CONFIG_SUNXI_SPINOR
-	if (storage_type == STORAGE_NOR) {
-		*total_sectors -= SPINOR_LOGICAL_OFFSET;
-	}
-#endif
-}
 
 int sunxi_mbr_convert_to_gpt(void *sunxi_mbr_buf, char *gpt_buf,int storage_type)
 {

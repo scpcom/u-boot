@@ -130,9 +130,12 @@ static bool aw_spinand_cache_match_cache(struct aw_spinand_chip *chip,
 }
 
 static int aw_spinand_cahce_write_to_cache_do(struct aw_spinand_chip *chip,
-		void *buf, unsigned int len, unsigned int column)
+		void *buf, unsigned int len, unsigned int column,
+		struct aw_spinand_chip_request *req)
 {
 	struct aw_spinand_cache *cache = chip->cache;
+	struct aw_spinand_info *info = chip->info;
+	struct aw_spinand_phy_info *pinfo = info->phy_info;
 	unsigned int tcnt = len + 3;
 	unsigned char *tbuf = cache->wbuf;
 
@@ -142,6 +145,10 @@ static int aw_spinand_cahce_write_to_cache_do(struct aw_spinand_chip *chip,
 		tbuf[0] = column ? SPI_NAND_RANDOM_PP : SPI_NAND_PP;
 	tbuf[1] = (column >> 8) & 0xFF;
 	tbuf[2] = column & 0xFF;
+	if ((pinfo->OperationOpt & SPINAND_TWO_PLANE_SELECT) &&
+				(req->block % 2 == 1))
+			tbuf[1] |= SPI_SELECT_ODDNUM_BLACK;
+
 	memcpy(tbuf + 3, buf, len);
 
 	if (chip->tx_bit == SPI_NBITS_QUAD)
@@ -162,7 +169,7 @@ static int write_to_cache_half_page_twice(struct aw_spinand_chip *chip,
 	half_page_size = info->phy_page_size(chip) >> 1;
 	/* the first half page */
 	ret = aw_spinand_cahce_write_to_cache_do(chip, cache->databuf,
-			half_page_size, column);
+			half_page_size, column, req);
 	if (ret)
 		return ret;
 
@@ -170,7 +177,8 @@ static int write_to_cache_half_page_twice(struct aw_spinand_chip *chip,
 	column += half_page_size;
 	return aw_spinand_cahce_write_to_cache_do(chip,
 			cache->databuf + half_page_size,
-			half_page_size + info->phy_oob_size(chip), column);
+			half_page_size + info->phy_oob_size(chip),
+			column, req);
 }
 
 static int write_to_cache_whole_page_once(struct aw_spinand_chip *chip,
@@ -182,7 +190,7 @@ static int write_to_cache_whole_page_once(struct aw_spinand_chip *chip,
 	/* write the whole page */
 	return aw_spinand_cahce_write_to_cache_do(chip, cache->databuf,
 			info->phy_page_size(chip) + info->phy_oob_size(chip),
-			0);
+			0, req);
 }
 
 #if IS_ENABLED(CONFIG_AW_SPINAND_ENABLE_PHY_CRC16)
@@ -354,6 +362,7 @@ static int aw_spinand_cache_read_from_cache(struct aw_spinand_chip *chip,
 		}
 	}
 
+
 	if (pinfo->OperationOpt & SPINAND_ONEDUMMY_AFTER_RANDOMREAD) {
 		tnum = 5;
 		tbuf = (char *)cache->databuf;
@@ -368,6 +377,9 @@ static int aw_spinand_cache_read_from_cache(struct aw_spinand_chip *chip,
 		tbuf[1] = (column >> 8) & 0xFF;
 		tbuf[2] = column & 0xFF;
 		tbuf[3] = 0x00;
+		if ((pinfo->OperationOpt & SPINAND_TWO_PLANE_SELECT) &&
+				(req->block % 2 == 1))
+			tbuf[1] |= SPI_SELECT_ODDNUM_BLACK;
 	}
 
 	if (chip->rx_bit == SPI_NBITS_QUAD) {

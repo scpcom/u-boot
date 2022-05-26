@@ -15,6 +15,12 @@
 #include <linux/mtd/aw-ubi.h>
 #include "sunxi-spinand.h"
 
+#include <sunxi_board.h>
+
+#ifdef CONFIG_AW_SPINAND_NONSTANDARD_SPI_DRIVER
+#include "physic/spic.h"
+#endif
+
 static struct aw_spinand *g_spinand;
 
 static void aw_spinand_cleanup(struct aw_spinand *spinand)
@@ -44,9 +50,10 @@ static int aw_spinand_erase(struct mtd_info *mtd, struct erase_info *einfo)
 		if (ret) {
 			einfo->state = MTD_ERASE_FAILED;
 			einfo->fail_addr = einfo->addr;
-			pr_err("erase block %u in addr 0x%x failed: %d\n",
-					req.block, (unsigned int)einfo->addr,
-					ret);
+			SPINAND_MSG(spinand,
+				"erase block %u in addr 0x%x failed: %d\n",
+				req.block, (unsigned int)einfo->addr,
+				ret);
 			return ret;
 		}
 
@@ -203,7 +210,7 @@ static int aw_spinand_read_oob(struct mtd_info *mtd, loff_t from,
 		} else if (ret == ECC_ERR) {
 			ecc_failed = true;
 			mtd->ecc_stats.failed++;
-			pr_err("ecc err: block: %u page: %u\n",
+			SPINAND_MSG(spinand, "ecc err: block: %u page: %u\n",
 					req.block, req.page);
 		}
 
@@ -267,8 +274,9 @@ static int aw_spinand_write_oob(struct mtd_info *mtd, loff_t to,
 
 		ret = chip_ops->write_page(chip, &req);
 		if (ret < 0) {
-			pr_err("write single page failed: block %d, page %d, ret %d\n",
-					req.block, req.page, ret);
+			SPINAND_MSG(spinand,
+			"write single page failed: block %d, page %d, ret %d\n",
+			req.block, req.page, ret);
 			break;
 		}
 
@@ -399,6 +407,9 @@ int aw_spinand_probe(struct udevice *dev)
 	spinand->sector_shift = ffs(chip->info->sector_size(chip)) - 1;
 	spinand->page_shift = ffs(chip->info->page_size(chip)) - 1;
 	spinand->block_shift = ffs(chip->info->block_size(chip)) - 1;
+	spinand->msglevel = SPINAND_MSG_EN;
+	spinand->right_sample_delay = 0xaaaaffff;
+	spinand->right_sample_mode = 0xaaaaffff;
 
 	ret = aw_spinand_mtd_init(spinand);
 	if (ret)
@@ -407,6 +418,14 @@ int aw_spinand_probe(struct udevice *dev)
 	ret = add_mtd_device(mtd);
 	if (ret)
 		goto err_spinand_cleanup;
+
+#ifdef CONFIG_SPI_SAMP_DL_EN
+	if (get_boot_work_mode() == 16)
+		update_right_delay_para(mtd);
+	else {
+		set_right_delay_para(mtd);
+	}
+#endif
 
 	/* save spinand to global variable, usefull for @sunxi_mtd_#### */
 	g_spinand = spinand;

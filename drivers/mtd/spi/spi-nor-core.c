@@ -20,6 +20,7 @@
 #include <linux/mtd/spi-nor.h>
 #include <spi-mem.h>
 #include <spi.h>
+#include <sunxi_board.h>
 
 #include "sf_internal.h"
 
@@ -157,6 +158,34 @@ static int read_sr(struct spi_nor *nor)
 	return val;
 }
 
+static int read_sr2(struct spi_nor *nor)
+{
+	int ret;
+	u8 val;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR2, &val, 1);
+	if (ret < 0) {
+		pr_debug("error %d reading SR\n", (int)ret);
+		return ret;
+	}
+
+	return val;
+}
+
+static int read_sr3(struct spi_nor *nor)
+{
+	int ret;
+	u8 val;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR3, &val, 1);
+	if (ret < 0) {
+		pr_debug("error %d reading SR\n", (int)ret);
+		return ret;
+	}
+
+	return val;
+}
+
 /*
  * Read the flag status register, returning its value in the location
  * Return the status register value.
@@ -208,7 +237,6 @@ static int write_sr(struct spi_nor *nor, u8 val)
 	return nor->write_reg(nor, SPINOR_OP_WRSR, nor->cmd_buf, 1);
 }
 
-
 /*
  * Set write enable latch with Write Enable command.
  * Returns negative if error occurred.
@@ -230,6 +258,18 @@ static struct spi_nor *mtd_to_spi_nor(struct mtd_info *mtd)
 {
 	return mtd->priv;
 }
+
+#ifdef CONFIG_SPI_FLASH_EON
+static int enter_otp(struct spi_nor *nor)
+{
+	return nor->write_reg(nor, SPINOR_OP_ENTER_OTP, NULL, 0);
+}
+
+static int exit_otp(struct spi_nor *nor)
+{
+	return nor->write_reg(nor, SPINOR_OP_EXIT_OTP, NULL, 0);
+}
+#endif
 
 #ifndef CONFIG_SPI_FLASH_BAR
 static u8 spi_nor_convert_opcode(u8 opcode, const u8 table[][2], size_t size)
@@ -445,6 +485,52 @@ static int spi_nor_wait_till_ready(struct spi_nor *nor)
 {
 	return spi_nor_wait_till_ready_with_timeout(nor,
 						    DEFAULT_READY_WAIT_JIFFIES);
+}
+
+static int write_sr2(struct spi_nor *nor, u8 val)
+{
+	int ret;
+
+	nor->cmd_buf[0] = val;
+	write_enable(nor);
+	ret = nor->write_reg(nor, SPINOR_OP_WRSR2, nor->cmd_buf, 1);
+	if (ret < 0) {
+		dev_dbg(nor->dev,
+			"error while writing configuration register\n");
+		return -EINVAL;
+	}
+
+	ret = spi_nor_wait_till_ready(nor);
+	if (ret) {
+		dev_dbg(nor->dev,
+			"timeout while writing configuration register\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int write_sr3(struct spi_nor *nor, u8 val)
+{
+	int ret;
+
+	nor->cmd_buf[0] = val;
+	write_enable(nor);
+	ret = nor->write_reg(nor, SPINOR_OP_WRSR3, nor->cmd_buf, 1);
+	if (ret < 0) {
+		dev_dbg(nor->dev,
+			"error while writing configuration register\n");
+		return -EINVAL;
+	}
+
+	ret = spi_nor_wait_till_ready(nor);
+	if (ret) {
+		dev_dbg(nor->dev,
+			"timeout while writing configuration register\n");
+		return ret;
+	}
+
+	return 0;
 }
 
 #ifdef CONFIG_SPI_FLASH_BAR
@@ -909,6 +995,239 @@ static int stm_is_locked(struct spi_nor *nor, loff_t ofs, uint64_t len)
 }
 #endif /* CONFIG_SPI_FLASH_STMICRO */
 
+static int sunxi_individual_lock_global(struct spi_nor *nor)
+{
+	write_enable(nor);
+
+	switch (JEDEC_MFR(nor->info)) {
+	case SNOR_MFR_WINBOND:
+	case SNOR_MFR_PUYA:
+	case SNOR_MFR_FM:
+	case SNOR_MFR_XTX:
+		return nor->write_reg(nor, SPINOR_OP_GBLK, NULL, 0);
+	default:
+		dev_err(nor->dev, "not support individual global lock nor 0x%x\n",
+				JEDEC_MFR(nor->info));
+	}
+
+	return 0;
+}
+
+static int sunxi_individual_unlock_global(struct spi_nor *nor)
+{
+	write_enable(nor);
+
+	switch (JEDEC_MFR(nor->info)) {
+	case SNOR_MFR_WINBOND:
+	case SNOR_MFR_PUYA:
+	case SNOR_MFR_FM:
+	case SNOR_MFR_XTX:
+		return nor->write_reg(nor, SPINOR_OP_UGBLK, NULL, 0);
+	default:
+		dev_err(nor->dev,
+			"not support individual global unlock nor 0x%x\n",
+			JEDEC_MFR(nor->info));
+	}
+
+	return 0;
+}
+
+static int sunxi_individual_handle_lock(struct spi_nor *nor,
+					loff_t ofs, uint64_t len, u8 cmd)
+{
+	u8 program_opcode;
+	u32 block_size = 64 *1024, alock_len = 0;
+	loff_t to;
+
+	if (ofs > nor->size) {
+		dev_err(nor->dev, "The lock address exceeds the flash size\n");
+		return -1;
+	}
+
+	program_opcode = nor->program_opcode;
+	nor->program_opcode = cmd;
+
+	write_enable(nor);
+	switch (JEDEC_MFR(nor->info)) {
+	case SNOR_MFR_WINBOND:
+	case SNOR_MFR_PUYA:
+	case SNOR_MFR_FM:
+	case SNOR_MFR_XTX:
+		while (len) {
+			if (ofs % block_size) {
+				to = (ofs / block_size) * block_size;
+				alock_len = block_size - (ofs - to);
+				ofs += alock_len;
+				len = len < alock_len ? 0 : len - alock_len;
+			} else {
+				to = ofs;
+				ofs += block_size;
+				len = len < block_size ? 0 : len - block_size;
+			}
+			nor->write(nor, to, 0, NULL);
+			if (ofs > nor->size)
+				dev_err(nor->dev, "Warning the lock handle exceeds the flash size\n");
+		}
+		break;
+	default:
+		dev_err(nor->dev, "not support individual lock nor 0x%x...\n",
+				JEDEC_MFR(nor->info));
+	}
+
+	nor->program_opcode = program_opcode;
+	return 0;
+}
+
+static int sunxi_individual_lock_status(struct spi_nor *nor,
+					loff_t ofs, uint64_t len, bool locked)
+{
+	u8 read_opcode, read_dummy;
+	u32 block_size = 64 *1024, alock_len = 0;
+	loff_t from;
+	u8 lock_status;
+
+	if (ofs > nor->size) {
+		dev_err(nor->dev, "The lock address exceeds the flash size\n");
+		return -1;
+	}
+
+	read_opcode = nor->read_opcode;
+	read_dummy = nor->read_dummy;
+	nor->read_opcode = SPINOR_OP_RDBLK;
+	nor->read_dummy = 0;
+
+	write_enable(nor);
+	switch (JEDEC_MFR(nor->info)) {
+	case SNOR_MFR_WINBOND:
+	case SNOR_MFR_PUYA:
+	case SNOR_MFR_FM:
+	case SNOR_MFR_XTX:
+		while (len) {
+			if (ofs % block_size) {
+				from = (ofs / block_size) * block_size;
+				alock_len = block_size - (ofs - from);
+				ofs += alock_len;
+				len = len < alock_len ? 0 : len - alock_len;
+			} else {
+				from = ofs;
+				ofs += block_size;
+				len = len < block_size ? 0 : len - block_size;
+			}
+			nor->read(nor, from, 1, &lock_status);
+			if (lock_status != locked) {
+				nor->read_opcode = read_opcode;
+				nor->read_dummy = read_dummy;
+				return -1;
+			}
+		}
+		break;
+	default:
+		dev_err(nor->dev, "not support individual is lock nor 0x%x\n",
+				JEDEC_MFR(nor->info));
+	}
+
+	nor->read_opcode = read_opcode;
+	nor->read_dummy = read_dummy;
+	return 1;
+}
+
+
+static int sunxi_individual_is_lock(struct spi_nor *nor,
+					loff_t ofs, uint64_t len)
+{
+	return sunxi_individual_lock_status(nor, ofs, len, true);
+}
+
+static int sunxi_individual_is_unlock(struct spi_nor *nor,
+					loff_t ofs, uint64_t len)
+{
+	return sunxi_individual_lock_status(nor, ofs, len, false);
+}
+
+static int sunxi_individual_lock(struct spi_nor *nor, loff_t ofs, uint64_t len)
+{
+	if (ofs == 0 && len == nor->size)
+		return sunxi_individual_lock_global(nor);
+
+	if (sunxi_individual_is_lock(nor, ofs, len) < 0)
+		return sunxi_individual_handle_lock(nor, ofs, len,
+				SPINOR_OP_IBLK);
+	else
+		return 0;
+}
+
+static int sunxi_individual_unlock(struct spi_nor *nor,
+					loff_t ofs, uint64_t len)
+{
+	if (ofs == 0 && len == nor->size)
+		return sunxi_individual_unlock_global(nor);
+
+	if (sunxi_individual_is_unlock(nor, ofs, len) < 0)
+		return sunxi_individual_handle_lock(nor, ofs, len,
+				SPINOR_OP_UIBLK);
+	else
+		return 0;
+}
+
+static int sunxi_individual_lock_enable(struct spi_nor *nor)
+{
+	u8 status;
+
+	switch (JEDEC_MFR(nor->info)) {
+	case SNOR_MFR_WINBOND:
+	case SNOR_MFR_PUYA:
+		status = read_sr3(nor);
+		write_sr3(nor, status | SR_WPS_EN_WINBOND);
+		if (read_sr3(nor) | SR_WPS_EN_WINBOND)
+			return 0;
+		else
+			return -1;
+	case SNOR_MFR_FM:
+		status = read_sr2(nor);
+		write_sr2(nor, status | SR_WPS_EN_FM);
+		if (read_sr2(nor) | SR_WPS_EN_FM)
+			return 0;
+		else
+			return -1;
+	case SNOR_MFR_XTX:
+		status = read_sr2(nor);
+		write_sr2(nor, status | SR_WPS_EN_XTX);
+		if (read_sr2(nor) | SR_WPS_EN_XTX)
+			return 0;
+		else
+			return -1;
+	default:
+		dev_err(nor->dev, "not support individual lock nor 0x%x\n",
+				JEDEC_MFR(nor->info));
+	}
+
+	return -1;
+}
+
+static int sunxi_individual_lock_is_enable(struct spi_nor *nor)
+{
+	switch (JEDEC_MFR(nor->info)) {
+	case SNOR_MFR_WINBOND:
+	case SNOR_MFR_PUYA:
+		if (read_sr3(nor) | SR_WPS_EN_WINBOND)
+			return 1;
+		else
+			return 0;
+	case SNOR_MFR_FM:
+		if (read_sr2(nor) | SR_WPS_EN_FM)
+			return 1;
+		else
+			return 0;
+	case SNOR_MFR_XTX:
+		if (read_sr2(nor) | SR_WPS_EN_XTX)
+			return 1;
+		else
+			return 0;
+	default:
+		return 0;
+	}
+}
+
 static const struct flash_info *spi_nor_read_id(struct spi_nor *nor)
 {
 	int			tmp;
@@ -1367,6 +1686,84 @@ static int gd_read_cr_quad_enable(struct spi_nor *nor)
 	}
 
 	return 0;
+}
+#endif
+#ifdef CONFIG_SPI_FLASH_EON
+static int read_cr_EON(struct spi_nor *nor)
+{
+	int ret;
+	u8 val;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDCR_EON, &val, 1);
+	if (ret < 0) {
+		dev_dbg(nor->dev, "error %d reading CR\n", ret);
+		return ret;
+	}
+
+	return val;
+}
+
+static int Eon_quad_enable(struct spi_nor *nor)
+{
+	int ret, val;
+	printf("EON device ID:%x,enable quad\n", JEDEC_ID(nor->info));
+	if ((JEDEC_ID(nor->info) == 0x7018) || (JEDEC_ID(nor->info) == 0x7017)) {
+		/*
+		 * EN25QH128A no QE bit,you should enter otp mode,
+		 * than you can see WXDIS bit on status register.
+		 * Set it and enable quad mode.
+		 */
+		enter_otp(nor);
+		val = read_sr(nor);
+		if (val < 0) {
+			exit_otp(nor);
+			return val;
+		}
+		if (val & SR_OTP_WXDIS_EN_EON) {
+			exit_otp(nor);
+			return 0;
+		}
+		write_enable(nor);
+		write_sr(nor, val | SR_OTP_WXDIS_EN_EON);
+
+		ret = spi_nor_wait_till_ready(nor);
+		if (ret) {
+			exit_otp(nor);
+			return ret;
+		}
+
+		ret = read_sr(nor);
+		if (!(ret > 0 && (ret & SR_OTP_WXDIS_EN_EON))) {
+			exit_otp(nor);
+			dev_err(nor->dev, "ESMT WXDIS bit not set\n");
+			return -EINVAL;
+		}
+
+		exit_otp(nor);
+
+	} else {
+		/*
+		 * other ESMT nor still enable quad mode by setting
+		 * QE bit,use 31h to write control register.
+		 *
+		 */
+		val = read_cr_EON(nor);
+		if (val < 0)
+			return val;
+		if (val & CR_QUAD_EN_EON)
+			return 0;
+
+		write_enable(nor);
+		write_sr2(nor, val | CR_QUAD_EN_EON);
+
+		ret = read_cr_EON(nor);
+		if (!(ret > 0 && (ret & CR_QUAD_EN_EON))) {
+			dev_err(nor->dev, "EON Quad bit not set\n");
+			return -EINVAL;
+		}
+	}
+	return 0;
+
 }
 #endif
 
@@ -2092,19 +2489,32 @@ static int spi_nor_init_params(struct spi_nor *nor,
 		case SNOR_MFR_ADESTO:
 		case SNOR_MFR_PUYA:
 		case SNOR_MFR_ZETTA:
+		case SNOR_MFR_BOYA:
 			params->quad_enable = gd_read_cr_quad_enable;
+			break;
+#endif
+#ifdef CONFIG_SPI_FLASH_EON
+		case SNOR_MFR_EON:
+			params->quad_enable = Eon_quad_enable;
 			break;
 #endif
 //		case SNOR_MFR_ST:
 		case SNOR_MFR_MICRON:
 			break;
 
-		default:
 #if defined(CONFIG_SPI_FLASH_SPANSION) || defined(CONFIG_SPI_FLASH_WINBOND) || defined(CONFIG_SPI_FLASH_FM) \
 			|| defined(CONFIG_SPI_FLASH_XT)
+		case SNOR_MFR_SPANSION:
+		case SNOR_MFR_WINBOND:
+		case SNOR_MFR_XTX:
+		case SNOR_MFR_FM:
 			/* Kept only for backward compatibility purpose. */
 			params->quad_enable = spansion_read_cr_quad_enable;
+			break;
 #endif
+		default:
+			dev_err(nor->dev, "SF: Need set QEB func for %02x flash\n",
+				JEDEC_MFR(nor->info));
 			break;
 		}
 	}
@@ -2335,10 +2745,25 @@ static int spi_nor_init(struct spi_nor *nor)
 		spi_nor_wait_till_ready(nor);
 	}
 
+	if (nor->info->flags & SPI_NOR_INDIVIDUAL_LOCK) {
+		err = sunxi_individual_lock_enable(nor);
+		if (err < 0)
+			dev_err(nor->dev, "WPS bit not set\n");
+
+		nor->flash_lock = sunxi_individual_lock;
+		nor->flash_unlock = sunxi_individual_unlock;
+		nor->flash_is_locked = sunxi_individual_is_lock;
+	}
+	if (sunxi_individual_lock_is_enable(nor)) {
+		printf("individual lock is enable\n");
+		if (get_boot_work_mode() == 16)
+			sunxi_individual_unlock_global(nor);
+	}
+
 	if (nor->quad_enable) {
 		err = nor->quad_enable(nor);
 		if (err) {
-			dev_dbg(nor->dev, "quad mode not supported\n");
+			dev_err(nor->dev, "quad mode not supported\n");
 			return err;
 		}
 	}
@@ -2361,6 +2786,8 @@ static int spi_nor_init(struct spi_nor *nor)
 	return 0;
 }
 
+void sunxi_update_right_delay_para(struct mtd_info *mtd);
+int sunxi_set_right_delay_para(struct mtd_info *mtd);
 int spi_nor_scan(struct spi_nor *nor)
 {
 	struct spi_nor_flash_parameter params;
@@ -2504,6 +2931,16 @@ int spi_nor_scan(struct spi_nor *nor)
 	nor->size = mtd->size;
 	nor->erase_size = mtd->erasesize;
 	nor->sector_size = mtd->erasesize;
+
+#ifdef CONFIG_SPI_SAMP_DL_EN
+	if (get_boot_work_mode() == 16)
+		sunxi_update_right_delay_para(mtd);
+	else {
+		sunxi_set_right_delay_para(mtd);
+	}
+#else
+	spi_init_clk(spi);
+#endif
 
 #ifndef CONFIG_SPL_BUILD
 	printf("SF: Detected %s with page size ", nor->name);

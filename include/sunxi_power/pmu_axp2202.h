@@ -26,10 +26,13 @@
 #endif
 
 /* define AXP21 REGISTER */
-#define   AXP2202_MODE_CHGSTATUS      	(0x01)
+#define   AXP2202_MODE_CHGSTATUS		(0x01)
 #define   AXP2202_CHIP_ID         	 	(0x03)
-#define   AXP2202_VERSION					(0x04)
-#define   AXP2202_CHIP_ID_EXT				(0x0e)
+#define   AXP2202_VERSION			(0x04)
+#define   AXP2202_CLK_EN			(0x0b)
+#define   AXP2202_CHIP_ID_EXT			(0x0e)
+
+#define   AXP2202_IIN_LIM			(0x17)
 
 #define   AXP2202_DCDC_CFG0    	   		(0x80)
 #define   AXP2202_DCDC_CFG1    	 	 	(0x81)
@@ -37,7 +40,7 @@
 #define   AXP2202_LDO_CFG0     			(0x90)
 #define   AXP2202_LDO_CFG1     			(0x91)
 
-#define   AXP2202_DCDC1_CFG				(0x83)
+#define   AXP2202_DCDC1_CFG			(0x83)
 #define   AXP2202_DCDC2_CFG        	  	(0x84)
 #define   AXP2202_DCDC3_CFG          		(0x85)
 #define   AXP2202_DCDC4_CFG       	   	(0x86)
@@ -83,6 +86,9 @@
 #define   AXP2202_DCDC1_PWM_BIT				(2)
 #define   AXP2202_DCDC2_PWM_BIT				(3)
 #define   AXP2202_DCDC3_PWM_BIT				(4)
+
+#define   AXP2202_bc12_CLK_EN				(4)
+#define   AXP2202_bc12_EN				(7)
 
 #endif /* __AXP2202_REGS_H__ */
 

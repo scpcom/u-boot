@@ -45,6 +45,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ARM_SVC_ARISC_WRITE_PMU                 0x8000ff13
 #define ARM_SVC_ARISC_FAKE_POWER_OFF_REQ_ARCH32 0x83000019
 #define ARM_SVC_FAKE_POWER_OFF       0x8000ff14
+#define ARM_SVC_UBOOT_POWER_OFF       0x8000ff15
 
 /* efuse */
 #define ARM_SVC_EFUSE_READ         (0x8000fe00)
@@ -165,9 +166,14 @@ int arm_svc_arisc_fake_poweroff(void)
 	return sunxi_smc_call(ARM_SVC_ARISC_FAKE_POWER_OFF_REQ_ARCH32, 0, 0, 0, 0);
 }
 
-int arm_svc_fake_poweroff(void)
+int arm_svc_fake_poweroff(ulong dtb_base)
 {
-	return sunxi_smc_call(ARM_SVC_FAKE_POWER_OFF, 0, 0, 0, 0);
+	return sunxi_smc_call(ARM_SVC_FAKE_POWER_OFF, dtb_base, 0, 0, 0);
+}
+
+int arm_svc_poweroff(void)
+{
+	return sunxi_smc_call(ARM_SVC_UBOOT_POWER_OFF, 0, 0, 0, 0);
 }
 
 u32 arm_svc_arisc_read_pmu(ulong addr)

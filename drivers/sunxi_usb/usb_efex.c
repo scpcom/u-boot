@@ -71,6 +71,9 @@
 #define  SUNXI_USB_EFEX_APPS_STATUS				 ((0x40000)  | SUNXI_USB_EFEX_STATUS)
 #define  SUNXI_USB_EFEX_APPS_EXIT				 ((0x50000)  | SUNXI_USB_EFEX_EXIT)
 
+extern int sunxi_flash_get_boot0_size(void);
+extern int sunxi_flash_get_boot1_size(void);
+extern void sunxi_nand_boot1_dump_for_efex(void *mem, int len);
 static  int sunxi_usb_efex_write_enable = 0;
 static  int sunxi_usb_efex_status = SUNXI_USB_EFEX_IDLE;
 static  int sunxi_usb_efex_app_step = SUNXI_USB_EFEX_APPS_IDLE;
@@ -89,6 +92,7 @@ int runtime_tick(void);
 
 int  efex_suspend_flag = 0;
 int efex_ubi_init_flag;
+static int usb_debug_mode = -1;
 
 DECLARE_GLOBAL_DATA_PTR;
 /*
@@ -766,6 +770,133 @@ static void __sunxi_usb_efex_fill_status(void)
 
 	return;
 }
+
+int sunxi_print_usb_efex_cmd(u8 *cmd_buffer)
+{
+	struct global_cmd_s  *cmd = (struct global_cmd_s *)cmd_buffer;
+	if (usb_debug_mode < 0)
+		script_parser_fetch("/soc/platform", "usb_debug_mode",
+				    &usb_debug_mode, 0);
+	if (usb_debug_mode) {
+		printf("\t app_cmd: ");
+		switch (cmd->app_cmd) {
+		case APP_LAYER_COMMEN_CMD_VERIFY_DEV:
+			printf("APP_LAYER_COMMEN_CMD_VERIFY_DEV\t\n");
+			break;
+		case APP_LAYER_COMMEN_CMD_SWITCH_ROLE:
+			printf("APP_LAYER_COMMEN_CMD_SWITCH_ROLE\t\n");
+			break;
+		case APP_LAYER_COMMEN_CMD_IS_READY:
+			printf("APP_LAYER_COMMEN_CMD_IS_READY\t\n");
+			break;
+		case APP_LAYER_COMMEN_CMD_GET_CMD_SET_VER:
+			printf("APP_LAYER_COMMEN_CMD_GET_CMD_SET_VER\t\n");
+			break;
+		case APP_LAYER_COMMEN_CMD_DISCONNECT:
+			printf("APP_LAYER_COMMEN_CMD_DISCONNECT\t\n");
+			break;
+		case FEX_CMD_fes_trans:
+			printf("FEX_CMD_fes_trans\t\n");
+			break;
+		case FEX_CMD_fes_run:
+			printf("FEX_CMD_fes_run\t\n");
+			break;
+		case FEX_CMD_fes_down:
+			printf("FEX_CMD_fes_down\t\n");
+			break;
+		case FEX_CMD_fes_up:
+			printf("FEX_CMD_fes_up\t\n");
+			break;
+		case FEX_CMD_fes_verify_value:
+			printf("FEX_CMD_fes_verify_value\t\n");
+			break;
+		case FEX_CMD_fes_verify_status:
+			printf("FEX_CMD_fes_verify_status\t\n");
+			break;
+		case FEX_CMD_fes_query_storage:
+			printf("FEX_CMD_fes_query_storage\t\n");
+			break;
+		case FEX_CMD_fes_flash_set_on:
+			printf("FEX_CMD_fes_flash_set_on\t\n");
+			break;
+		case FEX_CMD_fes_flash_set_off:
+			printf("FEX_CMD_fes_flash_set_off\t\n");
+			break;
+		case FEX_CMD_fes_flash_size_probe:
+			printf("FEX_CMD_fes_flash_size_probe\t\n");
+			break;
+		case FEX_CMD_fes_tool_mode:
+			printf("FEX_CMD_fes_tool_mode\t\n");
+			break;
+		case FEX_CMD_fes_memset:
+			printf("FEX_CMD_fes_memset\t\n");
+			break;
+		case FEX_CMD_fes_pmu:
+			printf("FEX_CMD_fes_pmu\t\n");
+			break;
+		case FEX_CMD_fes_unseqmem_read:
+			printf("FEX_CMD_fes_unseqmem_read\t\n");
+			break;
+		case FEX_CMD_fes_unseqmem_write:
+			printf("FEX_CMD_fes_unseqmem_write\t\n");
+			break;
+		case FEX_CMD_fes_force_erase:
+			printf("FEX_CMD_fes_force_erase\t\n");
+			break;
+		case FEX_CMD_fes_force_erase_key:
+			printf("FEX_CMD_fes_force_erase_key\t\n");
+			break;
+		case FEX_CMD_fes_query_secure:
+			printf("FEX_CMD_fes_query_secure\t\n");
+			break;
+		case FEX_CMD_fes_query_info:
+			printf("FEX_CMD_fes_query_info\t\n");
+			break;
+		default:
+			printf("%d unknown cmd:%d\t\n", __LINE__, cmd->app_cmd);
+			break;
+		}
+	}
+	return 0;
+}
+
+int sunxi_print_usb_efex_next_status(int app_next_status)
+{
+	if (usb_debug_mode < 0)
+		script_parser_fetch("/soc/platform", "usb_debug_mode",
+				    &usb_debug_mode, 0);
+	if (usb_debug_mode) {
+		printf("\t app_next_status: ");
+		switch (app_next_status) {
+		case SUNXI_USB_EFEX_APPS_IDLE:
+			printf("SUNXI_USB_EFEX_APPS_IDLE\t\n");
+			break;
+		case SUNXI_USB_EFEX_APPS_CMD:
+			printf("SUNXI_USB_EFEX_APPS_CMD\t\n");
+			break;
+		case SUNXI_USB_EFEX_APPS_DATA:
+			printf("SUNXI_USB_EFEX_APPS_DATA\t\n");
+			break;
+		case SUNXI_USB_EFEX_APPS_SEND_DATA:
+			printf("SUNXI_USB_EFEX_APPS_SEND_DATA\t\n");
+			break;
+		case SUNXI_USB_EFEX_APPS_RECEIVE_DATA:
+			printf("SUNXI_USB_EFEX_APPS_RECEIVE_DATA\t\n");
+			break;
+		case SUNXI_USB_EFEX_APPS_STATUS:
+			printf("SUNXI_USB_EFEX_APPS_STATUS\t\n");
+			break;
+		case SUNXI_USB_EFEX_APPS_EXIT:
+			printf("SUNXI_USB_EFEX_APPS_EXIT\t\n");
+			break;
+		default:
+			printf("%d unkown app_next_status:%d\n", __LINE__, app_next_status);
+			break;
+		}
+
+	}
+	return 0;
+}
 /*
 ************************************************************************************************************
 *
@@ -786,10 +917,10 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 {
 	struct global_cmd_s  *cmd = (struct global_cmd_s *)cmd_buffer;
 
+	sunxi_print_usb_efex_cmd(cmd_buffer);
 	switch(cmd->app_cmd)
 	{
 		case APP_LAYER_COMMEN_CMD_VERIFY_DEV:
-			sunxi_usb_dbg("APP_LAYER_COMMEN_CMD_VERIFY_DEV\n");
 			{
 				struct verify_dev_data_s *app_verify_dev;
 
@@ -812,7 +943,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case APP_LAYER_COMMEN_CMD_SWITCH_ROLE:
-			sunxi_usb_dbg("APP_LAYER_COMMEN_CMD_SWITCH_ROLE\n");
 			sunxi_usb_dbg("not supported\n");
 
 			trans_data.last_err          = -1;
@@ -821,7 +951,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case APP_LAYER_COMMEN_CMD_IS_READY:
-			sunxi_usb_dbg("APP_LAYER_COMMEN_CMD_IS_READY\n");
 
 			{
 				struct is_ready_data_s *app_is_ready_data;
@@ -840,7 +969,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case APP_LAYER_COMMEN_CMD_GET_CMD_SET_VER:
-			sunxi_usb_dbg("APP_LAYER_COMMEN_CMD_GET_CMD_SET_VER\n");
 
 			{
 				struct get_cmd_set_ver_data_s *app_get_cmd_ver_data;
@@ -859,7 +987,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case APP_LAYER_COMMEN_CMD_DISCONNECT:
-			sunxi_usb_dbg("APP_LAYER_COMMEN_CMD_DISCONNECT\n");
 			sunxi_usb_dbg("not supported\n");
 
 			trans_data.last_err          = -1;
@@ -868,7 +995,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case FEX_CMD_fes_trans:
-			sunxi_usb_dbg("FEX_CMD_fes_trans\n");
 
 			//需要发送数据
 			{
@@ -915,7 +1041,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case FEX_CMD_fes_run:
-			sunxi_usb_dbg("FEX_CMD_fes_run\n");
 			{
 #ifdef  CONFIG_CMD_ELF
 				fes_run_t   *runs = (fes_run_t *)cmd_buf;
@@ -969,7 +1094,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case FEX_CMD_fes_down:
-			sunxi_usb_dbg("FEX_CMD_fes_down\n");
 			{
 				fes_trans_t  *trans = (fes_trans_t *)cmd_buf;
 
@@ -1005,9 +1129,10 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 
 			break;
 		case FEX_CMD_fes_up:
-			sunxi_usb_dbg("FEX_CMD_fes_up\n");
 #ifdef CONFIG_SUNXI_UBIFS
-			if (efex_ubi_init_flag == 0 && nand_use_ubi()) {
+			if ((get_boot_storage_type() == STORAGE_NAND) &&
+					efex_ubi_init_flag == 0 &&
+					nand_use_ubi()) {
 				ubi_nand_probe_uboot();
 				ubi_nand_attach_mtd();
 				efex_ubi_init_flag = 1;
@@ -1154,7 +1279,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 //			break;
 
 		case FEX_CMD_fes_verify_value:
-			sunxi_usb_dbg("FEX_CMD_fes_verify_value\n");
 			{
 				fes_cmd_verify_value_t  *cmd_verify = (fes_cmd_verify_value_t *)cmd_buf;
 				fes_efex_verify_t 		*verify_data= (fes_efex_verify_t *)trans_data.base_send_buffer;
@@ -1187,7 +1311,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 
 			break;
 		case FEX_CMD_fes_query_storage:
-			sunxi_usb_dbg("FEX_CMD_fes_query_storage\n");
 
 			{
 				uint *storage_type = (uint *)trans_data.base_send_buffer;
@@ -1208,7 +1331,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case FEX_CMD_fes_flash_set_on:
-			sunxi_usb_dbg("FEX_CMD_fes_flash_set_on\n");
 
 			trans_data.last_err = sunxi_sprite_init(0);
 			trans_data.app_next_status   = SUNXI_USB_EFEX_APPS_STATUS;
@@ -1216,7 +1338,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case FEX_CMD_fes_flash_set_off:
-			sunxi_usb_dbg("FEX_CMD_fes_flash_set_off\n");
 
 			trans_data.last_err = sunxi_sprite_exit(1);
 			trans_data.app_next_status   = SUNXI_USB_EFEX_APPS_STATUS;
@@ -1224,7 +1345,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case FEX_CMD_fes_flash_size_probe:
-			sunxi_usb_dbg("FEX_CMD_fes_flash_size_probe\n");
 
 			{
 				uint *flash_size = (uint *)trans_data.base_send_buffer;
@@ -1239,7 +1359,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case FEX_CMD_fes_tool_mode:
-			sunxi_usb_dbg("FEX_CMD_fes_tool_mode\n");
 
 			{
 				fes_efex_tool_t *fes_work = (fes_efex_tool_t *)cmd_buf;
@@ -1296,7 +1415,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case  FEX_CMD_fes_memset:
-		    sunxi_usb_dbg("FEX_CMD_fes_memset\n");
 		    {
 		        fes_efex_memset_t *fes_memset = (fes_efex_memset_t *)cmd_buf;
 
@@ -1309,7 +1427,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 		    break;
 
 		case FEX_CMD_fes_pmu:
-			sunxi_usb_dbg("FEX_CMD_fes_pmu\n");
 			{
 				fes_efex_pmu_t *fes_pmu = (fes_efex_pmu_t *)cmd_buf;
 
@@ -1325,7 +1442,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 			break;
 
 		case FEX_CMD_fes_unseqmem_read:
-			sunxi_usb_dbg("FEX_CMD_fes_unseqmem_read\n");
 			{
 				tag_efex_unseq_mem_t  *fes_unseq = (tag_efex_unseq_mem_t *)cmd_buf;
 
@@ -1358,7 +1474,6 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 
 			break;
 		case FEX_CMD_fes_unseqmem_write:
-			sunxi_usb_dbg("FEX_CMD_fes_unseqmem_write\n");
 			{
 				tag_efex_unseq_mem_t  *fes_unseq = (tag_efex_unseq_mem_t *)cmd_buf;
 
@@ -1390,6 +1505,15 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
         case FEX_CMD_fes_force_erase_key:
             printf("FEX_CMD_fes_force_erase_key \n");
             {
+#ifdef CONFIG_SUNXI_UBIFS
+		if ((get_boot_storage_type() == STORAGE_NAND) &&
+					efex_ubi_init_flag == 0 &&
+					nand_use_ubi()) {
+			ubi_nand_probe_uboot();
+			ubi_nand_attach_mtd();
+			efex_ubi_init_flag = 1;
+		}
+#endif
 		    trans_data.last_err = sunxi_sprite_force_erase_key();
 		    printf("FEX_CMD_fes_force_erase_key last err = %d \n",
 			   trans_data.last_err);
@@ -1410,7 +1534,81 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 				trans_data.app_next_status   = SUNXI_USB_EFEX_APPS_SEND_DATA;
 			}
 			break;
+#ifdef CONFIG_CMD_SUNXI_NAND
+		case FEX_CMD_fes_nand:
+			{
+				if (get_boot_storage_type() == STORAGE_NAND) {
+					fes_trans_t  *trans = (fes_trans_t *)cmd_buf;
+					trans_data.flash_start       = trans->addr; //设置发送地址，属于扇区单位
+					trans_data.flash_sectors     = (trans->len + 511) >> 9;
 
+					trans_data.last_err          	 = 0;
+					trans_data.type  = trans->type;
+					//功能区分：读id,读boot0,uboot,读整个flash物理数据，写入boot0,uboot,读某个逻辑地址的历史数据，擦除功能，修改读写条件（调频，改单线双线四线操作）
+					trans_data.send_size = trans->len;
+					trans_data.app_next_status   	 = SUNXI_USB_EFEX_APPS_SEND_DATA;
+					trans_data.act_send_buffer   = trans_data.base_send_buffer;	 //设置发送地址
+					if ((trans->type & SUNXI_EFEX_NAND_ID_TAG) == SUNXI_EFEX_NAND_ID_TAG) {
+						printf("read nand flash ID\n");
+						if (sunxi_nand_info_dump((void *)trans_data.act_send_buffer)) {
+							printf("read nand flash ID err\n");
+							trans_data.last_err = -1;
+						}
+
+						printf("read nand flash id last err %d\n", trans_data.last_err);
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_PAGE_TABLE_TAG) == SUNXI_EFEX_NAND_PAGE_TABLE_TAG) {
+						printf("dump flash page table\n");
+						sunxi_nand_page_table(trans_data.act_send_buffer);
+						if (trans_data.act_send_buffer == NULL) {
+							trans_data.last_err = -1;
+							printf("dump flash page table error\n");
+						}
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_PHY_BLOCK) == SUNXI_EFEX_NAND_PHY_BLOCK) {
+						sunxi_nand_phy_page(trans->addr, trans->len, trans_data.act_send_buffer);
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_BOOT0_SIZE) == SUNXI_EFEX_NAND_BOOT0_SIZE) {
+						uint *boot0_size = (uint *)trans_data.base_send_buffer;
+						*boot0_size = sunxi_flash_get_boot0_size();
+					}
+
+					if ((trans->type & SUNXI_EFEX_NAND_BOOT1_SIZE) == SUNXI_EFEX_NAND_BOOT1_SIZE) {
+						int *boot1_size = (int *)trans_data.base_send_buffer;
+						*boot1_size = sunxi_flash_get_boot1_size();
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_BOOT0) == SUNXI_EFEX_NAND_BOOT0) {
+
+						sunxi_nand_boot0_dump(trans_data.act_send_buffer, trans->addr, 0);
+					}
+
+					if ((trans->type & SUNXI_EFEX_NAND_BOOT1) == SUNXI_EFEX_NAND_BOOT1) {
+
+						sunxi_nand_boot1_dump_for_efex(trans_data.act_send_buffer, trans->len);
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_HISTORY_DATA) == SUNXI_EFEX_NAND_HISTORY_DATA) {
+						sunxi_nand_logic_history_data_dump(trans_data.flash_start,
+								trans_data.flash_sectors,
+								trans_data.act_send_buffer, 0);
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_FORCE_ERASE) == SUNXI_EFEX_NAND_FORCE_ERASE) {
+						NAND_Uboot_Force_Erase();
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_IO_STRESS) == SUNXI_EFEX_NAND_IO_STRESS) {
+						sunxi_nand_test_read_write_normal();
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_IO_WPERF) == SUNXI_EFEX_NAND_IO_WPERF) {
+						sunxi_nand_wperf_test((void *)trans_data.act_send_buffer);
+					}
+					if ((trans->type & SUNXI_EFEX_NAND_IO_RPERF) == SUNXI_EFEX_NAND_IO_RPERF) {
+						sunxi_nand_rperf_test((void *)trans_data.act_send_buffer);
+					}
+
+				} else
+					printf("not nand\n");
+			}
+			break;
+#endif
 	case FEX_CMD_fes_query_info:
 		{
 
@@ -1440,7 +1638,7 @@ static int __sunxi_usb_efex_op_cmd(u8 *cmd_buffer)
 
 			break;
 	}
-
+	sunxi_print_usb_efex_next_status(trans_data.app_next_status);
 	return 0;
 }
 
@@ -1590,6 +1788,97 @@ static void dram_data_recv_finish(uint data_type)
 *
 ************************************************************************************************************
 */
+
+void sunxi_print_efex_status(int efex_status)
+{
+	static int temp_efex_status = -1;
+	static int cnt;
+	if (usb_debug_mode < 0)
+		script_parser_fetch("/soc/platform", "usb_debug_mode",
+				    &usb_debug_mode, 0);
+	if (usb_debug_mode) {
+		if (temp_efex_status != efex_status || cnt < 5) {
+			if (efex_status == SUNXI_USB_EFEX_IDLE) {
+				cnt++;
+			} else {
+				cnt = 0;
+			}
+			printf("\t sunxi_usb_efex_status: ");
+			switch (efex_status) {
+			case SUNXI_USB_EFEX_IDLE:
+				printf("SUNXI_USB_EFEX_IDLE\t\n");
+				break;
+			case SUNXI_USB_EFEX_SETUP:
+				printf("SUNXI_USB_EFEX_SETUP\t\n");
+				break;
+			case SUNXI_USB_EFEX_SEND_DATA:
+				printf("SUNXI_USB_EFEX_SEND_DATA\t\n");
+				break;
+			case SUNXI_USB_EFEX_RECEIVE_DATA:
+				printf("SUNXI_USB_EFEX_RECEIVE_DATA\t\n");
+				break;
+			case SUNXI_USB_EFEX_SETUP_NEW:
+				printf("SUNXI_USB_EFEX_SETUP_NEW\t\n");
+				break;
+			case SUNXI_USB_EFEX_SEND_DATA_NEW:
+				printf("SUNXI_USB_EFEX_SEND_DATA_NEW\t\n");
+				break;
+			case SUNXI_USB_EFEX_RECEIVE_DATA_NEW:
+				printf("SUNXI_USB_EFEX_RECEIVE_DATA_NEW\t\n");
+				break;
+			case SUNXI_USB_EFEX_STATUS:
+				printf("SUNXI_USB_EFEX_STATUS\t\n");
+				break;
+			case SUNXI_USB_EFEX_EXIT:
+				printf("SUNXI_USB_EFEX_EXIT\t\n");
+				break;
+			default:
+				printf(" %d unknown cmd:%d\t\n", __LINE__, efex_status);
+				break;
+			}
+			temp_efex_status = efex_status;
+		}
+	}
+}
+
+void sunxi_print_efex_app_step(int efex_app_status)
+{
+	static int temp_efex_status = -1;
+	if (usb_debug_mode < 0)
+		script_parser_fetch("/soc/platform", "usb_debug_mode",
+				    &usb_debug_mode, 0);
+	if (usb_debug_mode) {
+		if (temp_efex_status != efex_app_status) {
+			printf("\t sunxi_usb_efex_app_step: ");
+			switch (efex_app_status) {
+			case SUNXI_USB_EFEX_APPS_IDLE:
+				printf("SUNXI_USB_EFEX_APPS_IDLE \t\n");
+				break;
+			case SUNXI_USB_EFEX_APPS_CMD:
+				printf("SUNXI_USB_EFEX_APPS_CMD \t\n");
+				break;
+			case SUNXI_USB_EFEX_APPS_SEND_DATA:
+				printf("SUNXI_USB_EFEX_APPS_SEND_DATA \t\n");
+				break;
+			case SUNXI_USB_EFEX_APPS_RECEIVE_DATA:
+				printf("SUNXI_USB_EFEX_APPS_RECEIVE_DATA \t\n");
+				break;
+			case SUNXI_USB_EFEX_APPS_STATUS:
+				printf("SUNXI_USB_EFEX_APPS_STATUS \t\n");
+				break;
+			case SUNXI_USB_EFEX_APPS_EXIT:
+				printf("SUNXI_USB_EFEX_APPS_EXIT \t\n");
+				break;
+			default:
+				printf(" %d unknown cmd:%d\t\n", __LINE__, efex_app_status);
+				break;
+			}
+			temp_efex_status = efex_app_status;
+		}
+	}
+}
+
+
 static int sunxi_efex_state_loop(void  *buffer)
 {
 	static struct sunxi_efex_cbw_t  *cbw;
@@ -1597,6 +1886,8 @@ static int sunxi_efex_state_loop(void  *buffer)
 	sunxi_ubuf_t *sunxi_ubuf = (sunxi_ubuf_t *)buffer;
     int  efex_write_error_flag = 0;
 
+	sunxi_print_efex_status(sunxi_usb_efex_status);
+	sunxi_print_efex_app_step(sunxi_usb_efex_app_step);
 	switch(sunxi_usb_efex_status)
 	{
 		case SUNXI_USB_EFEX_IDLE:
@@ -1618,7 +1909,6 @@ static int sunxi_efex_state_loop(void  *buffer)
 
 		case SUNXI_USB_EFEX_SETUP:		//cbw
 
-			sunxi_usb_dbg("SUNXI_USB_EFEX_SETUP\n");
 
             if((sunxi_ubuf->rx_req_length == sizeof(struct sunxi_efex_cbw_t)))
             {
@@ -1755,7 +2045,6 @@ static int sunxi_efex_state_loop(void  *buffer)
 
 	  	case SUNXI_USB_EFEX_SEND_DATA:
 
-	  		sunxi_usb_dbg("SUNXI_USB_EFEX_SEND_DATA\n");
 			{
 				uint tx_length = MIN(cbw->data_transfer_len, trans_data.send_size);
 
@@ -1784,7 +2073,6 @@ static int sunxi_efex_state_loop(void  *buffer)
 
 	  	case SUNXI_USB_EFEX_RECEIVE_DATA:
 
-	  		sunxi_usb_dbg("SUNXI_USB_RECEIVE_DATA\n");
 			if(sunxi_usb_efex_write_enable == 1)		//数据部分接收完毕
 			{
 				csw.status = 0;
@@ -1845,7 +2133,6 @@ static int sunxi_efex_state_loop(void  *buffer)
 
             case SUNXI_USB_EFEX_SETUP_NEW:      //
             {
-                sunxi_usb_dbg("SUNXI_USB_EFEX_SETUP_NEW\n");
 
                 memcpy(cmd_buf,sunxi_ubuf->rx_req_buffer,FES_NEW_CMD_LEN);
 #ifdef _EFEX_USE_BUF_QUEUE_
@@ -1919,7 +2206,6 @@ static int sunxi_efex_state_loop(void  *buffer)
 			}
 
             case SUNXI_USB_EFEX_SEND_DATA_NEW:
-                sunxi_usb_dbg("SUNXI_USB_EFEX_SEND_DATA_NEW\n");
                 {
                     uint tx_length =  trans_data.send_size;
 #if defined(SUNXI_USB_30)
@@ -1992,7 +2278,6 @@ static int sunxi_efex_state_loop(void  *buffer)
             break;
 
 		case SUNXI_USB_EFEX_STATUS:
-			sunxi_usb_dbg("SUNXI_USB_EFEX_STATUS\n");
 #if defined(SUNXI_USB_30)
 			if(sunxi_usb_efex_status_enable)
 #endif
@@ -2011,7 +2296,6 @@ static int sunxi_efex_state_loop(void  *buffer)
 			break;
 
 		case SUNXI_USB_EFEX_EXIT:
-			sunxi_usb_dbg("SUNXI_USB_EFEX_EXIT\n");
 
                         //when call efex queue write error,set stauts to tell usbtools
                         if(efex_write_error_flag)

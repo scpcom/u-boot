@@ -3,6 +3,8 @@
 # (C) Copyright 2004-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
+ccflags-$(CONFIG_RTL8363_NB) += -I$(src)/../include/rtl8363_nb/
+ccflags-$(CONFIG_RTL8363_NB) += -I$(src)/../drivers/net/rtl8363_nb/
 ifndef CONFIG_SPL_BUILD
 # core command
 obj-y += boot.o
@@ -85,6 +87,7 @@ ifdef CONFIG_PHYLIB
 obj-$(CONFIG_CMD_MII) += mdio.o
 endif
 obj-$(CONFIG_CMD_MISC) += misc.o
+obj-$(CONFIG_RTL8363_NB) += rtl8363.o
 obj-$(CONFIG_CMD_MMC) += mmc.o
 obj-$(CONFIG_CMD_MMC_SPI) += mmc_spi.o
 obj-$(CONFIG_MP) += mp.o

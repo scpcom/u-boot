@@ -49,7 +49,7 @@ timing mode
 #define MMC_CLK_SAMPLE_POINIT_MODE_2_HS400 64U
 #define MMC_CLK_SAMPLE_POINIT_MODE_3 64U
 #define MMC_CLK_SAMPLE_POINIT_MODE_4 64U
-#define MMC_CLK_SAMPLE_POINIT_MODE_5 16U
+#define MMC_CLK_SAMPLE_POINIT_MODE_5 64U
 
 #define TM1_OUT_PH90   (0)
 #define TM1_OUT_PH180  (1)
@@ -74,7 +74,8 @@ timing mode
 #define ERR_NO_BEST_DLY (2)
 
 /* need malloc low len when flush unaligned addr cache */
-#if  defined (CONFIG_MACH_SUN8IW18) || defined (CONFIG_MACH_SUN8IW19)
+#if  defined (CONFIG_MACH_SUN8IW18) || defined (CONFIG_MACH_SUN8IW19) || \
+	(defined (CONFIG_MACH_SUN8IW20) && (CONFIG_SUNXI_MALLOC_LEN < 0x3700000))
 #define SUNXI_MMC_MALLOC_LOW_LEN	(4 << 20)
 #else
 #define SUNXI_MMC_MALLOC_LOW_LEN        (16 << 20)
@@ -228,7 +229,18 @@ struct mmc_reg_v4p1 {
 //#else
 //	volatile u32 res7[3];
 //#endif
-	volatile u32 res6[44];  /* (0x150~0x1ff) */
+	volatile u32 res6[4];  /* (0x150~0x15f) */
+	volatile u32 skew_dat0_dl; /*(0x160) deskew data0 delay control register*/
+	volatile u32 skew_dat1_dl; /*(0x164) deskew data1 delay control register*/
+	volatile u32 skew_dat2_dl; /*(0x168) deskew data2 delay control register*/
+	volatile u32 skew_dat3_dl; /*(0x16c) deskew data3 delay control register*/
+	volatile u32 skew_dat4_dl; /*(0x170) deskew data4 delay control register*/
+	volatile u32 skew_dat5_dl; /*(0x174) deskew data5 delay control register*/
+	volatile u32 skew_dat6_dl; /*(0x178) deskew data6 delay control register*/
+	volatile u32 skew_dat7_dl; /*(0x17c) deskew data7 delay control register*/
+	volatile u32 skew_ds_dl;	  /*(0x180) deskew ds delay control register*/
+	volatile u32 skew_ctrl;    /*(0x184) deskew control control register*/
+	volatile u32 res8[30];  /* (0x188~0x1ff) */
 	volatile u32 fifo;           /* (0x200) SMC FIFO Access Address */
 	volatile u32 res7[63];	/* (0x201~0x2FF)*/
 	volatile u32 vers;	/* (0x300) SMHC Version Register */
@@ -404,9 +416,11 @@ struct sunxi_sdmmc_parameter_region {
 #define SDXC_CalDly          		(0x3F<<8)
 #define SDXC_EnableDly       		(1<<7)
 #define SDXC_CfgDly          		(0x3F<<0)
+#define SDXC_CfgNewDly          		(0xF<<0)
 
 /* GPIO POWER MODE REGISTER */
 #define GPIO_POW_MODE_REG		(0x0340)
+#define GPIO_POW_MODE_VAL_REG		(0x0348)
 
 extern void dumphex32(char *name, char *base, int len);
 struct mmc *sunxi_mmc_init(int sdc_no);

@@ -384,14 +384,17 @@ int sunxi_flash_init_ext(void)
 
 	tick_printf("workmode = %d,storage type = %d\n", workmode, storage_type);
 
-	if (workmode == WORK_MODE_BOOT ||
-	    workmode == WORK_MODE_SPRITE_RECOVERY) {
+	if (workmode == WORK_MODE_USB_DEBUG) {
+		return 0;
+	} else if (workmode == WORK_MODE_BOOT ||
+		   workmode == WORK_MODE_SPRITE_RECOVERY) {
 		state = sunxi_flash_boot_init(storage_type, workmode);
 	} else if ((workmode & WORK_MODE_PRODUCT) || (workmode == 0x30)) {
 		state = sunxi_flash_probe();
 	} else if (workmode & WORK_MODE_UPDATE) {
 	} else {
 	}
+
 	//init blk dev
 	sunxi_flash_init_blk();
 
@@ -425,8 +428,29 @@ int sunxi_flash_upload_boot0(char *buffer, int size, int backup_id)
 return ret;
 }
 
-#ifdef CONFIG_SUNXI_OTA_TURNNING
-static int sunxi_flash_get_boot0_size(int backup_id)
+int sunxi_flash_get_boot1_size(void)
+{
+
+	int ret = 0;
+	int length = nand_get_uboot_total_len();
+	unsigned char *boot1 = malloc_align(length, 64);
+	sbrom_toc1_head_info_t *toc1 = (sbrom_toc1_head_info_t *)boot1;
+
+
+	memset(boot1, 0x00, length);
+	ret = nand_read_uboot_data(boot1, length);
+	if (ret != 0) {
+		printf("read uboot fail\n");
+		return -1;
+	}
+
+	length = toc1->valid_len;
+	printf("ubootsize: %d\n", length);
+
+	return length;
+}
+
+int sunxi_flash_get_boot0_size(int backup_id)
 {
 	/* note:page align for nand */
 	char *boot_buffer = NULL;
@@ -457,6 +481,8 @@ static int sunxi_flash_get_boot0_size(int backup_id)
 	return size;
 }
 
+
+#ifdef CONFIG_SUNXI_OTA_TURNNING
 /* boot0 buffer malloced in this api, caller should release it when it's done'*/
 static int sunxi_try_boot0_backup(char **load_buffer, int backup_id)
 {

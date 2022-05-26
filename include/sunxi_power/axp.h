@@ -30,7 +30,7 @@
 #define BATTERY_RATIO_TOO_LOW_WITHOUT_DCIN 1
 #define BATTERY_RATIO_TOO_LOW_WITH_DCIN 2
 #define BATTERY_RATIO_ENOUGH 3
-#define BATTERY_RATIO_TOO_LOW_WITH_DCIN_VOL_TOO_LOW 4
+#define BATTERY_VOL_TOO_LOW 4
 
 #define AXP_POWER_ON_BY_POWER_KEY 0
 #define AXP_POWER_ON_BY_POWER_TRIGGER 1
@@ -77,6 +77,7 @@ int (*set_charge_current_limit)(int current); /*Set the current charge size*/
 int (*reset_capacity)(void);
 unsigned char (*get_reg_value)(unsigned char reg_addr);/*get register value*/
 unsigned char (*set_reg_value)(unsigned char reg_addr, unsigned char reg_value);/*set register value*/
+int (*set_ntc_onoff)(int onoff); /* set ntc onoff, default on */
 };
 
 #define U_BOOT_AXP_BMU_INIT(_name)                                             \
@@ -116,7 +117,7 @@ int bmu_set_charge_current_limit(int current);
 int bmu_reset_capacity(void);
 unsigned char bmu_get_reg_value(unsigned char reg_addr);
 unsigned char bmu_set_reg_value(unsigned char reg_addr, unsigned char reg_value);
-
+int bmu_set_ntc_onoff(int onoff);
 int axp_probe(void);
 
 #endif /* __AXP_H__ */

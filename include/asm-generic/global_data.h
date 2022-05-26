@@ -160,6 +160,7 @@ typedef struct global_data {
 	int            ir_detect_status;
 	bool			uboot_shell;
 	ulong          boot_logo_addr;
+	bool           force_32bit_os;//1: run 32bit os at 64bit platform
 
 #endif
 

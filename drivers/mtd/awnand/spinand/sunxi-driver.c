@@ -331,6 +331,11 @@ int spinand_mtd_get_flash_info(void *data, unsigned int len)
 	boot_info->nand_specialinfo_page = 0;
 	boot_info->nand_specialinfo_offset = 0;
 	boot_info->physic_block_reserved = 0;
+
+	if (chip->rx_bit != 4)
+		boot_info->OperationOpt &= ~SPINAND_QUAD_READ;
+	boot_info->sample_mode = spinand->right_sample_mode;
+	boot_info->sample_delay = spinand->right_sample_delay;
 	return 0;
 }
 

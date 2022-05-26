@@ -1,4 +1,5 @@
 source "drivers/net/phy/Kconfig"
+source "drivers/net/rtl8363_nb/Kconfig"
 source "drivers/net/pfe_eth/Kconfig"
 
 config DM_ETH
@@ -236,6 +237,12 @@ config RTL8169
 	help
 	  This driver supports Realtek 8169 series gigabit ethernet family of
 	  PCI/PCIe chipsets/adapters.
+
+config RTL8363_NB
+	bool "Realtek 8363nb_vb switch Ethernet controller driver"
+	help
+	  This driver supports Realtek 8363nb_vb switch ethernet family of
+	  MDC/MDIO chipsets/adapters.
 
 config SMC911X
 	bool "SMSC LAN911x and LAN921x controller driver"

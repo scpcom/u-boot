@@ -19,12 +19,23 @@
 #include <dm/device.h>
 #include <dm/root.h>
 #include <u-boot/zlib.h>
+#include <private_opensbi.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 int check_dtbo_idx(void);
 __weak void board_quiesce_devices(void)
 {
+}
+
+void  boot_jmp_opensbi(ulong opensbi_addr, u32 core_id, ulong dtb_addr,
+					struct fw_dynamic_info *opensbi_info)
+{
+		asm volatile ("mv s1, %0" :: "r" (opensbi_addr) : "memory");
+		asm volatile ("mv a0, %0" :: "r" (core_id) : "memory");
+		asm volatile ("mv a1, %0" :: "r" (dtb_addr) : "memory");
+		asm volatile ("mv a2, %0" :: "r" (opensbi_info) : "memory");
+		asm volatile ("jr s1");
 }
 
 /**
@@ -84,7 +95,8 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 	int ret;
 #endif
 	unsigned long r2;
-
+	unsigned long opensbi_run_addr = env_get_hex("opensbi_run_addr", 0);
+	struct fw_dynamic_info opensbi_info;
 	kernel = (void (*)(ulong, void *))images->ep;
 
 	bootstage_mark(BOOTSTAGE_ID_RUN_OS);
@@ -104,7 +116,8 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 			}
 		}
 #endif
-		memcpy((void *)r2, images->ft_addr, images->ft_len);
+		if (!opensbi_run_addr) {
+			memcpy((void *)r2, images->ft_addr, images->ft_len);
 #ifdef CONFIG_SMP
 			ret = smp_call_function(images->ep,
 						(ulong)images->ft_addr, 0, 0);
@@ -113,9 +126,19 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 #endif
 			debug("## Linux machid: %08lx, FDT addr: %08lx\n", gd->arch.boot_hart, (ulong)images->ft_addr);
 			kernel(gd->arch.boot_hart, (void *)r2);
+		} else {
+			printf("start opensbi\n");
+			opensbi_info.magic = FW_DYNAMIC_INFO_MAGIC_VALUE;
+			opensbi_info.version = 0x1;
+			opensbi_info.next_addr = images->ep;
+			opensbi_info.next_mode = FW_DYNAMIC_INFO_NEXT_MODE_S;
+			opensbi_info.options = 0;
+			opensbi_info.boot_hart = 0;
+
+			boot_jmp_opensbi(opensbi_run_addr, gd->arch.boot_hart, r2, &opensbi_info);
 		}
 	}
-
+	}
 }
 
 #else

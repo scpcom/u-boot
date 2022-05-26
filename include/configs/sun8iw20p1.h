@@ -8,7 +8,6 @@
 
 /* #define FPGA_PLATFORM */
 
-#define CONFIG_SUNXI_GPIO_V2
 
 #ifdef CONFIG_SUNXI_UBIFS
 #define CONFIG_AW_MTD_SPINAND 1
@@ -36,7 +35,7 @@
 
 #ifdef CONFIG_USB_EHCI_HCD
 #define CONFIG_USB_EHCI_SUNXI
-#define CONFIG_USB_MAX_CONTROLLER_COUNT 1
+#define CONFIG_USB_MAX_CONTROLLER_COUNT 2
 #endif
 
 #define CONFIG_SUNXI_USB_PHYS	1
@@ -55,11 +54,20 @@
 #define CONFIG_SYS_BOOTM_LEN 0x2000000
 #define PHOENIX_PRIV_DATA_ADDR      (SUNXI_SYS_SRAM_BASE + 0x25000)//给phoenix保留的空间
 
+#ifdef CONFIG_SUNXI_MALLOC_LEN
+#define SUNXI_SYS_MALLOC_LEN	CONFIG_SUNXI_MALLOC_LEN
+#else
 #define SUNXI_SYS_MALLOC_LEN	(32 << 20)
+#endif
+
 
 /*
  * Include common sunxi configuration where most the settings are
  */
 #include <configs/sunxi-common.h>
+
+#ifdef CONFIG_SUNXI_GETH
+#define CONFIG_SYS_NONCACHED_MEMORY (1 << 20)
+#endif
 
 #endif /* __CONFIG_H */

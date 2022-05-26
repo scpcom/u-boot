@@ -94,22 +94,22 @@ __maybe_unused static void sunxi_update_initrd(ulong os_load_addr)
 		(const struct andr_img_hdr *)os_load_addr;
 	ulong initrd_start;
 	ulong initrd_size;
-	unsigned long ramdisk_addr = hdr->ramdisk_addr;
+	unsigned long ramdisk_addr = env_get_hex("load_ramdisk_addr", hdr->ramdisk_addr);
 	android_image_get_ramdisk(hdr, &initrd_start, &initrd_size);
 	if ((!strncmp(hdr->magic, ANDR_BOOT_MAGIC, ANDR_BOOT_MAGIC_SIZE)) && (hdr->unused >= 0x3)) {
 		ulong vendor_initrd_start, vendor_initrd_size;
 		struct vendor_boot_img_hdr *vendor_hdr = get_vendor_hdr_addr();
-		ramdisk_addr = vendor_hdr->ramdisk_addr;
+		ramdisk_addr = env_get_hex("load_ramdisk_addr", vendor_hdr->ramdisk_addr);
 		android_image_get_vendor_ramdisk(hdr, &vendor_initrd_start, &vendor_initrd_size);
 		memmove_wd((void *)(ramdisk_addr), (void *)vendor_initrd_start, vendor_initrd_size, CHUNKSZ);
 		memmove_wd((void *)(ramdisk_addr + vendor_initrd_size), (void *)initrd_start, initrd_size, CHUNKSZ);
 		initrd_size += vendor_initrd_size;
 		if (vendor_hdr->dtb_addr) {
-			env_set_hex("load_dtb_addr", vendor_hdr->dtb_addr);
+			env_set_hex("load_dtb_addr", env_get_hex("load_dtb_addr", vendor_hdr->dtb_addr));
 		}
 	} else {
 		if ((!strncmp(hdr->magic, ANDR_BOOT_MAGIC, ANDR_BOOT_MAGIC_SIZE)) && (hdr->dtb_addr)) {
-			env_set_hex("load_dtb_addr", hdr->dtb_addr);
+			env_set_hex("load_dtb_addr", env_get_hex("load_dtb_addr", hdr->dtb_addr));
 		}
 		memmove_wd((void *)ramdisk_addr, (void *)initrd_start, initrd_size, CHUNKSZ);
 	}
@@ -136,6 +136,61 @@ __maybe_unused static void sunxi_update_initrd(ulong os_load_addr)
 
 }
 
+
+/*
+ * depends on boot header, not correct with sunxi-compressed kernel(no header)
+ * maybe not always accurate, but good enough in our use case:
+ *     run 32 bit os in 64 bit platform for memory usage reducing
+ */
+__maybe_unused static void check_os_run_arch(ulong os_load_addr)
+{
+	andr_img_hdr *hdr		       = (andr_img_hdr *)os_load_addr;
+	struct vendor_boot_img_hdr *vendor_hdr = get_vendor_hdr_addr();
+	const char *active_name		       = NULL;
+
+	/*default value*/
+	sunxi_set_force_32bit_os(0);
+
+	/*32 bit platform(no monitor) always 32bit os*/
+	if (!sunxi_probe_secure_monitor())
+		return;
+
+	/*try a valid head, either vendor boot or android boot is acceptable*/
+	if (vendor_hdr != NULL) {
+		active_name = (char *)vendor_hdr->name;
+#if 0 //debug print
+		pr_msg("vendor boot header\n");
+		printf("kernel_addr:%x kernel_size:%x\n"
+		       "dtb_addr:%llx dtb_size:%x\n"
+		       "ramdisk_addr:%x ramdisk_size:%x\n",
+		       vendor_hdr->kernel_addr, hdr->kernel_size,
+		       vendor_hdr->dtb_addr, vendor_hdr->dtb_size,
+		       vendor_hdr->ramdisk_addr,
+		       vendor_hdr->vendor_ramdisk_size);
+		pr_msg("boot header\n");
+		printf("kernel_addr:%x kernel_size:%x\n"
+		       "dtb_addr:%llx dtb_size:%x\n"
+		       "ramdisk_addr:%x ramdisk_size:%x\n",
+		       hdr->kernel_addr, hdr->kernel_size, hdr->dtb_addr,
+		       hdr->dtb_size, hdr->ramdisk_addr, hdr->ramdisk_size);
+#endif
+	} else if (memcmp(ANDR_BOOT_MAGIC, hdr->magic, ANDR_BOOT_MAGIC_SIZE) ==
+		   0) {
+		active_name = hdr->name;
+	} else {
+		return;
+	}
+
+	/*os 64 bit*/
+	if (strstr(active_name, "arm64") != NULL)
+		return;
+
+	if (strstr(active_name, "arm") != NULL) {
+		pr_msg("force run 32bit os on this device\n");
+		sunxi_set_force_32bit_os(1);
+	}
+}
+
 /*******************************************************************/
 /* bootm - boot application image from image in memory */
 /*******************************************************************/
@@ -143,6 +198,7 @@ void update_bootargs(void);
 int sunxi_get_lcd_op_finished(void);
 int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	ulong os_load_addr = simple_strtoul(argv[1], NULL, 16);
 
 #ifdef CONFIG_NEEDS_MANUAL_RELOC
 	static int relocated = 0;
@@ -160,7 +216,7 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 #ifdef CONFIG_SUNXI_ANDROID_BOOT
 	if (sunxi_android_boot(env_get("boot_from_partion"),
-			       simple_strtoul(argv[1], NULL, 16))) {
+			       os_load_addr)) {
 		return -1;
 	}
 #else
@@ -170,11 +226,12 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (gd->securemode) {
 
 #if CONFIG_SUNXI_PART_VERIFY
-		pr_msg("begin to verify rootfs");
+		pr_msg("begin to verify rootfs\n");
 		int full = 0;
 		struct sunxi_image_verify_pattern_st verify_pattern = {
 			0x1000, 0x100000, -1
 		};
+		char *rootfs_name = env_get("root_partition");
 		char *s = env_get("rootfs_per_MB");
 		if (strcmp(s, "full") == 0) {
 			full = 1;
@@ -190,12 +247,12 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 			full = 0;
 		}
-		if (sunxi_verify_partion(&verify_pattern, "rootfs", "rootfs", full) != 0) {
+		if (sunxi_verify_partion(&verify_pattern, rootfs_name, "rootfs", full) != 0) {
 			return -1;
 		}
 #endif /*CONFIG_SUNXI_PART_VERIFY*/
 
-		if (sunxi_verify_os(simple_strtoul(argv[1], NULL, 16),
+		if (sunxi_verify_os(os_load_addr,
 				    env_get("boot_from_partion")) != 0) {
 			return -1;
 		}
@@ -210,8 +267,10 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 #endif
 #if CONFIG_SUNXI_INITRD_ROUTINE
-	sunxi_update_initrd(simple_strtoul(argv[1], NULL, 16));
+	sunxi_update_initrd(os_load_addr);
 #endif
+
+	check_os_run_arch(os_load_addr);
 
 	/* determine if we have a sub command */
 	argc--; argv++;

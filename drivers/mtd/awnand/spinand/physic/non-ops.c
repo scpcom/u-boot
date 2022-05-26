@@ -774,6 +774,7 @@ static int aw_spinand_chip_write_super_page(struct aw_spinand_chip *chip,
 static int aw_spinand_chip_read_super_page(struct aw_spinand_chip *chip,
 		struct aw_spinand_chip_request *super)
 {
+	struct aw_spinand *spinand = get_spinand();
 	struct aw_spinand_chip_request phy = {0};
 	int ret, limit = 0;
 
@@ -787,7 +788,8 @@ static int aw_spinand_chip_read_super_page(struct aw_spinand_chip *chip,
 			limit = ECC_LIMIT;
 			continue;
 		} else if (ret == ECC_ERR) {
-			pr_err("ecc err: phy block: %u page: %u\n",
+			SPINAND_MSG(spinand,
+					"ecc err: phy block: %u page: %u\n",
 					phy.block, phy.page);
 			return ret;
 		}

@@ -45,6 +45,13 @@
 #define SPI_NBITS_DUAL 2
 #define SPI_NBITS_QUAD 4
 
+#define SPI_SELECT_ODDNUM_BLACK 0x10
+
+#define SPINAND_MSG_EN	(1U)
+#define SPINAND_MSG(d, fmt, args...) \
+	do {if ((d)->msglevel & SPINAND_MSG_EN) \
+	pr_err("[SPINAND]: "fmt, ##args); } while (0)
+
 struct aw_spinand_ecc;
 struct aw_spinand_info;
 struct aw_spinand_phy_info;
@@ -176,6 +183,7 @@ struct aw_spinand_phy_info {
 #define SPINAND_QUAD_READ			BIT(1)
 #define SPINAND_QUAD_PROGRAM			BIT(2)
 #define SPINAND_QUAD_NO_NEED_ENABLE		BIT(3)
+#define SPINAND_TWO_PLANE_SELECT		BIT(7)
 #define SPINAND_ONEDUMMY_AFTER_RANDOMREAD	BIT(8)
 	int OperationOpt;
 	int MaxEraseTimes;
@@ -258,6 +266,9 @@ struct aw_spinand {
 	int page_shift;
 	int block_shift;
 	struct aw_spinand_sec_sto sec_sto;
+	int msglevel;
+	unsigned int right_sample_delay;
+	unsigned int right_sample_mode;
 };
 
 extern int aw_spinand_probe(struct udevice *dev);

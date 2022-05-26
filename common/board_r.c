@@ -568,13 +568,6 @@ static int initr_sunxi_plat(void)
 		int sunxi_jpeg_display(const char *filename);
 		sunxi_jpeg_display("bootlogo");
 #endif
-#ifdef CONFIG_SUNXI_SPINOR_BMP
-#if defined(CONFIG_CMD_FAT)
-		fat_read_logo_to_kernel("bootlogo.bmp");
-#else
-		read_bmp_to_kernel("bootlogo");
-#endif
-#endif
 #endif
 		sunxi_probe_partition_map();
 	}
