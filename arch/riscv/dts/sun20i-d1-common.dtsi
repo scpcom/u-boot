@@ -315,6 +315,12 @@
 			reg_base = <0x02000c00>;
 		};
 
+		lcd_fb0: lcd_fb0@0 {
+			compatible = "allwinner,sunxi-lcd_fb0";
+			pinctrl-names = "active","sleep";
+			status = "disabled";
+		};
+
 		card0_boot_para:card0_boot_para@2 {
 			device_type = "card0_boot_para";
 		};
