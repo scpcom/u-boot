@@ -265,6 +265,14 @@ extern __lcd_panel_t jd9366ab_3_panel;
 extern __lcd_panel_t tft08006_panel;
 #endif
 
+#ifdef CONFIG_LCD_SUPPORT_T050K589
+extern __lcd_panel_t t050k589_panel;
+#endif
+
+#ifdef CONFIG_LCD_SUPPORT_K101_MM2QA01_A
+extern __lcd_panel_t K101_MM2QA01_A_mipi_panel;
+#endif
+
 #ifdef CONFIG_LCD_SUPPORT_ST7701S_RGB
 extern __lcd_panel_t st7701s_rgb_panel;
 #endif

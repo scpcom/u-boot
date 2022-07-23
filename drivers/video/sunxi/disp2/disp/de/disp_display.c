@@ -1313,11 +1313,10 @@ s32 bsp_disp_lcd_set_panel_funs(char *name, disp_lcd_panel_fun *lcd_cfg)
 	}
 	/*now only support lcd0*/
 	num_compat_cnt = disp_get_compat_lcd_panel_num(0);
-	for (screen_id = 0; screen_id < num_compat_cnt; screen_id++) {
-		lcd = disp_get_lcd_compat(0, screen_id);
+	for (screen_id = 1; screen_id <= num_compat_cnt; screen_id++) {
+		lcd = disp_get_direct_lcd_compat(0, screen_id);
 		if (lcd && (lcd->set_panel_func)) {
 			if (!lcd->set_panel_func(lcd, name, lcd_cfg)) {
-				gdisp.lcd_registered[screen_id] = 1;
 				registered_cnt++;
 				DE_INF("panel driver %s register for compatible usage\n", name);
 			}

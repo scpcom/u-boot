@@ -299,6 +299,23 @@ static inline void regwrite(void *dst, void *src, unsigned int n)
 #define BYPASS_TCON_CEU
 #define DSI_VERSION_40
 
+#elif defined(CONFIG_MACH_SUN8IW21)
+#define DEVICE_NUM	1
+#define DE_NUM	1
+#define CHN_NUM		3
+#define VI_CHN_NUM	2
+#define UI_CHN_NUM	(CHN_NUM - VI_CHN_NUM)
+#define LAYER_NUM_PER_CHN_PER_VI_CHN	4
+#define LAYER_NUM_PER_CHN_PER_UI_CHN	4
+#define LAYER_MAX_NUM_PER_CHN 4
+#define SUPPORT_COMBO_DPHY
+#define SUPPORT_FCM
+#define SUPPORT_DSI
+#define DSI_VERSION_40
+#define CLK_NUM_PER_DSI 1
+#define DEVICE_DSI_NUM 1
+#define HAVE_DEVICE_COMMON_MODULE
+
 #elif defined(CONFIG_MACH_SUN8IW19)
 #define DEVICE_NUM	1
 #define DE_NUM	1

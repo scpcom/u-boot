@@ -393,7 +393,7 @@ s32 lvds_open(u32 sel, disp_panel_para *panel)
 #if defined(SUPPORT_COMBO_DPHY)
 		if (sel == 0) {
 			lvds_combphy_open(sel, panel);
-		} else {
+		} else if (sel < DEVICE_NUM) {
 			lcd_dev[sel]->tcon0_lvds_ana[0].bits.c = 2;
 			lcd_dev[sel]->tcon0_lvds_ana[0].bits.v = 3;
 			lcd_dev[sel]->tcon0_lvds_ana[0].bits.pd = 2;
@@ -774,6 +774,7 @@ static s32 tcon0_cfg_mode_tri(u32 sel, disp_panel_para *panel)
 {
 	u32 start_delay = 0;
 	u32 de_clk_rate = de_get_clk_rate() / 1000000;
+	u32 delay_line = 0;
 
 	de_clk_rate = (de_clk_rate == 0) ? 250 : de_clk_rate;
 
@@ -783,8 +784,30 @@ static s32 tcon0_cfg_mode_tri(u32 sel, disp_panel_para *panel)
 	lcd_dev[sel]->tcon0_cpu_tri1.bits.block_num = panel->lcd_y - 1;
 	lcd_dev[sel]->tcon0_cpu_tri2.bits.trans_start_mode = 0;
 	lcd_dev[sel]->tcon0_cpu_tri2.bits.sync_mode = 0;
-	start_delay = (panel->lcd_vt - panel->lcd_y - 8 - 1)
-	    * panel->lcd_ht * de_clk_rate / panel->lcd_dclk_freq / 8;
+
+	/**
+	 * When the blanking area of LCD is too small, the following formula is
+	 * not applicable, that calculates the start_ Delay is too large.
+	 *
+	 * The formula is
+	 * 		start_delay = (panel->lcd_vt - panel->lcd_y - 8 - 1)
+	 *    			* panel->lcd_ht * de_clk_rate / panel->lcd_dclk_freq / 8;
+	 *
+	 * Therefore, the following formula is obtained by balancing the
+	 * requirements of DE, TCON and PANEL modules for pixel data speed
+	 *
+	 */
+	if (panel->lcd_vbp > 10)
+		delay_line = 10;
+	else if (panel->lcd_vbp <= 10 && panel->lcd_vbp > 4)
+		delay_line = panel->lcd_vbp - 1;
+	else {
+		DE_WRN("vbp is too small, please readjust the timing parameters to increase vbp. \n");
+		delay_line = panel->lcd_vbp;
+	}
+
+	start_delay = delay_line * panel->lcd_ht * de_clk_rate / panel->lcd_dclk_freq / 8;
+
 	lcd_dev[sel]->tcon0_cpu_tri2.bits.start_delay = start_delay;
 
 	lcd_dev[sel]->tcon0_cpu_ctl.bits.trigger_fifo_en = 1;

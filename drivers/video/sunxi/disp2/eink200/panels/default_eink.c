@@ -93,7 +93,7 @@ eink_pinstv         = port:PD22<7><0><default><default>
 
 #ifdef CONFIG_PMIC_TPS65185
 #include <power/tps65185.h>
-struct ebc_pwr_ops g_tps65185_ops;
+static struct ebc_pwr_ops g_tps65185_ops;
 extern int register_ebc_pwr_ops(struct ebc_pwr_ops *ops);
 #endif
 
@@ -129,7 +129,7 @@ static void panel_power_off(void)
 }
 #endif
 
-s32 EINK_open_flow(void)
+static s32 EINK_open_flow(void)
 {
 	EINK_INFO_MSG("\n");
 
@@ -140,7 +140,7 @@ s32 EINK_open_flow(void)
 	return 0;
 }
 
-s32 EINK_close_flow(void)
+static s32 EINK_close_flow(void)
 {
 	EINK_INFO_MSG("\n");
 	EINK_CLOSE_FUNC(EINK_power_off, 2);

@@ -317,6 +317,15 @@ static int setup_framebuffer(framebuffer_t *const fb)
 	return 0;
 }
 
+static int clear_framebuffer(framebuffer_t *const fb)
+{
+	fb->handle = hal_request_layer(fb->fb_id);
+	if (NULL == fb->handle || NULL == fb->cv->base)
+		return -1;
+	memset(fb->cv->base, 0x00, fb->buf_list->buf_size);
+	return 0;
+}
+
 static void get_fb_configs(fb_config_t *fb_cfgs, int fb_id)
 {
 	int node = get_disp_fdt_node();
@@ -346,6 +355,7 @@ int fb_init(void)
 			s_fb_list[id].fb_id = id;
 			if (creat_framebuffer(&s_fb_list[id], &fb_cfg))
 				continue;
+			clear_framebuffer(&s_fb_list[id]);
 			setup_framebuffer(&s_fb_list[id]);
 		} else {
 			printf("bad fb%d_cfg[w=%d,h=%d,bpp=%d,format=%d]\n", id,

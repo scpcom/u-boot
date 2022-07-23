@@ -86,7 +86,6 @@ GSYMS
 GTAGS
 
 *.orig
-*~
 \#*#
 
 # gcc code coverage files
@@ -94,3 +93,4 @@ GTAGS
 *.gcno
 prelink-riscv
 *.dtb
+tools/sunxi_proftool

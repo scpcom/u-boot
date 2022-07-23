@@ -61,6 +61,8 @@ disp-$(CONFIG_LCD_SUPPORT_ZS080NI4003E7H3H_A) += lcd/zs080ni4003e7h3h_a.o
 disp-$(CONFIG_LCD_SUPPORT_K101_IM2BYL02_L_800X1280) += lcd/K101_IM2BYL02_L_800X1280.o
 disp-$(CONFIG_LCD_SUPPORT_JD9366AB_3) += lcd/jd9366ab_3.o
 disp-$(CONFIG_LCD_SUPPORT_TFT08006) += lcd/tft08006.o
+disp-$(CONFIG_LCD_SUPPORT_T050K589) += lcd/t050k589.o
+disp-$(CONFIG_LCD_SUPPORT_K101_MM2QA01_A) += lcd/K101_MM2QA01_A.o
 
 ifeq ($(CONFIG_MACH_SUN8IW6),y)
     export MIPI_DSI_IP_VERSION := 28
@@ -137,6 +139,12 @@ ifeq ($(CONFIG_MACH_SUN8IW19),y)
     export MIPI_DSI_IP_VERSION := 28
     obj-y += de/lowlevel_v2x/
 endif
+
+ifeq ($(CONFIG_MACH_SUN8IW21),y)
+    export MIPI_DSI_IP_VERSION := 40
+    obj-y += de/lowlevel_v2x/
+endif
+
 
 ifeq ($(CONFIG_MACH_SUN8IW20),y)
     export MIPI_DSI_IP_VERSION := 40
