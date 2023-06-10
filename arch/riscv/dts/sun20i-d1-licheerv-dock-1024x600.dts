@@ -212,7 +212,7 @@
 };
 
 &disp {
-	disp_init_enable         = <1>;
+	disp_init_enable         = <0>;
 	disp_mode                = <0>;
 
 	screen0_output_type      = <1>;
