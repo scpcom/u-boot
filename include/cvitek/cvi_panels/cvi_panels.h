@@ -78,6 +78,15 @@ static struct panel_desc_s panel_desc = {
 	.dsi_init_cmds = dsi_init_cmds_ota7290b_320x1280,
 	.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_ota7290b_320x1280)
 };
+#elif defined(MIPI_PANEL_ST7701_D300FPC9307A)
+#include "dsi_st7701_d300fpc9307a.h"
+static struct panel_desc_s panel_desc = {
+        .panel_name = "ST7701-480x854",
+        .dev_cfg = &dev_cfg_st7701_480x854,
+        .hs_timing_cfg = &hs_timing_cfg_st7701_480x854,
+        .dsi_init_cmds = dsi_init_cmds_st7701_480x854,
+        .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_480x854)
+};
 #elif defined(MIPI_PANEL_OTA7290B_1920)
 #include "dsi_ota7290b_1920.h"
 static struct panel_desc_s panel_desc = {
