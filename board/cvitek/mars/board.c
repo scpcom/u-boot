@@ -22,7 +22,6 @@
 #include "mars_pinlist_swconfig.h"
 #include <linux/delay.h>
 #include <bootstage.h>
-#include <configs/mars-asic.h>
 
 #if defined(__riscv)
 #include <asm/csr.h>
@@ -70,7 +69,8 @@ void pinmux_config(int io_type)
 		break;
 		case PINMUX_SDIO0:
 			PINMUX_CONFIG(SD0_CD, SDIO0_CD);
-			PINMUX_CONFIG(SD0_PWR_EN, SDIO0_PWR_EN);
+			// on licheervnano, this pin use for led
+			//PINMUX_CONFIG(SD0_PWR_EN, SDIO0_PWR_EN);
 			PINMUX_CONFIG(SD0_CMD, SDIO0_CMD);
 			PINMUX_CONFIG(SD0_CLK, SDIO0_CLK);
 			PINMUX_CONFIG(SD0_D0, SDIO0_D_0);
@@ -215,36 +215,9 @@ void cpu_pwr_ctrl(void)
 
 int board_init(void)
 {
-/*
-** The default value of uart clk is 25M
-** If the UART CLK changes, you need to change the CLK source in DTS and cv181x-asic.h
-** eg:
-** cv181x-asic.h: #define CONFIG_SYS_NS16550_CLK		1188000000
-**
-** cv181x_base.dtsi: uart0 ~ uart4
-** uart0: serial@04140000 {
-**	compatible = "snps,dw-apb-uart";
-**	reg = <0x0 0x04140000 0x0 0x1000>;
-**	clock-frequency = <1188000000>;
-**	reg-shift = <2>;
-**	reg-io-width = <4>;
-**	status = "okay";
-**};
-*/
-#if CONFIG_SYS_NS16550_CLK == 396000000
-	mmio_write_32(DIV_CLK_CAM0_200 , BIT_DIV_RESET_CONT | BIT_SELT_DIV_REG | BIT_CLK_SRC |\
-	 BIT_CLK_DIV_FACT_16 | BIT_CLK_DIV_FACT_17);
-#elif CONFIG_SYS_NS16550_CLK == 594000000
-	mmio_write_32(DIV_CLK_CAM0_200 , BIT_DIV_RESET_CONT | BIT_SELT_DIV_REG | BIT_CLK_SRC |\
-	 BIT_CLK_DIV_FACT_17);
-#elif CONFIG_SYS_NS16550_CLK == 1188000000
-	mmio_write_32(DIV_CLK_CAM0_200 , BIT_DIV_RESET_CONT | BIT_SELT_DIV_REG | BIT_CLK_SRC |\
-	 BIT_CLK_DIV_FACT_16);
-#endif
-
 #ifndef CONFIG_TARGET_CVITEK_CV181X_FPGA
-	extern volatile uint32_t BOOT0_START_TIME;
-	uint16_t start_time = DIV_ROUND_UP(BOOT0_START_TIME, SYS_COUNTER_FREQ_IN_SECOND / 1000);
+	extern volatile u32 BOOT0_START_TIME;
+	u16 start_time = DIV_ROUND_UP(BOOT0_START_TIME, SYS_COUNTER_FREQ_IN_SECOND / 1000);
 
 	// Save uboot start time. time is from boot0.h
 	mmio_write_16(TIME_RECORDS_FIELD_UBOOT_START, start_time);

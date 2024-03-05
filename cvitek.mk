@@ -21,6 +21,7 @@ endif
 
 ifeq (${STORAGE_TYPE}, sd)
 KBUILD_CFLAGS += -DCONFIG_SD_BOOT
+KBUILD_CFLAGS += -DCONFIG_CMD_CVI_SD_BOOT
 endif
 
 ifeq (${RELEASE}, 1)

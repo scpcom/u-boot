@@ -204,11 +204,6 @@ static int do_startvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 		i80_sclr_intr_clr();//intr_status should be clear, otherwise kernel will get stuck
 	break;
 
-	case VO_INTF_I80_HW:
-		intf_type = SCLR_VO_INTF_I80_HW;
-		i80_hw_init(panel_desc.i80_hw_cfg);
-	break;
-
 	case VO_INTF_LCD_18BIT:
 	case VO_INTF_LCD_24BIT:
 	case VO_INTF_LCD_30BIT:
@@ -294,7 +289,7 @@ static int do_startvl(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 	sclr_disp_set_rect(rect);
 	cfg = sclr_disp_get_cfg();
 
-	if (intf_type == SCLR_VO_INTF_MIPI || intf_type == SCLR_VO_INTF_LVDS || intf_type == SCLR_VO_INTF_I80_HW) {
+	if (intf_type == SCLR_VO_INTF_MIPI || intf_type == SCLR_VO_INTF_LVDS) {
 		cfg->fmt = SCL_FMT_YUV420;
 		cfg->in_csc = SCL_CSC_601_LIMIT_YUV2RGB;
 		cfg->mem.width = rect.w;

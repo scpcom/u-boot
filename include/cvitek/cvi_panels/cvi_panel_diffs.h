@@ -12,9 +12,6 @@
 #ifdef CONFIG_DISPLAY_CVITEK_I80
 #define CVI_JPEG ""
 #define START_VO "startvo 0 65536 0;"
-#elif defined(CONFIG_DISPLAY_CVITEK_I80_HW)
-#define CVI_JPEG "cvi_jpeg_dec " LOGO_READ_ADDR " " LOGO_RESERVED_ADDR " " LOGOSIZE ";"
-#define START_VO "startvo 0 131072 0;"
 #elif defined(CONFIG_DISPLAY_CVITEK_LVDS)
 #define CVI_JPEG "cvi_jpeg_dec " LOGO_READ_ADDR " " LOGO_RESERVED_ADDR " " LOGOSIZE ";"
 #define START_VO "startvo 0 2048 0;"
@@ -23,7 +20,12 @@
 #define START_VO "startvo 0 8192 0;"
 #endif
 
-#define START_VL "startvl 0 " LOGO_READ_ADDR " " LOGO_RESERVED_ADDR " " LOGOSIZE " " VO_ALIGNMENT ";"
+// this function borken on licheervnano
+// this function make lcd show green color on blank
+//#define START_VL "startvl 0 " LOGO_READ_ADDR " " LOGO_RESERVED_ADDR " " LOGOSIZE " " VO_ALIGNMENT ";"
+#ifndef START_VL
+#define START_VL " "
+#endif
 #define SET_VO_BG "setvobg 0 0xffffffff;"
 
 #endif

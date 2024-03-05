@@ -252,7 +252,9 @@
 		"mtdparts=" PARTS "\0" \
 		"mtdids=" MTDIDS_DEFAULT "\0" \
 		"root=" ROOTARGS "\0" \
+		"sddev=0\0" \
 		"sdboot=" SD_BOOTM_COMMAND "\0" \
+		"sdbootauto=" SD_BOOTM_COMMAND_AUTO "\0" \
 		"othbootargs=" OTHERBOOTARGS "\0" \
 		PARTS_OFFSET
 
@@ -291,20 +293,27 @@
 
 	#define SD_BOOTM_COMMAND \
 				SET_BOOTARGS \
-				"echo Boot from SD ...;" \
-				"mmc dev 0 && fatload mmc 0 ${uImage_addr} boot.sd; " \
+				"echo Boot from SD dev ${sddev} ...;" \
+				"mmc dev ${sddev} && fatload mmc ${sddev} ${uImage_addr} boot.sd;" \
 				"if test $? -eq 0; then " \
-				UBOOT_VBOOT_BOOTM_COMMAND \
+					UBOOT_VBOOT_BOOTM_COMMAND \
 				"fi;"
 
-	#ifndef CONFIG_SD_BOOT
-		#ifdef CONFIG_ENABLE_ALIOS_UPDATE
-			#define CONFIG_BOOTCOMMAND	"cvi_update_rtos"
-		#else
-			#define CONFIG_BOOTCOMMAND	SHOWLOGOCMD "cvi_update || run norboot || run nandboot ||run emmcboot"
-		#endif
+	#define SD_BOOTM_COMMAND_AUTO \
+				"cvi_sd_boot;" \
+				SET_BOOTARGS \
+				"echo Boot from SD dev ${sddev} auto ...;" \
+				"mmc dev ${sddev} && fatload mmc ${sddev} ${uImage_addr} boot.sd;" \
+				"if test $? -eq 0; then " \
+					UBOOT_VBOOT_BOOTM_COMMAND \
+				"fi;"
+
+	#ifdef CONFIG_ENABLE_ALIOS_UPDATE
+		#define CONFIG_BOOTCOMMAND	"cvi_update_rtos"
+	#elif CONFIG_SD_BOOT
+		#define CONFIG_BOOTCOMMAND	SHOWLOGOCMD "run sdboot || run sdbootauto"
 	#else
-		#define CONFIG_BOOTCOMMAND	SHOWLOGOCMD "run sdboot"
+		#define CONFIG_BOOTCOMMAND	SHOWLOGOCMD "cvi_update || run norboot || run nandboot ||run emmcboot"
 	#endif
 
 	#if defined(CONFIG_NAND_SUPPORT)

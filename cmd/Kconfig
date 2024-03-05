@@ -2431,6 +2431,13 @@ config CMD_CVI_UPDATE
 	uboot will check flag in SRAM and thendecide if it's sd,usb,usb drive or Ethernet upgrade.
 	User can run cvi_update [usb/sd/eth] for force update without check flag.
 
+config CMD_CVI_SD_BOOT
+	bool "cvitek sd boot"
+	depends on SD_BOOT
+	default y if SD_BOOT
+	help
+	  Support command boot from sd card if SD_BOOT is enable.
+
 config MMC_SPEED_MODE_SET
 	bool "set speed mode using mmc command"
 	depends on CMD_MMC

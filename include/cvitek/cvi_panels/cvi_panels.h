@@ -10,7 +10,6 @@
 #define __CVI_PANEL_H__
 
 #include "cvi_i80.h"
-#include "cvi_i80_hw.h"
 #include "cvi_lvds.h"
 
 struct panel_desc_s {
@@ -23,7 +22,6 @@ struct panel_desc_s {
 	const struct _VO_I80_INSTR_S *i80_init_cmds;
 	int i80_init_cmds_size;
 	struct cvi_lvds_cfg_s *lvds_cfg;
-	const struct VO_I80_HW_CFG_S *i80_hw_cfg;
 };
 
 #ifdef MIPI_PANEL_HX8394
@@ -80,6 +78,15 @@ static struct panel_desc_s panel_desc = {
 	.dsi_init_cmds = dsi_init_cmds_ota7290b_320x1280,
 	.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_ota7290b_320x1280)
 };
+#elif defined(MIPI_PANEL_ST7701_D300FPC9307A)
+#include "dsi_st7701_d300fpc9307a.h"
+static struct panel_desc_s panel_desc = {
+        .panel_name = "ST7701-480x854",
+        .dev_cfg = &dev_cfg_st7701_480x854,
+        .hs_timing_cfg = &hs_timing_cfg_st7701_480x854,
+        .dsi_init_cmds = dsi_init_cmds_st7701_480x854,
+        .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_480x854)
+};
 #elif defined(MIPI_PANEL_OTA7290B_1920)
 #include "dsi_ota7290b_1920.h"
 static struct panel_desc_s panel_desc = {
@@ -97,6 +104,15 @@ static struct panel_desc_s panel_desc = {
 	.hs_timing_cfg = &hs_timing_cfg_icn9707_480x1920,
 	.dsi_init_cmds = dsi_init_cmds_icn9707_480x1920,
 	.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_icn9707_480x1920)
+};
+#elif defined(MIPI_PANEL_ST7701_DXQ5D0019B480854)
+#include "dsi_st7701_dxq5d0019b480854.h"
+static struct panel_desc_s panel_desc = {
+        .panel_name = "ST7701-480x854dxq",
+        .dev_cfg = &dev_cfg_st7701_480x854dxq,
+        .hs_timing_cfg = &hs_timing_cfg_st7701_480x854dxq,
+        .dsi_init_cmds = dsi_init_cmds_st7701_480x854dxq,
+        .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_480x854dxq)
 };
 #elif defined(MIPI_PANEL_3AML069LP01G)
 #include "dsi_3aml069lp01g.h"
@@ -116,6 +132,24 @@ static struct panel_desc_s panel_desc = {
 	.dsi_init_cmds = dsi_init_cmds_st7701_480x800,
 	.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_480x800)
 };
+#elif defined(MIPI_PANEL_ST7701_HD228001C31)
+#include "dsi_st7701_hd228001c31.h"
+static struct panel_desc_s panel_desc = {
+        .panel_name = "ST7701-368x552",
+        .dev_cfg = &dev_cfg_st7701_368x552,
+        .hs_timing_cfg = &hs_timing_cfg_st7701_368x552,
+        .dsi_init_cmds = dsi_init_cmds_st7701_368x552,
+        .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_368x552)
+};
+#elif defined(MIPI_PANEL_ST7701_HD228001C31)
+#include "dsi_st7701_hd228001c31_alt0.h"
+static struct panel_desc_s panel_desc = {
+        .panel_name = "ST7701-368x552-alt0",
+        .dev_cfg = &dev_cfg_st7701_368x552_alt0,
+        .hs_timing_cfg = &hs_timing_cfg_st7701_368x552_alt0,
+        .dsi_init_cmds = dsi_init_cmds_st7701_368x552_alt0,
+        .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_368x552_alt0)
+};
 #elif defined(MIPI_PANEL_ST7785M)
 #include "dsi_st7785m.h"
 static struct panel_desc_s panel_desc = {
@@ -125,17 +159,21 @@ static struct panel_desc_s panel_desc = {
 	.dsi_init_cmds = dsi_init_cmds_st7785m_240x320,
 	.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7785m_240x320)
 };
+#elif defined(MIPI_PANEL_ZCT2133V1)
+#include "dsi_zct2133v1.h"
+static struct panel_desc_s panel_desc = {
+        .panel_name = "zct2133v1-800x1280",
+        .dev_cfg = &dev_cfg_zct2133v1_800x1280,
+        .hs_timing_cfg = &hs_timing_cfg_zct2133v1_800x1280,
+        .dsi_init_cmds = dsi_init_cmds_zct2133v1_800x1280,
+        .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_zct2133v1_800x1280)
+};
 #elif defined(I80_PANEL_ST7789V)
 #include "i80_st7789v.h"
 static struct panel_desc_s panel_desc = {
 	.i80_cfg = &i80_st7789v_cfg,
 	.i80_init_cmds = i80_st7789v_init_cmds,
 	.i80_init_cmds_size = ARRAY_SIZE(i80_st7789v_init_cmds)
-};
-#elif defined(I80_PANEL_ST7789V3)
-#include "i80_hw_st7789v3.h"
-static struct panel_desc_s panel_desc = {
-	.i80_hw_cfg = &st7789v3_cfg,
 };
 #elif defined(LVDS_PANEL_EK79202)
 #include "lvds_ek79202.h"

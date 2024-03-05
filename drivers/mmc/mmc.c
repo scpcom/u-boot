@@ -2442,21 +2442,6 @@ static int mmc_startup_v4(struct mmc *mmc)
 		* ext_csd[EXT_CSD_HC_WP_GRP_SIZE];
 #endif
 
-	/* enable eMMC RST_n signal
-	 * ext_csd[EXT_CSD_RST_N_FUNCTION]
-	 *     Bit[7:2]: Reserved
-	 *     Bit[1:0]: RST_n_ENABLE (Readable and Writable once)
-	 *     0x0: RST_n signal is temporarily disabled (default)
-	 *     0x1: RST_n signal is permanently enabled
-	 *     0x2: RST_n signal is permanently disabled
-	 *     0x3: Reserved
-	 */
-	if (IS_MMC(mmc) && ext_csd[EXT_CSD_RST_N_FUNCTION] == 0) {
-		err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_RST_N_FUNCTION, 1);
-		if (err)
-			pr_err("fail to enable eMMC RST_n signal. err: %d.\n", err);
-	}
-
 	mmc->wr_rel_set = ext_csd[EXT_CSD_WR_REL_SET];
 
 	return 0;
