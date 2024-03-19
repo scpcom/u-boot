@@ -116,7 +116,8 @@ int cvi_board_init(void)
 	mmio_write_32(0x030010ac, 0x4); // PWRGPIO 2 PWM 10
 
         // camera function
-        mmio_write_32(0x0300116C, 0x5); // RX4N CAM_MCLK0
+        //mmio_write_32(0x0300116C, 0x5); // RX4N CAM_MCLK0 for inside preview board
+        mmio_write_32(0x0300118C, 0x5); // RX0N CAM_MCLK1
 
         // camera/tp i2c
         mmio_write_32(0x03001090, 0x5); // PWR_GPIO6 IIC4_SCL
