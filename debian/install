@@ -1,2 +1,3 @@
 build_nezha/u-boot-sunxi-with-spl.bin /usr/lib/u-boot/nezha
 build_licheerv/u-boot-sunxi-with-spl.bin /usr/lib/u-boot/licheerv
+build_licheerv-86panel/u-boot-sunxi-with-spl.bin /usr/lib/u-boot/licheerv-86panel

@@ -26,6 +26,11 @@ override_dh_auto_build:
 	OPENSBI=/usr/lib/riscv64-linux-gnu/opensbi/generic/fw_dynamic.bin \
 	CROSS_COMPILE=riscv64-linux-gnu- \
 	make V=$(VERBOSE) O=build_licheerv
+	# LicheeRV 86panel
+	make lichee_rv_86_panel_defconfig O=build_licheerv-86panel
+	OPENSBI=/usr/lib/riscv64-linux-gnu/opensbi/generic/fw_dynamic.bin \
+	CROSS_COMPILE=riscv64-linux-gnu- \
+	make V=$(VERBOSE) O=build_licheerv-86panel
 
 override_dh_auto_clean:
 	make mrproper

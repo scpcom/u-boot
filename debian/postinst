@@ -9,8 +9,10 @@ case "$1" in
         if grep -q '^Allwinner D1 Nezha$' /sys/firmware/devicetree/base/model && [ -e /dev/disk/by-partlabel/loader1 ]; then
             dd if=/usr/lib/u-boot/nezha/u-boot-sunxi-with-spl.bin of=/dev/disk/by-partlabel/loader1 conv=fsync
         fi
+        if grep -q '^Sipeed Lichee RV 86 Panel' /sys/firmware/devicetree/base/model && [ -e /dev/disk/by-partlabel/loader1 ]; then
+            dd if=/usr/lib/u-boot/licheerv-86panel/u-boot-sunxi-with-spl.bin of=/dev/disk/by-partlabel/loader1 conv=fsync
         # Do not match the end of line so that this works for the single board, dock and panel.
-        if grep -q '^Sipeed Lichee RV' /sys/firmware/devicetree/base/model && [ -e /dev/disk/by-partlabel/loader1 ]; then
+        elif grep -q '^Sipeed Lichee RV' /sys/firmware/devicetree/base/model && [ -e /dev/disk/by-partlabel/loader1 ]; then
             dd if=/usr/lib/u-boot/licheerv/u-boot-sunxi-with-spl.bin of=/dev/disk/by-partlabel/loader1 conv=fsync
         fi
         ;;
