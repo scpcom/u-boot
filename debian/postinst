@@ -1,0 +1,19 @@
+#!/bin/sh
+
+##DEBHELPER##
+
+set -e
+
+case "$1" in
+    configure)
+        if grep -q '^Allwinner D1 Nezha$' /sys/firmware/devicetree/base/model && [ -e /dev/disk/by-partlabel/loader1 ]; then
+            dd if=/usr/lib/u-boot/nezha/u-boot-sunxi-with-spl.bin of=/dev/disk/by-partlabel/loader1 conv=fsync
+        fi
+        # Do not match the end of line so that this works for the single board, dock and panel.
+        if grep -q '^Sipeed Lichee RV' /sys/firmware/devicetree/base/model && [ -e /dev/disk/by-partlabel/loader1 ]; then
+            dd if=/usr/lib/u-boot/licheerv/u-boot-sunxi-with-spl.bin of=/dev/disk/by-partlabel/loader1 conv=fsync
+        fi
+        ;;
+esac
+
+exit 0

@@ -1,0 +1,2 @@
+build_nezha/u-boot-sunxi-with-spl.bin /usr/lib/u-boot/nezha
+build_licheerv/u-boot-sunxi-with-spl.bin /usr/lib/u-boot/licheerv

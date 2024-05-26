@@ -1,0 +1,39 @@
+Source: u-boot-nezha
+Section: misc
+Priority: optional
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Build-Depends: debhelper-compat (= 13),
+ bison,
+ device-tree-compiler,
+ flex,
+ gcc-riscv64-linux-gnu,
+ libssl-dev,
+ libpython3-dev,
+ opensbi,
+ python3,
+ python3-pkg-resources,
+ python3-setuptools,
+ swig
+Standards-Version: 4.5.1
+Homepage: https://github.com/xypron/nezha-u-boot
+Vcs-Browser: https://github.com/xypron/nezha-u-boot
+Vcs-Git: https://github.com/xypron/nezha-u-boot.git
+Rules-Requires-Root: no
+
+Package: u-boot-nezha
+Architecture: all
+Multi-Arch: foreign
+Built-Using: ${u-boot-nezha:Built-Using}
+Conflicts: nezha-boot0
+Replaces: nezha-boot0
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: U-Boot for Allwinner Nezha board
+ Das U-Boot is a cross-platform bootloader for embedded systems,
+ used as the default boot loader by several board vendors.  It is
+ intended to be easy to port and to debug, and runs on many
+ supported architectures, including PPC, ARM, MIPS, x86, m68k,
+ NIOS, and Microblaze.
+ .
+ This package includes boot loaders for the Allwinner Nezha board.
+ For booting you additionally need the nezha-boot0 package.

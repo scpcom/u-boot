@@ -1,0 +1,20 @@
+The postinst script of the u-boot-nezha package takes care of writing
+U-Boot to the 'loader1' partition on the SD card that is provided by
+Ubuntu's pre-installed images.
+
+If you use a deviating partitioning scheme, you may follow these
+instructions to copy U-Boot to the SD card.
+
+The D1 boot ROM can read the bootloader from two different locations:
+
+* starting at sector 16
+* starting at sector 256
+
+The location in sector 16 is incompatible with GPT partitioning which
+by default uses 34 sectors. Therefore we should write U-Boot starting
+at sector 256 instead.
+
+    sudo dd if=/usr/lib/u-boot/<nezha|licheerv>/u-boot-sunxi-with-spl.bin \
+        of=/dev/sdX bs=8192 seek=16 conv=fsync,notrunc
+
+Please, replace /dev/sdX by the relevant block device.

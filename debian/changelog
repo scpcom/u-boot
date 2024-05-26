@@ -1,0 +1,72 @@
+u-boot-nezha (2024.01~rc1-190-g2e89b706f5-0ubuntu2) noble; urgency=medium
+
+  * Correct manual installation instructions in debian/README.Debian to
+    reflect that we don't use a separate U-Boot SPL package (nezha-boot0)
+    anymore. (LP: #2020692)
+
+ -- Heinrich Schuchardt <heinrich.schuchardt@canonical.com>  Fri, 01 Dec 2023 16:09:18 +0100
+
+u-boot-nezha (2024.01~rc1-190-g2e89b706f5-0ubuntu1) noble; urgency=medium
+
+  * New upstream release based on v2024.01-rc1 (LP: #2043687)
+  * Keeping:
+    d/p/0001-configs-SUN20I_D1-don-t-enable-watchdog-by-default.patch
+    d/p/0001-add-efi-commands.patch
+    d/p/enable-sbi.patch
+
+ -- Heinrich Schuchardt <heinrich.schuchardt@canonical.com>  Mon, 27 Nov 2023 16:20:46 +0100
+
+u-boot-nezha (2022.10-1089-g528ae9bc6c-0ubuntu1.23.04.1) lunar; urgency=medium
+
+  * Rebuild against updated OpenSBI (LP: #2026588)
+  * Enable sbi command on riscv64 to check OpenSBI version
+
+ -- Heinrich Schuchardt <heinrich.schuchardt@canonical.com>  Thu, 20 Jul 2023 11:48:42 +0200
+
+u-boot-nezha (2022.10-1089-g528ae9bc6c-0ubuntu1) lunar; urgency=medium
+
+  * Bump version to 2022.10 (LP: #1998197)
+  * d/patches:
+    - Keep enabling CMD_NVEDIT_EFI and CMD_EFIDEBUG
+    - Don't enable watchdog timer
+
+ -- Heinrich Schuchardt <heinrich.schuchardt@canonical.com>  Tue, 29 Nov 2022 10:20:07 +0100
+
+u-boot-nezha (2022.04+git20220405.7446a472-0ubuntu3) lunar; urgency=medium
+
+  * No change rebuild against updated OpenSBI.
+    Fixes emulation of fence.tso hanging in endless loop (LP: #1995860)
+
+ -- Heinrich Schuchardt <heinrich.schuchardt@canonical.com>  Tue, 08 Nov 2022 10:07:47 +0100
+
+u-boot-nezha (2022.04+git20220405.7446a472-0ubuntu2) kinetic; urgency=medium
+
+  * Add support for the LicheeRV board (LP: #1989320)
+  * Update isa spec by adding zicsr and zifencei extensions
+
+ -- Alexandre Ghiti <alexandre.ghiti@canonical.com>  Fri, 09 Sep 2022 14:48:54 +0200
+
+u-boot-nezha (2022.04+git20220405.7446a472-0ubuntu1) kinetic; urgency=medium
+
+  * Bump version to 2022.04
+  * d/rules:
+    + Add 'Built-Using' field for openSBI
+  * d/postinst:
+    + Fix model string 'NeZha' -> 'Nezha'
+  * d/patches:
+    + Remove now useless patches
+    + Add patch that disables the watchdog as it results in a boot failure
+    + Add patch that uses arm64 loading addresses as we will limit Ubuntu
+      to devices with at least 1GB of RAM
+    + Add patch that fixup kernel dtb with the memory node added by boot0
+
+ -- Alexandre Ghiti <alexandre.ghiti@canonical.com>  Wed, 15 Jun 2022 15:43:10 +0000
+
+u-boot-nezha (2021.09+git20211008.62392d3-0ubuntu1) jammy; urgency=medium
+
+  * Provide U-Boot for Nezha D1 board (LP: #1954772)
+    Currently the board is not upstreamed and there are siginificant
+    differences to upstream U-Boot. Therefore temporarily use a
+    separate source package (git tag: nezha-u-boot-20210911).
+
+ -- Heinrich Schuchardt <heinrich.schuchardt@canonical.com>  Fri, 14 Jan 2022 18:39:30 +0100

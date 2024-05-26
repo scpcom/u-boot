@@ -1,0 +1,35 @@
+#!/usr/bin/make -f
+
+ifeq (,$(filter terse,$(DEB_BUILD_OPTIONS)))
+VERBOSE=1
+else
+VERBOSE=0
+endif
+
+%:
+	dh $@
+
+dpkg-gencontrol_args += "-Vu-boot-nezha:Built-Using=$(shell dpkg-query -Wf \
+    '$${source:Package} (= $${source:Version})' opensbi)"
+
+override_dh_gencontrol:
+	dh_gencontrol -- $(dpkg-gencontrol_args)
+
+override_dh_auto_build:
+	# Nezha
+	make nezha_defconfig O=build_nezha
+	OPENSBI=/usr/lib/riscv64-linux-gnu/opensbi/generic/fw_dynamic.bin \
+	CROSS_COMPILE=riscv64-linux-gnu- \
+	make V=$(VERBOSE) O=build_nezha
+	# LicheeRV
+	make lichee_rv_dock_defconfig O=build_licheerv
+	OPENSBI=/usr/lib/riscv64-linux-gnu/opensbi/generic/fw_dynamic.bin \
+	CROSS_COMPILE=riscv64-linux-gnu- \
+	make V=$(VERBOSE) O=build_licheerv
+
+override_dh_auto_clean:
+	make mrproper
+
+override_dh_auto_test:
+
+override_dh_strip:
