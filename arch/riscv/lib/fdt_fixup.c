@@ -146,12 +146,12 @@ int arch_fixup_fdt(void *blob)
 #ifdef CONFIG_OF_LIBFDT
 	bd_t *bd = gd->bd;
 	int bank;
-	u64 start[CONFIG_NR_DRAM_BANKS];
-	u64 size[CONFIG_NR_DRAM_BANKS];
+	u64 dram_start[CONFIG_NR_DRAM_BANKS];
+	u64 dram_size[CONFIG_NR_DRAM_BANKS];
 	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
-		start[bank] = bd->bi_dram[bank].start;
-		size[bank] = bd->bi_dram[bank].size;
-	err = fdt_fixup_memory_banks(blob, start, size, CONFIG_NR_DRAM_BANKS);
+		dram_start[bank] = bd->bi_dram[bank].start;
+		dram_size[bank] = bd->bi_dram[bank].size;
+	err = fdt_fixup_memory_banks(blob, dram_start, dram_size, CONFIG_NR_DRAM_BANKS);
 	if (err)
 		return err;
 #endif
