@@ -1,3 +1,9 @@
+u-boot-nezha (2024.01~rc1-190-g2e89b706f5-9ubuntu2) noble; urgency=medium
+
+  * Add Lichee RV 86 Panel
+
+ -- scpcom <scpcom@gmx.de>  Fri, 24 May 2024 16:09:18 +0100
+
 u-boot-nezha (2024.01~rc1-190-g2e89b706f5-0ubuntu2) noble; urgency=medium
 
   * Correct manual installation instructions in debian/README.Debian to
