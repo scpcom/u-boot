@@ -1,0 +1,66 @@
+Subject: [PATCH 1/1] configs: SUN20I_D1: don't enable watchdog by default
+
+The 16 second watchdog interval is too short for booting Ubuntu reliably.
+The UEFI specification requires that a watchdog uses 300 s by default.
+Hence, disable CONFIG_WATCHDOG_AUTOSTART.
+
+Rebooting is possible via SBI. We don't need CONFIG_SYSRESET_WATCHDOG.
+
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Forwarded: yes
+Last-Update: 2023-11-27
+---
+This patch applies to https://github.com/smaeul/u-boot.git, branch
+d1-wip.
+---
+ configs/devterm_r_01_defconfig       | 1 +
+ configs/dongshan_nezha_stu_defconfig | 1 +
+ configs/lichee_rv_86_panel_defconfig | 1 +
+ configs/lichee_rv_dock_defconfig     | 1 +
+ configs/mangopi_mq_pro_defconfig     | 1 +
+ configs/nezha_defconfig              | 1 +
+ 6 files changed, 6 insertions(+)
+
+--- a/configs/devterm_r_01_defconfig
++++ b/configs/devterm_r_01_defconfig
+@@ -15,3 +15,4 @@
+ CONFIG_DRAM_SUNXI_TPR11=0x00870000
+ CONFIG_DRAM_SUNXI_TPR12=0x00000024
+ CONFIG_DRAM_SUNXI_TPR13=0x34050100
++# CONFIG_SYSRESET_WATCHDOG is not set
+--- a/configs/dongshan_nezha_stu_defconfig
++++ b/configs/dongshan_nezha_stu_defconfig
+@@ -18,3 +18,4 @@
+ CONFIG_DRAM_SUNXI_TPR11=0x00870000
+ CONFIG_DRAM_SUNXI_TPR12=0x00000024
+ CONFIG_DRAM_SUNXI_TPR13=0x34050100
++# CONFIG_SYSRESET_WATCHDOG is not set
+--- a/configs/lichee_rv_86_panel_defconfig
++++ b/configs/lichee_rv_86_panel_defconfig
+@@ -18,3 +18,4 @@
+ CONFIG_DRAM_SUNXI_TPR11=0x00870000
+ CONFIG_DRAM_SUNXI_TPR12=0x00000024
+ CONFIG_DRAM_SUNXI_TPR13=0x34050100
++# CONFIG_SYSRESET_WATCHDOG is not set
+--- a/configs/lichee_rv_dock_defconfig
++++ b/configs/lichee_rv_dock_defconfig
+@@ -15,3 +15,4 @@
+ CONFIG_DRAM_SUNXI_TPR11=0x00870000
+ CONFIG_DRAM_SUNXI_TPR12=0x00000024
+ CONFIG_DRAM_SUNXI_TPR13=0x34050100
++# CONFIG_SYSRESET_WATCHDOG is not set
+--- a/configs/mangopi_mq_pro_defconfig
++++ b/configs/mangopi_mq_pro_defconfig
+@@ -15,3 +15,4 @@
+ CONFIG_DRAM_SUNXI_TPR11=0x00870000
+ CONFIG_DRAM_SUNXI_TPR12=0x00000024
+ CONFIG_DRAM_SUNXI_TPR13=0x34050100
++# CONFIG_SYSRESET_WATCHDOG is not set
+--- a/configs/nezha_defconfig
++++ b/configs/nezha_defconfig
+@@ -18,4 +18,5 @@
+ CONFIG_DRAM_SUNXI_TPR11=0x00870000
+ CONFIG_DRAM_SUNXI_TPR12=0x00000024
+ CONFIG_DRAM_SUNXI_TPR13=0x34050100
++# CONFIG_SYSRESET_WATCHDOG is not set
+ CONFIG_VIDEO=y

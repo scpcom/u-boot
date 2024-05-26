@@ -1,0 +1,3 @@
+#0001-configs-SUN20I_D1-don-t-enable-watchdog-by-default.patch
+0001-add-efi-commands.patch
+enable-sbi.patch

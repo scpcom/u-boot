@@ -1,0 +1,34 @@
+Subject: Enable CMD_NVEDIT_EFI and CMD_EFIDEBUG by default
+
+Author: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Forwarded: no
+Last-Update: 2022-11-29
+
+Patch-Name: 0001-add-efi-commands.patch
+---
+ cmd/Kconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/cmd/Kconfig b/cmd/Kconfig
+index 3f6bc70d43..ca335d8622 100644
+--- a/cmd/Kconfig
++++ b/cmd/Kconfig
+@@ -604,6 +604,7 @@ config CMD_ENV_FLAGS
+ config CMD_NVEDIT_EFI
+ 	bool "env [set|print] -e - set/print UEFI variables"
+ 	depends on EFI_LOADER
++	default y
+ 	imply HEXDUMP
+ 	help
+ 	  UEFI variables are encoded as some form of U-Boot variables.
+@@ -1947,6 +1948,7 @@ config CMD_CLS
+ config CMD_EFIDEBUG
+ 	bool "efidebug - display/configure UEFI environment"
+ 	depends on EFI_LOADER
++	default y
+ 	select EFI_DEVICE_PATH_TO_TEXT
+ 	help
+ 	  Enable the 'efidebug' command which provides a subset of UEFI
+-- 
+2.37.2
+
