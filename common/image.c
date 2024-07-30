@@ -127,7 +127,7 @@ static const table_entry_t uimage_os[] = {
 	{	IH_OS_QNX,	"qnx",		"QNX",			},
 #endif
 #if defined(CONFIG_INTEGRITY) || defined(USE_HOSTCC)
-	{	IH_OS_INTEGRITY,"integrity",	"INTEGRITY",		},
+	{	IH_OS_INTEGRITY, "integrity",	"INTEGRITY",		},
 #endif
 #ifdef USE_HOSTCC
 	{	IH_OS_4_4BSD,	"4_4bsd",	"4_4BSD",		},
@@ -273,7 +273,8 @@ ulong image_multi_count(const image_header_t *hdr)
 	uint32_t *size;
 
 	/* get start of the image payload, which in case of multi
-	 * component images that points to a table of component sizes */
+	 * component images that points to a table of component sizes
+	 */
 	size = (uint32_t *)image_get_data(hdr);
 
 	/* count non empty slots */
@@ -311,11 +312,13 @@ void image_multi_getimg(const image_header_t *hdr, ulong idx,
 	count = image_multi_count(hdr);
 
 	/* get start of the image payload, which in case of multi
-	 * component images that points to a table of component sizes */
+	 * component images that points to a table of component sizes
+	 */
 	size = (uint32_t *)image_get_data(hdr);
 
 	/* get address of the proper component data start, which means
-	 * skipping sizes table (add 1 for last, null entry) */
+	 * skipping sizes table (add 1 for last, null entry)
+	 */
 	img_data = image_get_data(hdr) + (count + 1) * sizeof(uint32_t);
 
 	if (idx < count) {
@@ -325,7 +328,7 @@ void image_multi_getimg(const image_header_t *hdr, ulong idx,
 		/* go over all indices preceding requested component idx */
 		for (i = 0; i < idx; i++) {
 			/* add up i-th component size, rounding up to 4 bytes */
-			offset += (uimage_to_cpu(size[i]) + 3) & ~3 ;
+			offset += (uimage_to_cpu(size[i]) + 3) & ~3;
 		}
 
 		/* calculate idx-th component data address */
@@ -494,7 +497,7 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 		 * use slower decompression algorithm which requires
 		 * at most 2300 KB of memory.
 		 */
-		ret = BZ2_bzBuffToBuffDecompress(load_buf, &size,
+		ret = bz2_bz_buff_to_buff_decompress(load_buf, &size,
 			image_buf, image_len,
 			CONFIG_SYS_MALLOC_LEN < (4096 * 1024), 0);
 		image_len = size;
@@ -505,9 +508,9 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 #ifndef USE_HOSTCC
 #if CONFIG_IS_ENABLED(LZMA)
 	case IH_COMP_LZMA: {
-		SizeT lzma_len = unc_len;
+		size_t lzma_len = unc_len;
 
-		ret = lzmaBuffToBuffDecompress(load_buf, &lzma_len,
+		ret = lzma_buff_to_buff_decompress(load_buf, &lzma_len,
 					       image_buf, image_len);
 		image_len = lzma_len;
 		break;
@@ -541,8 +544,8 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 	case IH_COMP_ZSTD: {
 		size_t size = unc_len;
 		ZSTD_DStream *dstream;
-		ZSTD_inBuffer in_buf;
-		ZSTD_outBuffer out_buf;
+		zstd_in_buffer in_buf;
+		zstd_out_buffer out_buf;
 		void *workspace;
 		size_t wsize;
 
@@ -554,10 +557,10 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 			return -1;
 		}
 
-		dstream = ZSTD_initDStream(image_len, workspace, wsize);
+		dstream = zstd_init_d_stream(image_len, workspace, wsize);
 		if (!dstream) {
-			printf("%s: ZSTD_initDStream failed\n", __func__);
-			return ZSTD_getErrorCode(ret);
+			printf("%s: zstd_init_d_stream failed\n", __func__);
+			return zstd_get_error_code(ret);
 		}
 
 		in_buf.src = image_buf;
@@ -572,10 +575,10 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 			size_t ret;
 
 			ret = ZSTD_decompressStream(dstream, &out_buf, &in_buf);
-			if (ZSTD_isError(ret)) {
+			if (zstd_is_error(ret)) {
 				printf("%s: ZSTD_decompressStream error %d\n", __func__,
-				       ZSTD_getErrorCode(ret));
-				return ZSTD_getErrorCode(ret);
+				       zstd_get_error_code(ret));
+				return zstd_get_error_code(ret);
 			}
 
 			if (in_buf.pos >= image_len || !ret)
@@ -693,6 +696,7 @@ U_BOOT_ENV_CALLBACK(loadaddr, on_loadaddr);
 ulong env_get_bootm_low(void)
 {
 	char *s = env_get("bootm_low");
+
 	if (s) {
 		ulong tmp = hextoul(s, NULL);
 		return tmp;
@@ -712,6 +716,7 @@ phys_size_t env_get_bootm_size(void)
 	phys_size_t tmp, size;
 	phys_addr_t start;
 	char *s = env_get("bootm_size");
+
 	if (s) {
 		tmp = (phys_size_t)simple_strtoull(s, NULL, 16);
 		return tmp;
@@ -736,6 +741,7 @@ phys_size_t env_get_bootm_mapsize(void)
 {
 	phys_size_t tmp;
 	char *s = env_get("bootm_mapsize");
+
 	if (s) {
 		tmp = (phys_size_t)simple_strtoull(s, NULL, 16);
 		return tmp;
@@ -760,6 +766,7 @@ void memmove_wd(void *to, void *from, size_t len, ulong chunksz)
 	}
 	while (len > 0) {
 		size_t tail = (len > chunksz) ? chunksz : len;
+
 		WATCHDOG_RESET();
 		if (to > from) {
 			to -= tail;
@@ -936,24 +943,24 @@ char *get_table_entry_name(const table_entry_t *table, char *msg, int id)
 
 const char *genimg_get_os_name(uint8_t os)
 {
-	return (get_table_entry_name(uimage_os, "Unknown OS", os));
+	return get_table_entry_name(uimage_os, "Unknown OS", os);
 }
 
 const char *genimg_get_arch_name(uint8_t arch)
 {
-	return (get_table_entry_name(uimage_arch, "Unknown Architecture",
-					arch));
+	return get_table_entry_name(uimage_arch, "Unknown Architecture",
+					arch);
 }
 
 const char *genimg_get_type_name(uint8_t type)
 {
-	return (get_table_entry_name(uimage_type, "Unknown Image", type));
+	return get_table_entry_name(uimage_type, "Unknown Image", type);
 }
 
 const char *genimg_get_comp_name(uint8_t comp)
 {
-	return (get_table_entry_name(uimage_comp, "Unknown Compression",
-					comp));
+	return get_table_entry_name(uimage_comp, "Unknown Compression",
+					comp);
 }
 
 static const char *genimg_get_short_name(const table_entry_t *table, int val)
@@ -1022,22 +1029,22 @@ int get_table_entry_id(const table_entry_t *table,
 
 int genimg_get_os_id(const char *name)
 {
-	return (get_table_entry_id(uimage_os, "OS", name));
+	return get_table_entry_id(uimage_os, "OS", name);
 }
 
 int genimg_get_arch_id(const char *name)
 {
-	return (get_table_entry_id(uimage_arch, "CPU", name));
+	return get_table_entry_id(uimage_arch, "CPU", name);
 }
 
 int genimg_get_type_id(const char *name)
 {
-	return (get_table_entry_id(uimage_type, "Image", name));
+	return get_table_entry_id(uimage_type, "Image", name);
 }
 
 int genimg_get_comp_id(const char *name)
 {
-	return (get_table_entry_id(uimage_comp, "Compression", name));
+	return get_table_entry_id(uimage_comp, "Compression", name);
 }
 
 #ifndef USE_HOSTCC
@@ -1616,8 +1623,7 @@ int boot_get_loadable(int argc, char *const argv[], bootm_headers_t *images,
 		     uname = fdt_stringlist_get(buf, conf_noffset,
 					FIT_LOADABLE_PROP, loadables_index,
 					NULL), uname;
-		     loadables_index++)
-		{
+		     loadables_index++) {
 			fit_img_result = fit_image_load(images,
 				tmp_img_addr,
 				&uname,
@@ -1689,7 +1695,7 @@ int boot_get_cmdline(struct lmb *lmb, ulong *cmd_start, ulong *cmd_end)
 
 	strcpy(cmdline, s);
 
-	*cmd_start = (ulong) & cmdline[0];
+	*cmd_start = (ulong) &cmdline[0];
 	*cmd_end = *cmd_start + strlen(cmdline);
 
 	debug("## cmdline at 0x%08lx ... 0x%08lx\n", *cmd_start, *cmd_end);
