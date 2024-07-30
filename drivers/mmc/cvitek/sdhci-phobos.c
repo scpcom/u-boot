@@ -1,8 +1,7 @@
+// SPDX-License-Identifier:     GPL-2.0+
 /*
  * Copyright (C) 2016 Socionext Inc.
  *   Author: Masahiro Yamada <yamada.masahiro@socionext.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -320,13 +319,11 @@ retry_tuning:
 			goto retry_tuning;
 		}
 
-		if (ret) {
+		if (ret)
 			SET_MASK_BIT(tuning_result, min);
-		}
 
-		if (reg_rx_lead_lag) {
+		if (reg_rx_lead_lag)
 			SET_MASK_BIT(rx_lead_lag_result, min);
-		}
 
 		min++;
 	}
@@ -358,9 +355,8 @@ retry_tuning:
 	// Find a final tap as median of maximum window
 	for (k = 0; k < TUNE_MAX_PHCODE; k++) {
 		if (CHECK_MASK_BIT(tuning_result, k) == 0) {
-			if (-1 == cur_window_idx) {
+			if (-1 == cur_window_idx)
 				cur_window_idx = k;
-			}
 			cur_window_size++;
 
 			if (cur_window_size > max_window_size) {
@@ -385,9 +381,8 @@ retry_tuning:
 				max_lead_lag_size = cur_window_size;
 				break;
 			}
-			if (cur_window_idx == -1) {
+			if (cur_window_idx == -1)
 				cur_window_idx = k;
-			}
 			cur_window_size++;
 			rx_lead_lag_phase = 0;
 		} else {
@@ -496,11 +491,10 @@ int cvi_get_cd(struct sdhci_host *host)
 
 	reg = sdhci_readl(host, SDHCI_PRESENT_STATE);
 	pr_debug("%s reg = 0x08%x\n", __func__, reg);
-	if (reg & SDHCI_CARD_PRESENT) {
+	if (reg & SDHCI_CARD_PRESENT)
 		return 1;
-	} else {
+	else
 		return 0;
-	}
 }
 
 static int cvi_sdhci_probe(struct udevice *dev)

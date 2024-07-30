@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef _SDHCI_REG_H
 #define _SDHCI_REG_H
 #include "phobos_reg.h"

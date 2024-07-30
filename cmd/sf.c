@@ -127,9 +127,8 @@ static int do_spi_flash_probe(int argc, char *const argv[])
 #if CONFIG_IS_ENABLED(DM_SPI_FLASH)
 	/* Remove the old device, otherwise probe will just be a nop */
 	ret = spi_find_bus_and_cs(bus, cs, &bus_dev, &new);
-	if (!ret) {
+	if (!ret)
 		device_remove(new, DM_REMOVE_NORMAL);
-	}
 	flash = NULL;
 	ret = spi_flash_probe_bus_cs(bus, cs, speed, mode, &new);
 	if (ret) {
@@ -416,8 +415,8 @@ static char *stage_name[STAGE_COUNT] = {
 struct test_info {
 	int stage;
 	int bytes;
-	unsigned base_ms;
-	unsigned time_ms[STAGE_COUNT];
+	unsigned int base_ms;
+	unsigned int time_ms[STAGE_COUNT];
 };
 
 static void show_time(struct test_info *test, int stage)

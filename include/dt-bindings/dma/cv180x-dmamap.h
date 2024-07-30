@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef __DT_BINDINGS_CV180X_DMAMAP_H__
 #define __DT_BINDINGS_CV180XS_DMAMAP_H__
 

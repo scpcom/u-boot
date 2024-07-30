@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2023 bitmain
+ */
+
 #include <common.h>
 #include <linux/mtd/nand.h>
 #include "cvsnfc_spi_ids.h"
@@ -112,9 +117,8 @@ static int spi_nand_winbond_select_die(struct cvsnfc_op *spi, unsigned int id)
 	struct cvsnfc_host *host = (struct cvsnfc_host *)spi->host;
 	static uint8_t pre_id = 0xff;
 
-	if (id == pre_id) {
+	if (id == pre_id)
 		return 0;
-	}
 
 	// Select Die
 	cvsfc_write(host, REG_SPI_NAND_TRX_CTRL2, 0x1);
@@ -1451,7 +1455,7 @@ struct cvsnfc_chip_info cvsnfc_spi_nand_flash_table[] = {
 		.sample_param = 0x40001000,
 		.xtal_switch = 1,
 	},
-  
+
 	{
 		.name      = "F35SQA512M",
 		.id        = {0xcd, 0x70, 0x70},

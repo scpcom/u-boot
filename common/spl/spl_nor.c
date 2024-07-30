@@ -31,10 +31,10 @@
 #endif
 
 typedef enum {
-	Uninitialized,
-	Initialized
+	uninitialized,
+	initialized
 } spinor_status_e;
-static spinor_status_e spinor_status = Uninitialized;
+static spinor_status_e spinor_status = uninitialized;
 
 static void cvi_spi_nor_init(void)
 {
@@ -64,7 +64,7 @@ static ulong spl_nor_load_read(struct spl_load_info *load, ulong sector,
 {
 	debug("%s: sector %lx, count %lx, buf %p\n",
 	      __func__, sector, count, buf);
-	if (spinor_status != Initialized)
+	if (spinor_status != initialized)
 		cvi_spi_nor_init();
 
 	memcpy(buf, (void *)sector, count);
@@ -95,9 +95,9 @@ static int spl_nor_load_image(struct spl_image_info *spl_image,
 		 * Load Linux from its location in NOR flash to its defined
 		 * location in SDRAM
 		 */
-		if (spinor_status != Initialized) {
+		if (spinor_status != initialized) {
 			cvi_spi_nor_init();
-			spinor_status = Initialized;
+			spinor_status = initialized;
 		}
 		header = (const struct image_header *)(REG_BASE + SPL_BOOT_PART_OFFSET);
 #ifdef CONFIG_SPL_LOAD_FIT

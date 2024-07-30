@@ -1,6 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) Cvitek Co., Ltd. 2019-2020. All rights reserved.
- *
  */
 
 #include <common.h>
@@ -194,14 +194,6 @@ int mipi_tx_set_cmd(struct cmd_info_s *cmd_info)
 		printf("cmd is NULL, but cmd_size(%d) isn't zero!\n", cmd_info->cmd_size);
 		return -EINVAL;
 	}
-
-#if 0
-	if (cmd_info->cmd_size > 2)
-		pr_info("%s: %#x %#x %#x %#x\n", __func__, cmd_info->cmd[0], cmd_info->cmd[1]
-			, cmd_info->cmd[2], cmd_info->cmd[3]);
-	else
-		pr_info("%s: %#x %#x\n", __func__, cmd_info->cmd[0], cmd_info->cmd[1]);
-#endif
 
 	return sclr_dsi_dcs_write_buffer(cmd_info->data_type, cmd_info->cmd, cmd_info->cmd_size, cmd_mode & 0x01);
 }

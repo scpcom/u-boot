@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef _CVI_SCL_H_
 #define _CVI_SCL_H_
 

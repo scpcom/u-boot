@@ -91,26 +91,27 @@ void mmmc_trace_after_send(struct mmc *mmc, struct mmc_cmd *cmd, int ret)
 			printf("\t\tMMC_RSP_NONE\n");
 			break;
 		case MMC_RSP_R1:
-			printf("\t\tMMC_RSP_R1,5,6,7 \t 0x%08x \n",
+			printf("\t\tMMC_RSP_R1,5,6,7 \t 0x%08x\n",
 				cmd->response[0]);
 			break;
 		case MMC_RSP_R1b:
-			printf("\t\tMMC_RSP_R1b\t\t 0x%08x \n",
+			printf("\t\tMMC_RSP_R1b\t\t 0x%08x\n",
 				cmd->response[0]);
 			break;
 		case MMC_RSP_R2:
-			printf("\t\tMMC_RSP_R2\t\t 0x%08x \n",
+			printf("\t\tMMC_RSP_R2\t\t 0x%08x\n",
 				cmd->response[0]);
-			printf("\t\t          \t\t 0x%08x \n",
+			printf("\t\t          \t\t 0x%08x\n",
 				cmd->response[1]);
-			printf("\t\t          \t\t 0x%08x \n",
+			printf("\t\t          \t\t 0x%08x\n",
 				cmd->response[2]);
-			printf("\t\t          \t\t 0x%08x \n",
+			printf("\t\t          \t\t 0x%08x\n",
 				cmd->response[3]);
 			printf("\n");
 			printf("\t\t\t\t\tDUMPING DATA\n");
 			for (i = 0; i < 4; i++) {
 				int j;
+
 				printf("\t\t\t\t\t%03d - ", i*4);
 				ptr = (u8 *)&cmd->response[i];
 				ptr += 3;
@@ -120,7 +121,7 @@ void mmmc_trace_after_send(struct mmc *mmc, struct mmc_cmd *cmd, int ret)
 			}
 			break;
 		case MMC_RSP_R3:
-			printf("\t\tMMC_RSP_R3,4\t\t 0x%08x \n",
+			printf("\t\tMMC_RSP_R3,4\t\t 0x%08x\n",
 				cmd->response[0]);
 			break;
 		default:
@@ -496,6 +497,7 @@ ulong mmc_bread(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt,
 		return 0;
 
 	struct mmc *mmc = find_mmc_device(dev_num);
+
 	if (!mmc)
 		return 0;
 
@@ -734,7 +736,7 @@ static int mmc_send_op_cond(struct mmc *mmc)
 	mmc_go_idle(mmc);
 
 	start = get_timer(0);
- 	/* Asking to the card its capabilities */
+	/* Asking to the card its capabilities */
 	for (i = 0; ; i++) {
 		err = mmc_send_op_cond_iter(mmc, i != 0);
 		if (err)
@@ -938,7 +940,7 @@ static int mmc_set_card_speed(struct mmc *mmc, enum bus_mode mode,
 		return err;
 
 #if CONFIG_IS_ENABLED(MMC_HS200_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS400_SUPPORT)
+	CONFIG_IS_ENABLED(MMC_HS400_SUPPORT)
 	/*
 	 * In case the eMMC is in HS200/HS400 mode and we are downgrading
 	 * to HS mode, the card clock are still running much faster than
@@ -1086,6 +1088,7 @@ int mmc_hwpart_config(struct mmc *mmc,
 	u32 tot_enh_size_mult = 0;
 	u8 wr_rel_set;
 	int i, pidx, err;
+
 	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
 
 	if (mode < MMC_HWPART_CONF_CHECK || mode > MMC_HWPART_CONF_COMPLETE)
@@ -1110,17 +1113,15 @@ int mmc_hwpart_config(struct mmc *mmc,
 	if (conf->user.enh_size) {
 		if (conf->user.enh_size % mmc->hc_wp_grp_size ||
 		    conf->user.enh_start % mmc->hc_wp_grp_size) {
-			pr_err("User data enhanced area not HC WP group "
-			       "size aligned\n");
+			pr_err("User data enhanced area not HC WP group size aligned\n");
 			return -EINVAL;
 		}
 		part_attrs |= EXT_CSD_ENH_USR;
 		enh_size_mult = conf->user.enh_size / mmc->hc_wp_grp_size;
-		if (mmc->high_capacity) {
+		if (mmc->high_capacity)
 			enh_start_addr = conf->user.enh_start;
-		} else {
+		else
 			enh_start_addr = (conf->user.enh_start << 9);
-		}
 	} else {
 		enh_size_mult = 0;
 		enh_start_addr = 0;
@@ -1129,8 +1130,7 @@ int mmc_hwpart_config(struct mmc *mmc,
 
 	for (pidx = 0; pidx < 4; pidx++) {
 		if (conf->gp_part[pidx].size % mmc->hc_wp_grp_size) {
-			pr_err("GP%i partition not HC WP group size "
-			       "aligned\n", pidx+1);
+			pr_err("GP%i partition not HC WP group size aligned\n", pidx+1);
 			return -EINVAL;
 		}
 		gp_size_mult[pidx] = conf->gp_part[pidx].size / mmc->hc_wp_grp_size;
@@ -1140,7 +1140,7 @@ int mmc_hwpart_config(struct mmc *mmc,
 		}
 	}
 
-	if (part_attrs && ! (mmc->part_support & ENHNCD_SUPPORT)) {
+	if (part_attrs && !(mmc->part_support & ENHNCD_SUPPORT)) {
 		pr_err("Card does not support enhanced attribute\n");
 		return -EMEDIUMTYPE;
 	}
@@ -1162,7 +1162,8 @@ int mmc_hwpart_config(struct mmc *mmc,
 	/* The default value of EXT_CSD_WR_REL_SET is device
 	 * dependent, the values can only be changed if the
 	 * EXT_CSD_HS_CTRL_REL bit is set. The values can be
-	 * changed only once and before partitioning is completed. */
+	 * changed only once and before partitioning is completed.
+	 */
 	wr_rel_set = ext_csd[EXT_CSD_WR_REL_SET];
 	if (conf->user.wr_rel_change) {
 		if (conf->user.wr_rel_set)
@@ -1181,8 +1182,7 @@ int mmc_hwpart_config(struct mmc *mmc,
 
 	if (wr_rel_set != ext_csd[EXT_CSD_WR_REL_SET] &&
 	    !(ext_csd[EXT_CSD_WR_REL_PARAM] & EXT_CSD_HS_CTRL_REL)) {
-		puts("Card does not support host controlled partition write "
-		     "reliability settings\n");
+		puts("Card does not support host controlled partition write reliability settings\n");
 		return -EMEDIUMTYPE;
 	}
 
@@ -1248,7 +1248,8 @@ int mmc_hwpart_config(struct mmc *mmc,
 	/* The WR_REL_SET is a write-once register but shall be
 	 * written before setting PART_SETTING_COMPLETED. As it is
 	 * write-once we can only write it when completing the
-	 * partitioning. */
+	 * partitioning.
+	 */
 	if (wr_rel_set != ext_csd[EXT_CSD_WR_REL_SET]) {
 		err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 				 EXT_CSD_WR_REL_SET, wr_rel_set);
@@ -1259,7 +1260,8 @@ int mmc_hwpart_config(struct mmc *mmc,
 	/* Setting PART_SETTING_COMPLETED confirms the partition
 	 * configuration but it only becomes effective after power
 	 * cycle, so we do not adjust the partition related settings
-	 * in the mmc struct. */
+	 * in the mmc struct.
+	 */
 
 	err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 			 EXT_CSD_PARTITION_SETTING,
@@ -1314,6 +1316,7 @@ static int sd_get_capabilities(struct mmc *mmc)
 {
 	int err;
 	struct mmc_cmd cmd;
+
 	ALLOC_CACHE_ALIGN_BUFFER(__be32, scr, 2);
 	ALLOC_CACHE_ALIGN_BUFFER(__be32, switch_status, 16);
 	struct mmc_data data;
@@ -1508,6 +1511,7 @@ static int sd_read_ssr(struct mmc *mmc)
 	};
 	int err, i;
 	struct mmc_cmd cmd;
+
 	ALLOC_CACHE_ALIGN_BUFFER(uint, ssr, 16);
 	struct mmc_data data;
 	unsigned int au, eo, et, es;
@@ -1867,6 +1871,7 @@ static int mmc_read_and_compare_ext_csd(struct mmc *mmc)
 {
 	int err;
 	const u8 *ext_csd = mmc->ext_csd;
+
 	ALLOC_CACHE_ALIGN_BUFFER(u8, test_csd, MMC_MAX_BLOCK_LEN);
 
 	if (mmc->version < MMC_VERSION_4)
@@ -2131,8 +2136,8 @@ static int mmc_select_mode_and_width(struct mmc *mmc, uint card_caps)
 	}
 
 #if CONFIG_IS_ENABLED(MMC_HS200_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS400_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS400_ES_SUPPORT)
+	CONFIG_IS_ENABLED(MMC_HS400_SUPPORT) || \
+	CONFIG_IS_ENABLED(MMC_HS400_ES_SUPPORT)
 	/*
 	 * In case the eMMC is in HS200/HS400 mode, downgrade to HS mode
 	 * before doing anything else, since a transition from either of
@@ -2150,6 +2155,7 @@ static int mmc_select_mode_and_width(struct mmc *mmc, uint card_caps)
 		for_each_supported_width(card_caps & mwt->widths,
 					 mmc_is_mode_ddr(mwt->mode), ecbw) {
 			enum mmc_voltage old_voltage;
+
 			pr_debug("trying mode %s width %d (at %d MHz)\n",
 				 mmc_mode_name(mwt->mode),
 				 bus_width(ecbw->cap),
@@ -2596,7 +2602,7 @@ static int mmc_startup(struct mmc *mmc)
 		mmc->write_bl_len = MMC_MAX_BLOCK_LEN;
 #endif
 
-	if ((mmc->dsr_imp) && (0xffffffff != mmc->dsr)) {
+	if ((mmc->dsr_imp) && (mmc->dsr != 0xffffffff)) {
 		cmd.cmdidx = MMC_CMD_SET_DSR;
 		cmd.cmdarg = (mmc->dsr & 0xffff) << 16;
 		cmd.resp_type = MMC_RSP_NONE;
@@ -3008,8 +3014,8 @@ int mmc_init(struct mmc *mmc)
 }
 
 #if CONFIG_IS_ENABLED(MMC_UHS_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS200_SUPPORT) || \
-    CONFIG_IS_ENABLED(MMC_HS400_SUPPORT)
+	CONFIG_IS_ENABLED(MMC_HS200_SUPPORT) || \
+	CONFIG_IS_ENABLED(MMC_HS400_SUPPORT)
 int mmc_deinit(struct mmc *mmc)
 {
 	u32 caps_filtered;
@@ -3097,8 +3103,9 @@ static int mmc_probe(struct bd_info *bis)
 
 int mmc_initialize(struct bd_info *bis)
 {
-	static int initialized = 0;
+	static int initialized;
 	int ret;
+
 	if (initialized)	/* Avoid initializing mmc multiple times */
 		return 0;
 	initialized = 1;
@@ -3149,6 +3156,7 @@ int mmc_init_device(int num)
 int mmc_set_bkops_enable(struct mmc *mmc)
 {
 	int err;
+
 	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
 
 	err = mmc_send_ext_csd(mmc, ext_csd);

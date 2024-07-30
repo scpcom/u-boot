@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef __CVSNFC_H__
 #define __CVSNFC_H__
 

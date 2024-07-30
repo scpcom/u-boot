@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0+
 /***************************************
  * function: mars alios update
  * *****************************************/
@@ -104,7 +105,7 @@ void show_imtb(struct imtb_partition_info_v4 *part_at)
 static int _storage_update_rtos(enum storage_type_e type)
 {
 	char cmd[255] = { '\0' };
-	char strStorage[10] = { '\0' };
+	char str_storage[10] = { '\0' };
 	void *load_addr = NULL;
 	struct imtb_head_v4 *head = NULL;
 	struct imtb_partition_info_v4 *part_at = NULL;
@@ -118,27 +119,27 @@ static int _storage_update_rtos(enum storage_type_e type)
 		printf("Start SD downloading...\n");
 		// Consider SD card with MBR as default
 #if defined(CONFIG_NAND_SUPPORT) || defined(CONFIG_SPI_FLASH)
-		strlcpy(strStorage, "mmc 0:1", 9);
+		strlcpy(str_storage, "mmc 0:1", 9);
 #elif defined(CONFIG_EMMC_SUPPORT)
-		strlcpy(strStorage, "mmc 1:1", 9);
+		strlcpy(str_storage, "mmc 1:1", 9);
 #endif
 		snprintf(cmd, 255, "mmc dev %u:1 SD_HS", sd_index);
 		run_command(cmd, 0);
-		snprintf(cmd, 255, "fatload %s %p imtb;", strStorage,
+		snprintf(cmd, 255, "fatload %s %p imtb;", str_storage,
 			 (void *)HEADER_ADDR);
 		if (run_command(cmd, 0)) {
 			// Consider SD card without MBR
 			printf("** Trying use partition 0 (without MBR) **\n");
 #if defined(CONFIG_NAND_SUPPORT) || defined(CONFIG_SPI_FLASH)
-			strlcpy(strStorage, "mmc 0:0", 9);
+			strlcpy(str_storage, "mmc 0:0", 9);
 			sd_index = 0;
 #elif defined(CONFIG_EMMC_SUPPORT)
 			sd_index = 1;
-			strlcpy(strStorage, "mmc 1:0", 9);
+			strlcpy(str_storage, "mmc 1:0", 9);
 #endif
 			snprintf(cmd, 255, "mmc dev %u:0 SD_HS", sd_index);
 			run_command(cmd, 0);
-			snprintf(cmd, 255, "fatload %s %p imtb;", strStorage,
+			snprintf(cmd, 255, "fatload %s %p imtb;", str_storage,
 				 (void *)HEADER_ADDR);
 			if (run_command(cmd, 0)) {
 				printf("load imtb error\n");
@@ -171,6 +172,7 @@ static int _storage_update_rtos(enum storage_type_e type)
 		show_imtb(part_at);
 #else
 		enum status_type status = STATUS_OK;
+
 		block_count32 =
 			(part_at->block_count_h << 16) | part_at->block_count;
 
@@ -178,7 +180,7 @@ static int _storage_update_rtos(enum storage_type_e type)
 		if (part_at->storage_info.type ==
 		    MEM_DEVICE_TYPE_SPI_NOR_FLASH) {
 			memset(load_addr, 0, block_count32 * 512);
-			snprintf(cmd, 255, "fatload %s %p %s;", strStorage,
+			snprintf(cmd, 255, "fatload %s %p %s;", str_storage,
 				 (void *)load_addr, part_at->name);
 			if (run_command(cmd, 0)) {
 				status = ERROR_FATLOAD;
@@ -216,7 +218,7 @@ static int _storage_update_rtos(enum storage_type_e type)
 
 		} else if (part_at->storage_info.type == MEM_DEVICE_TYPE_EMMC) {
 			/* 1. get update file size */
-			snprintf(cmd, 255, "fatsize %s %s;", strStorage,
+			snprintf(cmd, 255, "fatsize %s %s;", str_storage,
 				 part_at->name);
 			if (run_command(cmd, 0)) {
 				status = ERROR_FATSIZE;
@@ -263,7 +265,7 @@ static int _storage_update_rtos(enum storage_type_e type)
 			if (update_file_size <= ONCE_UPDATE_FILE_MAX_SIZE) {
 				/* 3. load update file to dram from sd */
 				snprintf(cmd, 255, "fatload %s %p %s;",
-					 strStorage, (void *)load_addr,
+					 str_storage, (void *)load_addr,
 					 part_at->name);
 				if (run_command(cmd, 0)) {
 					status = ERROR_FATLOAD;
@@ -293,7 +295,7 @@ static int _storage_update_rtos(enum storage_type_e type)
 					/* 3. load update file to dram from sd */
 					snprintf(cmd, 255,
 						 "fatload %s %p %s 0x%x 0x%x;",
-						 strStorage, (void *)load_addr,
+						 str_storage, (void *)load_addr,
 						 part_at->name,
 						 ONCE_UPDATE_FILE_MAX_SIZE,
 						 offset_blk * 512);
@@ -338,7 +340,7 @@ static int _storage_update_rtos(enum storage_type_e type)
 					/* 3. load update file to dram from sd */
 					snprintf(cmd, 255,
 						 "fatload %s %p %s 0x%x 0x%x;",
-						 strStorage, (void *)load_addr,
+						 str_storage, (void *)load_addr,
 						 part_at->name, last_part_size,
 						 offset_blk * 512);
 					if (run_command(cmd, 0)) {
@@ -427,7 +429,7 @@ static int _usb_update_rtos(uint32_t usb_pid)
 			pr_debug("cvi_utask failed(%d)\n", ret);
 			return ret;
 		}
-		//_prgImage((void *)UPDATE_ADDR, readl(HEADER_ADDR + 8));
+		//_prg_image((void *)UPDATE_ADDR, readl(HEADER_ADDR + 8));
 	};
 	return 0;
 }

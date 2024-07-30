@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef __CV181X_REG_H__
 #define __CV181X_REG_H__
 

@@ -44,7 +44,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CONFIG_SYS_MONITOR_LEN	(200 * 1024)
 #endif
 
-u32 *boot_params_ptr = NULL;
+u32 *boot_params_ptr;
 
 /* See spl.h for information about this */
 binman_sym_declare(ulong, u_boot_any, image_pos);
@@ -56,7 +56,7 @@ binman_sym_declare(ulong, spl, size);
 #endif
 
 /* Define board data structure */
-static struct bd_info bdata __attribute__ ((section(".data")));
+static struct bd_info bdata __section(".data");
 
 #if CONFIG_IS_ENABLED(BOOTSTAGE)
 /*
@@ -78,7 +78,7 @@ __weak int dram_init_banksize(void)
  * Default function to determine if u-boot or the OS should
  * be started. This implementation always returns 1.
  *
- * Please implement your own board specific funcion to do this.
+ * Please implement your own board specific function to do this.
  *
  * RETURN
  * 0 to not start u-boot
@@ -100,7 +100,7 @@ __weak int spl_start_uboot(void)
  */
 int __weak bootz_setup(ulong image, ulong *start, ulong *end)
 {
-	 return 1;
+	return 1;
 }
 #endif
 
@@ -299,8 +299,7 @@ static int spl_load_fit_image(struct spl_image_info *spl_image,
 	     uname = fdt_stringlist_get((const void *)header, conf_noffset,
 					FIT_LOADABLE_PROP, idx,
 				NULL), uname;
-	     idx++)
-	{
+	     idx++) {
 #ifdef CONFIG_SPL_FIT_SIGNATURE
 		images.verify = 1;
 #endif
@@ -668,6 +667,7 @@ void board_init_f(ulong dummy)
 	board_save_time_record(TIME_RECORDS_FIELD_UBOOT_START);
 #ifdef CONFIG_ARM64
 	extern ulong __image_copy_start;
+
 	gd->relocaddr = (ulong)&__image_copy_start;
 	arch_reserve_mmu();
 	icache_enable();
@@ -711,9 +711,8 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	gd->flags |= GD_FLG_FULL_MALLOC_INIT;
 #endif
 	if (!(gd->flags & GD_FLG_SPL_INIT)) {
-		if (spl_init()) {
+		if (spl_init())
 			hang();
-		}
 	}
 #if !defined(CONFIG_PPC) && !defined(CONFIG_ARCH_MX6)
 	/*
@@ -927,7 +926,7 @@ ulong spl_relocate_stack_gd(void)
 	}
 #endif
 	/* Get stack position: use 8-byte alignment for ABI compliance */
-	ptr = CONFIG_SPL_STACK_R_ADDR - roundup(sizeof(gd_t),16);
+	ptr = CONFIG_SPL_STACK_R_ADDR - roundup(sizeof(gd_t), 16);
 	new_gd = (gd_t *)ptr;
 	memcpy(new_gd, (void *)gd, sizeof(gd_t));
 #if CONFIG_IS_ENABLED(DM)

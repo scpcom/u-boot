@@ -1,10 +1,10 @@
+// SPDX-License-Identifier:     GPL-2.0+
 /*
  * (C) Copyright 2013
  * David Feng <fenghua@phytium.com.cn>
  * Sharma Bhupesh <bhupesh.sharma@freescale.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
+
 #include <common.h>
 #include <dm.h>
 #include <malloc.h>
@@ -208,8 +208,8 @@ static void cv180x_ephy_led_pinmux(void)
 
 int board_init(void)
 {
-	extern uint32_t BOOT0_START_TIME;
-	uint16_t start_time = DIV_ROUND_UP(BOOT0_START_TIME, SYS_COUNTER_FREQ_IN_SECOND / 1000);
+	extern u32 BOOT0_START_TIME;
+	u16 start_time = DIV_ROUND_UP(BOOT0_START_TIME, SYS_COUNTER_FREQ_IN_SECOND / 1000);
 
 	// Save uboot start time. time is from boot0.h
 	mmio_write_16(TIME_RECORDS_FIELD_UBOOT_START, start_time);
@@ -294,7 +294,7 @@ struct dwc2_plat_otg_data cv182x_otg_data = {
 
 int board_usb_init(int index, enum usb_init_type init)
 {
-	uint32_t value;
+	u32 value;
 
 	value = mmio_read_32(TOP_BASE + REG_TOP_SOFT_RST) & (~BIT_TOP_SOFT_RST_USB);
 	mmio_write_32(TOP_BASE + REG_TOP_SOFT_RST, value);
@@ -319,7 +319,7 @@ int board_usb_init(int index, enum usb_init_type init)
 
 void board_save_time_record(uintptr_t saveaddr)
 {
-	uint64_t boot_us = 0;
+	u64 boot_us = 0;
 #if defined(__aarch64__)
 	boot_us = timer_get_boot_us();
 #elif defined(__riscv)

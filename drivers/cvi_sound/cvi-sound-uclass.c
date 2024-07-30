@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2023 bitmain
+ */
+
 #include <dm/uclass.h>
 #include <sound.h>
 
