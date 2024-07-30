@@ -81,7 +81,7 @@ obj-$(CONFIG_MMC_SDHCI_F_SDH30)		+= f_sdh30.o
 ifeq ($(CONFIG_MMC_SDHCI_CVITEK), y)
 obj-$(CONFIG_TARGET_CVITEK_CV1835) += cvitek/sdhci-cv183x.o
 obj-$(CONFIG_TARGET_CVITEK_CV1822) += cvitek/sdhci-cv182x.o
-obj-$(CONFIG_TARGET_CVITEK_CV181X) += cvitek/sdhci-cv181x.o
-obj-$(CONFIG_TARGET_CVITEK_CV180X) += cvitek/sdhci-cv180x.o
+obj-$(CONFIG_TARGET_CVITEK_CV181X) += cvitek/sdhci-mars.o
+obj-$(CONFIG_TARGET_CVITEK_CV180X) += cvitek/sdhci-phobos.o
 obj-$(CONFIG_TARGET_CVITEK_ATHENA2) += cvitek/sdhci-athena2.o
 endif
