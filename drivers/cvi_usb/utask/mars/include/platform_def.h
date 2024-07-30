@@ -12,9 +12,9 @@
 #elif defined(CONFIG_TARGET_CVITEK_CV1822)
 #include <../../../board/cvitek/cv1822/cv1822_reg.h>
 #elif defined(CONFIG_TARGET_CVITEK_CV181X)
-#include <../../../board/cvitek/cv181x/cv181x_reg.h>
+#include <../../../board/cvitek/mars/mars_reg.h>
 #elif defined(CONFIG_TARGET_CVITEK_CV180X)
-#include <../../../board/cvitek/cv180x/cv180x_reg.h>
+#include <../../../board/cvitek/phobos/phobos_reg.h>
 #elif defined(CONFIG_TARGET_CVITEK_ATHENA2)
 #include <../../../board/cvitek/athena2/athena2_reg.h>
 #else
