@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef CVI_ERRNO_H
 #define CVI_ERRNO_H
 

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef _USB_TTY_H
 #define _USB_TTY_H
 
@@ -32,33 +34,33 @@
 
 /* "Header Functional Descriptor" from CDC spec  5.2.3.1 */
 struct usb_cdc_header_desc {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint8_t bDescriptorSubType;
+	uint8_t b_length;
+	uint8_t b_descriptor_type;
+	uint8_t b_descriptor_sub_type;
 
-	uint16_t bcdCDC;
+	uint16_t bcd_cdc;
 } __packed;
 
 /* "Call Management Descriptor" from CDC spec  5.2.3.2 */
 struct usb_cdc_call_mgmt_descriptor {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint8_t bDescriptorSubType;
+	uint8_t b_length;
+	uint8_t b_descriptor_type;
+	uint8_t b_descriptor_sub_type;
 
-	uint8_t bmCapabilities;
+	uint8_t bm_capabilities;
 #define USB_CDC_CALL_MGMT_CAP_CALL_MGMT 0x01
 #define USB_CDC_CALL_MGMT_CAP_DATA_INTF 0x02
 
-	uint8_t bDataInterface;
+	uint8_t b_data_interface;
 } __packed;
 
 /* "Abstract Control Management Descriptor" from CDC spec  5.2.3.3 */
 struct usb_cdc_acm_descriptor {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint8_t bDescriptorSubType;
+	uint8_t b_length;
+	uint8_t b_descriptor_type;
+	uint8_t b_descriptor_sub_type;
 
-	uint8_t bmCapabilities;
+	uint8_t bm_capabilities;
 } __packed;
 
 /* capabilities from 5.2.3.3 */
@@ -70,23 +72,23 @@ struct usb_cdc_acm_descriptor {
 
 /* "Union Functional Descriptor" from CDC spec 5.2.3.8 */
 struct usb_cdc_union_desc {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint8_t bDescriptorSubType;
+	uint8_t b_length;
+	uint8_t b_descriptor_type;
+	uint8_t b_descriptor_sub_type;
 
-	uint8_t bMasterInterface0;
-	uint8_t bSlaveInterface0;
+	uint8_t b_master_interface0;
+	uint8_t b_slave_interface0;
 	/* ... and there could be other slave interfaces */
 } __packed;
 
 /* "Country Selection Functional Descriptor" from CDC spec 5.2.3.9 */
 struct usb_cdc_country_functional_desc {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint8_t bDescriptorSubType;
+	uint8_t b_length;
+	uint8_t b_descriptor_type;
+	uint8_t b_descriptor_sub_type;
 
-	uint8_t iCountryCodeRelDate;
-	uint16_t wCountyCode0;
+	uint8_t i_country_code_rel_date;
+	uint16_t w_county_code0;
 	/* ... and there can be a lot of country codes */
 } __packed;
 
@@ -111,20 +113,20 @@ struct usb_cdc_country_functional_desc {
 
 /* Line Coding Structure from CDC spec 6.2.13 */
 struct usb_cdc_line_coding {
-	int dwDTERate;
-	uint8_t bCharFormat;
+	int dw_dte_rate;
+	uint8_t b_char_format;
 #define USB_CDC_1_STOP_BITS 0
 #define USB_CDC_1_5_STOP_BITS 1
 #define USB_CDC_2_STOP_BITS 2
 
-	uint8_t bParityType;
+	uint8_t b_parity_type;
 #define USB_CDC_NO_PARITY 0
 #define USB_CDC_ODD_PARITY 1
 #define USB_CDC_EVEN_PARITY 2
 #define USB_CDC_MARK_PARITY 3
 #define USB_CDC_SPACE_PARITY 4
 
-	uint8_t bDataBits;
+	uint8_t b_data_bits;
 } __packed;
 
 /* table 62; bits in multicast filter */
@@ -150,11 +152,11 @@ struct usb_cdc_line_coding {
 #define USB_CDC_NOTIFY_SPEED_CHANGE 0x2a
 
 struct usb_cdc_notification {
-	uint8_t bmRequestType;
-	uint8_t bNotificationType;
-	uint16_t wValue;
-	uint16_t wIndex;
-	uint16_t wLength;
+	uint8_t bm_request_type;
+	uint8_t b_notification_type;
+	uint16_t w_value;
+	uint16_t w_index;
+	uint16_t w_length;
 } __packed;
 
 /* utility to simplify dealing with string descriptors */
@@ -183,116 +185,116 @@ struct usb_string {
 
 //------------------- descriptor set--------------------------------------------
 // device descriptor for HighSpeed mode
-static CH9_UsbDeviceDescriptor devHsDesc = { CH9_USB_DS_DEVICE,
+static ch9_usb_device_descriptor dev_hs_desc = { CH9_USB_DS_DEVICE,
 					     CH9_USB_DT_DEVICE,
-					     cpuToLe16(BCD_USB_HS),
+					     cpu_to_le16(BCD_USB_HS),
 					     2,
 					     0,
 					     0,
 					     64,
-					     cpuToLe16(ID_VENDOR),
-					     cpuToLe16(ID_PRODUCT),
-					     cpuToLe16(BCD_DEVICE_HS),
+					     cpu_to_le16(ID_VENDOR),
+					     cpu_to_le16(ID_PRODUCT),
+					     cpu_to_le16(BCD_DEVICE_HS),
 					     1,
 					     2,
 					     3,
 					     1 };
 
 //------------- Start of Super Speed configuration descriptors -----------------
-static struct CH9_UsbInterfaceAssociationDescriptor acm_iad_descriptor = {
-	.bLength = sizeof(acm_iad_descriptor),
-	.bDescriptorType = CH9_USB_DT_INTERFACE_ASSOCIATION,
+static struct ch9_usb_interface_association_descriptor acm_iad_descriptor = {
+	.b_length = sizeof(acm_iad_descriptor),
+	.b_descriptor_type = CH9_USB_DT_INTERFACE_ASSOCIATION,
 
-	/* .bFirstInterface =   DYNAMIC, */
-	.bInterfaceCount = 2, // control + data
-	.bFunctionClass = CH9_USB_CLASS_CDC,
-	.bFunctionSubClass = USB_CDC_SUBCLASS_ACM,
-	.bFunctionProtocol = USB_CDC_ACM_PROTO_AT_V25TER,
-	/* .iFunction =     DYNAMIC */
+	/* .b_first_interface =   DYNAMIC, */
+	.b_interface_count = 2, // control + data
+	.b_function_class = CH9_USB_CLASS_CDC,
+	.b_function_sub_class = USB_CDC_SUBCLASS_ACM,
+	.b_function_protocol = USB_CDC_ACM_PROTO_AT_V25TER,
+	/* .i_function =     DYNAMIC */
 };
 
-static struct CH9_UsbInterfaceDescriptor acm_control_interface_desc = {
-	.bLength = USB_DT_INTERFACE_SIZE,
-	.bDescriptorType = CH9_USB_DT_INTERFACE,
-	.bInterfaceNumber = 0,
-	.bAlternateSetting = 0,
-	.bNumEndpoints = 1,
-	.bInterfaceClass = CH9_USB_CLASS_CDC,
-	.bInterfaceSubClass = USB_CDC_SUBCLASS_ACM,
-	.bInterfaceProtocol = USB_CDC_ACM_PROTO_AT_V25TER,
-	.iInterface = 0,
+static struct ch9_usb_interface_descriptor acm_control_interface_desc = {
+	.b_length = USB_DT_INTERFACE_SIZE,
+	.b_descriptor_type = CH9_USB_DT_INTERFACE,
+	.b_interface_number = 0,
+	.b_alternate_setting = 0,
+	.b_num_endpoints = 1,
+	.b_interface_class = CH9_USB_CLASS_CDC,
+	.b_interface_sub_class = USB_CDC_SUBCLASS_ACM,
+	.b_interface_protocol = USB_CDC_ACM_PROTO_AT_V25TER,
+	.i_interface = 0,
 };
 
-static struct CH9_UsbInterfaceDescriptor acm_data_interface_desc = {
-	.bLength = USB_DT_INTERFACE_SIZE,
-	.bDescriptorType = CH9_USB_DT_INTERFACE,
-	.bInterfaceNumber = 1,
-	.bAlternateSetting = 0,
-	.bNumEndpoints = 2,
-	.bInterfaceClass = CH9_USB_CLASS_CDC_DATA,
-	.bInterfaceSubClass = 0,
-	.bInterfaceProtocol = 0,
-	.iInterface = 0,
+static struct ch9_usb_interface_descriptor acm_data_interface_desc = {
+	.b_length = USB_DT_INTERFACE_SIZE,
+	.b_descriptor_type = CH9_USB_DT_INTERFACE,
+	.b_interface_number = 1,
+	.b_alternate_setting = 0,
+	.b_num_endpoints = 2,
+	.b_interface_class = CH9_USB_CLASS_CDC_DATA,
+	.b_interface_sub_class = 0,
+	.b_interface_protocol = 0,
+	.i_interface = 0,
 };
 
 static struct usb_cdc_header_desc acm_header_desc = {
-	.bLength = sizeof(acm_header_desc),
-	.bDescriptorType = USB_DT_CS_INTERFACE,
-	.bDescriptorSubType = USB_CDC_HEADER_TYPE,
-	.bcdCDC = cpuToLe16(BCD_CDC),
+	.b_length = sizeof(acm_header_desc),
+	.b_descriptor_type = USB_DT_CS_INTERFACE,
+	.b_descriptor_sub_type = USB_CDC_HEADER_TYPE,
+	.bcd_cdc = cpu_to_le16(BCD_CDC),
 };
 
 static struct usb_cdc_call_mgmt_descriptor acm_call_mgmt_descriptor = {
-	.bLength = sizeof(acm_call_mgmt_descriptor),
-	.bDescriptorType = USB_DT_CS_INTERFACE,
-	.bDescriptorSubType = USB_CDC_CALL_MANAGEMENT_TYPE,
-	.bmCapabilities = 3,
-	.bDataInterface = 1,
+	.b_length = sizeof(acm_call_mgmt_descriptor),
+	.b_descriptor_type = USB_DT_CS_INTERFACE,
+	.b_descriptor_sub_type = USB_CDC_CALL_MANAGEMENT_TYPE,
+	.bm_capabilities = 3,
+	.b_data_interface = 1,
 };
 
 static struct usb_cdc_acm_descriptor acm_descriptor = {
-	.bLength = sizeof(acm_descriptor),
-	.bDescriptorType = USB_DT_CS_INTERFACE,
-	.bDescriptorSubType = USB_CDC_ACM_TYPE,
-	.bmCapabilities = USB_CDC_CAP_LINE,
+	.b_length = sizeof(acm_descriptor),
+	.b_descriptor_type = USB_DT_CS_INTERFACE,
+	.b_descriptor_sub_type = USB_CDC_ACM_TYPE,
+	.bm_capabilities = USB_CDC_CAP_LINE,
 };
 
 static struct usb_cdc_union_desc acm_union_desc = {
-	.bLength = sizeof(acm_union_desc),
-	.bDescriptorType = USB_DT_CS_INTERFACE,
-	.bDescriptorSubType = USB_CDC_UNION_TYPE,
-	.bMasterInterface0 = 0,
-	.bSlaveInterface0 = 1,
+	.b_length = sizeof(acm_union_desc),
+	.b_descriptor_type = USB_DT_CS_INTERFACE,
+	.b_descriptor_sub_type = USB_CDC_UNION_TYPE,
+	.b_master_interface0 = 0,
+	.b_slave_interface0 = 1,
 };
 
 /* full speed support: */
 
-static struct CH9_UsbEndpointDescriptor acm_fs_notify_desc = {
-	.bLength = USB_DT_ENDPOINT_SIZE,
-	.bDescriptorType = CH9_USB_DT_ENDPOINT,
-	.bEndpointAddress = BULK_EP_NOTIFY,
-	.bmAttributes = CH9_USB_EP_INTERRUPT,
-	.wMaxPacketSize = cpuToLe16(GS_NOTIFY_MAXPACKET),
-	.bInterval = 1 << GS_LOG2_NOTIFY_INTERVAL,
+static struct ch9_usb_endpoint_descriptor acm_fs_notify_desc = {
+	.b_length = USB_DT_ENDPOINT_SIZE,
+	.b_descriptor_type = CH9_USB_DT_ENDPOINT,
+	.b_endpoint_address = BULK_EP_NOTIFY,
+	.bm_attributes = CH9_USB_EP_INTERRUPT,
+	.w_max_packet_size = cpu_to_le16(GS_NOTIFY_MAXPACKET),
+	.b_interval = 1 << GS_LOG2_NOTIFY_INTERVAL,
 };
 
-static struct CH9_UsbEndpointDescriptor acm_fs_in_desc = {
-	.bLength = USB_DT_ENDPOINT_SIZE,
-	.bDescriptorType = CH9_USB_DT_ENDPOINT,
-	.bEndpointAddress = BULK_EP_IN,
-	.bmAttributes = CH9_USB_EP_BULK,
-	.wMaxPacketSize = cpuToLe16(64),
+static struct ch9_usb_endpoint_descriptor acm_fs_in_desc = {
+	.b_length = USB_DT_ENDPOINT_SIZE,
+	.b_descriptor_type = CH9_USB_DT_ENDPOINT,
+	.b_endpoint_address = BULK_EP_IN,
+	.bm_attributes = CH9_USB_EP_BULK,
+	.w_max_packet_size = cpu_to_le16(64),
 };
 
-static struct CH9_UsbEndpointDescriptor acm_fs_out_desc = {
-	.bLength = USB_DT_ENDPOINT_SIZE,
-	.bDescriptorType = CH9_USB_DT_ENDPOINT,
-	.bEndpointAddress = BULK_EP_OUT,
-	.bmAttributes = CH9_USB_EP_BULK,
-	.wMaxPacketSize = cpuToLe16(64),
+static struct ch9_usb_endpoint_descriptor acm_fs_out_desc = {
+	.b_length = USB_DT_ENDPOINT_SIZE,
+	.b_descriptor_type = CH9_USB_DT_ENDPOINT,
+	.b_endpoint_address = BULK_EP_OUT,
+	.bm_attributes = CH9_USB_EP_BULK,
+	.w_max_packet_size = cpu_to_le16(64),
 };
 
-static void *descriptorsFs[] = {
+static void *descriptors_fs[] = {
 	//&acm_iad_descriptor,
 	&acm_control_interface_desc,
 	&acm_header_desc,
@@ -307,32 +309,32 @@ static void *descriptorsFs[] = {
 };
 
 /* high speed support: */
-static struct CH9_UsbEndpointDescriptor acm_hs_notify_desc = {
-	.bLength = USB_DT_ENDPOINT_SIZE,
-	.bDescriptorType = CH9_USB_DT_ENDPOINT,
-	.bEndpointAddress = BULK_EP_NOTIFY,
-	.bmAttributes = CH9_USB_EP_INTERRUPT,
-	.wMaxPacketSize = cpuToLe16(GS_NOTIFY_MAXPACKET),
-	.bInterval = GS_LOG2_NOTIFY_INTERVAL + 4,
+static struct ch9_usb_endpoint_descriptor acm_hs_notify_desc = {
+	.b_length = USB_DT_ENDPOINT_SIZE,
+	.b_descriptor_type = CH9_USB_DT_ENDPOINT,
+	.b_endpoint_address = BULK_EP_NOTIFY,
+	.bm_attributes = CH9_USB_EP_INTERRUPT,
+	.w_max_packet_size = cpu_to_le16(GS_NOTIFY_MAXPACKET),
+	.b_interval = GS_LOG2_NOTIFY_INTERVAL + 4,
 };
 
-static struct CH9_UsbEndpointDescriptor acm_hs_in_desc = {
-	.bLength = USB_DT_ENDPOINT_SIZE,
-	.bDescriptorType = CH9_USB_DT_ENDPOINT,
-	.bEndpointAddress = BULK_EP_IN,
-	.bmAttributes = CH9_USB_EP_BULK,
-	.wMaxPacketSize = cpuToLe16(512),
+static struct ch9_usb_endpoint_descriptor acm_hs_in_desc = {
+	.b_length = USB_DT_ENDPOINT_SIZE,
+	.b_descriptor_type = CH9_USB_DT_ENDPOINT,
+	.b_endpoint_address = BULK_EP_IN,
+	.bm_attributes = CH9_USB_EP_BULK,
+	.w_max_packet_size = cpu_to_le16(512),
 };
 
-static struct CH9_UsbEndpointDescriptor acm_hs_out_desc = {
-	.bLength = USB_DT_ENDPOINT_SIZE,
-	.bDescriptorType = CH9_USB_DT_ENDPOINT,
-	.bEndpointAddress = BULK_EP_OUT,
-	.bmAttributes = CH9_USB_EP_BULK,
-	.wMaxPacketSize = cpuToLe16(512),
+static struct ch9_usb_endpoint_descriptor acm_hs_out_desc = {
+	.b_length = USB_DT_ENDPOINT_SIZE,
+	.b_descriptor_type = CH9_USB_DT_ENDPOINT,
+	.b_endpoint_address = BULK_EP_OUT,
+	.bm_attributes = CH9_USB_EP_BULK,
+	.w_max_packet_size = cpu_to_le16(512),
 };
 
-static void *descriptorsHs[] = {
+static void *descriptors_hs[] = {
 	//&acm_iad_descriptor,
 	&acm_control_interface_desc,
 	&acm_header_desc,
@@ -353,36 +355,36 @@ static void *descriptorsHs[] = {
 #define ACM_IAD_IDX 2
 
 // language descriptor for english
-static uint8_t languageDesc[] = { 4, CH9_USB_DT_STRING, 0x09, 0x04 };
+static uint8_t language_desc[] = { 4, CH9_USB_DT_STRING, 0x09, 0x04 };
 
-static CH9_UsbConfigurationDescriptor ConfDesc = {
-	.bLength = CH9_USB_DS_CONFIGURATION,
-	.bDescriptorType = CH9_USB_DT_CONFIGURATION,
-	.wTotalLength = 0x0000, // will be filed in get_descriptor request
-	.bNumInterfaces = 2,
-	.bConfigurationValue = 1,
-	.iConfiguration = 0,
-	.bmAttributes = CH9_USB_CONFIG_RESERVED | CH9_USB_CONFIG_BUS_POWERED,
-	.bMaxPower = 0xFA
+static ch9_usb_configuration_descriptor conf_desc = {
+	.b_length = CH9_USB_DS_CONFIGURATION,
+	.b_descriptor_type = CH9_USB_DT_CONFIGURATION,
+	.w_total_length = 0x0000, // will be filed in get_descriptor request
+	.b_num_interfaces = 2,
+	.b_configuration_value = 1,
+	.i_configuration = 0,
+	.bm_attributes = CH9_USB_CONFIG_RESERVED | CH9_USB_CONFIG_BUS_POWERED,
+	.b_max_power = 0xFA
 };
 
 //-------------- BOS descriptor set start --------------------------------------
 
-static CH9_UsbBosDescriptor bosDesc = {
+static ch9_usb_bos_descriptor bos_desc = {
 	CH9_USB_DS_BOS, CH9_USB_DT_BOS,
-	cpuToLe16(CH9_USB_DS_BOS + CH9_USB_DS_DEVICE_CAPABILITY_20), 1
+	cpu_to_le16(CH9_USB_DS_BOS + CH9_USB_DS_DEVICE_CAPABILITY_20), 1
 };
 
-static CH9_UsbCapabilityDescriptor capabilityExtDesc = {
+static ch9_usb_capability_descriptor capability_ext_desc = {
 	CH9_USB_DS_DEVICE_CAPABILITY_20, CH9_USB_DT_DEVICE_CAPABILITY,
-	CH9_USB_DCT_USB20_EXTENSION, cpuToLe32(CH9_USB_USB20_EXT_LPM_SUPPORT)
+	CH9_USB_DCT_USB20_EXTENSION, cpu_to_le32(CH9_USB_USB20_EXT_LPM_SUPPORT)
 };
 //-------------- BOS descriptor set end ----------------------------------------
 
-static CH9_UsbDeviceQualifierDescriptor qualifierDesc = {
+static ch9_usb_device_qualifier_descriptor qualifier_desc = {
 	CH9_USB_DS_DEVICE_QUALIFIER,
 	CH9_USB_DT_DEVICE_QUALIFIER,
-	cpuToLe16(0x0200),
+	cpu_to_le16(0x0200),
 	0x00,
 	0x00,
 	0x00,

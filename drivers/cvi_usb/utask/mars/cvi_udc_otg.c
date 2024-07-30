@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * drivers/usb/gadget/cvi_udc_otg.c
  * Designware CVI on-chip full/high speed USB OTG 2.0 device controllers
@@ -14,8 +15,6 @@
  * Ported to u-boot:
  * Marek Szyprowski <m.szyprowski@samsung.com>
  * Lukasz Majewski <l.majewski@samsumg.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
 #include <linux/errno.h>
@@ -50,7 +49,7 @@ static const char driver_name[] = "cvi-udc";
  */
 
 static int cvi_ep_enable(struct usb_ep *ep,
-			  const CH9_UsbEndpointDescriptor *);
+			 const ch9_usb_endpoint_descriptor *);
 static int cvi_ep_disable(struct usb_ep *ep);
 static struct usb_request *cvi_alloc_request(struct usb_ep *ep);
 static void cvi_free_request(struct usb_ep *ep, struct usb_request *);
@@ -72,18 +71,18 @@ static int _cvi_ep_disable(struct cvi_ep *ep);
 #define CVI_LOG_ENTRY_NUM	1024
 
 struct cvi_log_s {
-	uint32_t time;
-	uint32_t tag;
-	uint32_t param1;
-	uint32_t param2;
-	uint32_t param3;
-	uint32_t param4;
+	u32 time;
+	u32 tag;
+	u32 param1;
+	u32 param2;
+	u32 param3;
+	u32 param4;
 };
 
 static unsigned int log_idx;
 static struct cvi_log_s cvi_log[CVI_LOG_ENTRY_NUM];
 
-void cvi_log_write(uint32_t tag, uint32_t param1, uint32_t param2, uint32_t param3, uint32_t param4)
+void cvi_log_write(u32 tag, u32 param1, u32 param2, u32 param3, u32 param4)
 {
 	//if (log_idx == CVI_LOG_ENTRY_NUM)
 	//	return;
@@ -102,7 +101,7 @@ void cvi_log_write(uint32_t tag, uint32_t param1, uint32_t param2, uint32_t para
 void set_trigger_cnt(int cnt)
 {
 	static int test_reset;
-	uint32_t *test_ptr = (uint32_t *)0x85000000;
+	u32 *test_ptr = (u32 *)0x85000000;
 
 	if (test_reset == cnt)
 		*test_ptr = 0xAAA;
@@ -111,7 +110,7 @@ void set_trigger_cnt(int cnt)
 
 #else
 
-void cvi_log_write(uint32_t tag, uint32_t param1, uint32_t param2, uint32_t param3, uint32_t param4)
+void cvi_log_write(u32 tag, u32 param1, u32 param2, u32 param3, u32 param4)
 {
 }
 
@@ -217,8 +216,8 @@ static int udc_enable(struct cvi_udc *dev)
 	cvi_reconfig_usbd(dev, 0);
 
 	cvidbg_cond(DEBUG_SETUP != 0,
-		     "CVI USB 2.0 OTG Controller Core Initialized : 0x%x\n",
-		     cvi_uncached_read32(&reg->gintmsk));
+		    "CVI USB 2.0 OTG Controller Core Initialized : 0x%x\n",
+		    cvi_uncached_read32(&reg->gintmsk));
 
 	dev->gadget.speed = CH9_USB_SPEED_UNKNOWN;
 
@@ -258,8 +257,8 @@ int cviusb_gadget_register_driver(struct usb_gadget_driver *driver)
 	retval = driver->bind(&dev->gadget);
 	if (retval) {
 		cvidbg_cond(DEBUG_SETUP != 0,
-			     "%s: bind to driver --> error %d\n",
-			     dev->gadget.name, retval);
+			    "%s: bind to driver --> error %d\n",
+			    dev->gadget.name, retval);
 		dev->driver = 0;
 		return retval;
 	}
@@ -268,7 +267,7 @@ int cviusb_gadget_register_driver(struct usb_gadget_driver *driver)
 	enable_irq(USB_IRQS_0);
 #endif
 	cvidbg_cond(DEBUG_SETUP != 0,
-		     "Registered gadget driver %s\n", dev->gadget.name);
+		    "Registered gadget driver %s\n", dev->gadget.name);
 	udc_enable(dev);
 
 	return 0;
@@ -306,8 +305,8 @@ void cvi_done(struct cvi_ep *ep, struct cvi_request *req, int status)
 {
 	unsigned int stopped = ep->stopped;
 
-	cvidbg("%s: %s %p, req = %p, stopped = %d\n",
-		__func__, ep->ep.name, ep, &req->req, stopped);
+	cvidbg("%s: %s %p, req = %p, stopped = %d\n", __func__,
+	       ep->ep.name, ep, &req->req, stopped);
 
 	list_del_init(&req->queue);
 
@@ -317,9 +316,8 @@ void cvi_done(struct cvi_ep *ep, struct cvi_request *req, int status)
 		status = req->req.status;
 
 	if (status && status != -ESHUTDOWN) {
-		cvidbg("complete %s req %p stat %d len %u/%u\n",
-			ep->ep.name, &req->req, status,
-			req->req.actual, req->req.length);
+		cvidbg("complete %s req %p stat %d len %u/%u\n", ep->ep.name,
+		       &req->req, status, req->req.actual, req->req.length);
 	}
 
 	/* don't modify queue heads during completion callback */
@@ -334,7 +332,7 @@ void cvi_done(struct cvi_ep *ep, struct cvi_request *req, int status)
 		if (len > 64)
 			len = 64;
 		for (i = 0; i < len; i++) {
-			printf("%02x", ((uint8_t *)req->req.buf)[i]);
+			printf("%02x", ((u8 *)req->req.buf)[i]);
 			if ((i & 7) == 7)
 				printf(" ");
 		}
@@ -383,9 +381,8 @@ static void stop_activity(struct cvi_udc *dev,
 	}
 
 	/* report disconnect; the driver is already quiesced */
-	if (driver) {
+	if (driver)
 		driver->disconnect(&dev->gadget);
-	}
 
 	/* re-init driver-visible data structures */
 	udc_reinit(dev);
@@ -393,9 +390,9 @@ static void stop_activity(struct cvi_udc *dev,
 
 static void cvi_hsotg_init_fifo(struct cvi_udc *dev)
 {
-	uint32_t rx_fifo_sz, tx_fifo_sz, np_tx_fifo_sz;
+	u32 rx_fifo_sz, tx_fifo_sz, np_tx_fifo_sz;
 	int timeout, i;
-	uint32_t val;
+	u32 val;
 
 	if (cvi_hsotg_wait_bit_set(&reg->grstctl, AHBIDLE, 10000))
 		printf("%s:  HANG! AHB Idle GRSCTL\n", __func__);
@@ -409,8 +406,7 @@ static void cvi_hsotg_init_fifo(struct cvi_udc *dev)
 	cvi_uncached_write32(rx_fifo_sz, &reg->grxfsiz);
 
 	/* Set Non Periodic Tx FIFO Size (TXFIFO[0]) */
-	cvi_uncached_write32((np_tx_fifo_sz << 16) | rx_fifo_sz,
-			      &reg->gnptxfsiz);
+	cvi_uncached_write32((np_tx_fifo_sz << 16) | rx_fifo_sz, &reg->gnptxfsiz);
 
 	for (i = 1; i < CVI_MAX_ENDPOINTS; i++)
 		cvi_uncached_write32((rx_fifo_sz + np_tx_fifo_sz + tx_fifo_sz * (i - 1)) |
@@ -471,9 +467,9 @@ static void cvi_hsotg_txfifo_flush(struct cvi_udc *dev, unsigned int idx)
 
 static void kill_all_requests(struct cvi_udc *dev, struct cvi_ep *ep, int result)
 {
-	uint32_t ep_num = ep_index(ep);
-	uint32_t size_max = (ep_num == 0) ? (NPTX_FIFO_SIZE * 4) : (PTX_FIFO_SIZE * 4);
-	uint32_t size;
+	u32 ep_num = ep_index(ep);
+	u32 size_max = (ep_num == 0) ? (NPTX_FIFO_SIZE * 4) : (PTX_FIFO_SIZE * 4);
+	u32 size;
 
 	cvidbg("%s: %p\n", __func__, ep);
 
@@ -483,7 +479,6 @@ static void kill_all_requests(struct cvi_udc *dev, struct cvi_ep *ep, int result
 	size = (cvi_uncached_read32(&reg->in_endp[ep_num].dtxfsts) & 0xFFFF) * 4;
 	if (size < size_max)
 		cvi_hsotg_txfifo_flush(dev, ep->fifo_num);
-
 }
 
 void cvi_disconnect(struct cvi_udc *dev)
@@ -498,22 +493,20 @@ void cvi_disconnect(struct cvi_udc *dev)
 	for (i = 1; i < CVI_MAX_ENDPOINTS; i++) {
 		struct cvi_ep *ep = &dev->ep[i];
 
-		if (ep->ep.name) {
+		if (ep->ep.name)
 			kill_all_requests(dev, ep, -ESHUTDOWN);
-		}
 	}
 
 	/* HACK to let gadget detect disconnected state */
-	if (dev->driver->disconnect) {
+	if (dev->driver->disconnect)
 		dev->driver->disconnect(&dev->gadget);
-	}
 }
 
 void cvi_reconfig_usbd(struct cvi_udc *dev, int is_usb_reset)
 {
 	/* 2. Soft-reset OTG Core and then unreset again. */
 	unsigned int val;
-	uint32_t dflt_gusbcfg;
+	u32 dflt_gusbcfg;
 	struct cvi_plat_otg_data *pdata = (struct cvi_plat_otg_data *)dev->pdata;
 	struct cvi_ep *ep = &dev->ep[0];
 
@@ -522,9 +515,9 @@ void cvi_reconfig_usbd(struct cvi_udc *dev, int is_usb_reset)
 	kill_all_requests(dev, ep, -ECONNRESET);
 	udc_reinit(dev);
 	if (!is_usb_reset) {
-		uint32_t greset;
+		u32 greset;
 		int count = 0;
-		uint32_t snpsid = cvi_uncached_read32(&reg->gsnpsid) & CVI_CORE_REV_MASK;
+		u32 snpsid = cvi_uncached_read32(&reg->gsnpsid) & CVI_CORE_REV_MASK;
 
 		/* check snpsid */
 		if (snpsid < (CVI_CORE_REV_4_20a & CVI_CORE_REV_MASK)) {
@@ -545,8 +538,7 @@ void cvi_reconfig_usbd(struct cvi_udc *dev, int is_usb_reset)
 				udelay(1);
 				greset = cvi_uncached_read32(&reg->grstctl);
 				if (++count > 50) {
-					printf("%s() HANG! Soft 4.2 Reset GRSTCTL=%0x\n",
-						__func__, greset);
+					printf("%s() HANG! Soft 4.2 Reset GRSTCTL=%0x\n", __func__, greset);
 					return;
 				}
 			} while (!(greset & CSFTRST_DONE));
@@ -562,8 +554,7 @@ void cvi_reconfig_usbd(struct cvi_udc *dev, int is_usb_reset)
 			udelay(1);
 			greset = cvi_uncached_read32(&reg->grstctl);
 			if (++count > 50) {
-				printf("%s() HANG! AHB Idle GRSTCTL=%0x\n",
-					__func__, greset);
+				printf("%s() HANG! AHB Idle GRSTCTL=%0x\n", __func__, greset);
 				return;
 			}
 		} while (!(greset & AHB_MASTER_IDLE));
@@ -661,7 +652,7 @@ void cvi_reconfig_usbd(struct cvi_udc *dev, int is_usb_reset)
 static void cvi_usbd_init(struct cvi_udc *dev)
 {
 	unsigned int temp;
-	uint32_t dflt_gusbcfg;
+	u32 dflt_gusbcfg;
 	struct cvi_plat_otg_data *pdata = (struct cvi_plat_otg_data *)dev->pdata;
 
 	cvidbg("Init OTG controller\n");
@@ -702,7 +693,7 @@ static void cvi_usbd_init(struct cvi_udc *dev)
 }
 
 static int cvi_ep_enable(struct usb_ep *_ep,
-			  const CH9_UsbEndpointDescriptor *desc)
+			 const ch9_usb_endpoint_descriptor *desc)
 {
 	struct cvi_ep *ep;
 	struct cvi_udc *dev;
@@ -711,35 +702,31 @@ static int cvi_ep_enable(struct usb_ep *_ep,
 
 	ep = container_of(_ep, struct cvi_ep, ep);
 	if (!_ep || !desc || ep->desc || _ep->name == ep0name ||
-	    desc->bDescriptorType != CH9_USB_DT_ENDPOINT ||
-	    ep->bEndpointAddress != desc->bEndpointAddress ||
-	    ep_maxpacket(ep) < le16ToCpu(desc->wMaxPacketSize)) {
-
+	    desc->b_descriptor_type != CH9_USB_DT_ENDPOINT ||
+	    ep->b_endpoint_address != desc->b_endpoint_address ||
+	    ep_maxpacket(ep) < swap_le16_to_cpu(desc->w_max_packet_size)) {
 		cvidbg("%s: bad ep or descriptor\n", __func__);
 		return -EINVAL;
 	}
 
 	/* xfer types must match, except that interrupt ~= bulk */
-	if (ep->bmAttributes != desc->bmAttributes &&
-	    ep->bmAttributes != CH9_USB_EP_BULK &&
-	    desc->bmAttributes != CH9_USB_EP_INTERRUPT) {
-
+	if (ep->bm_attributes != desc->bm_attributes &&
+	    ep->bm_attributes != CH9_USB_EP_BULK &&
+	    desc->bm_attributes != CH9_USB_EP_INTERRUPT) {
 		cvidbg("%s: %s type mismatch\n", __func__, _ep->name);
 		return -EINVAL;
 	}
 
 	/* hardware _could_ do smaller, but driver doesn't */
-	if ((desc->bmAttributes == CH9_USB_EP_BULK &&
-	     le16ToCpu(desc->wMaxPacketSize) >
-	     ep_maxpacket(ep)) || !desc->wMaxPacketSize) {
-
+	if ((desc->bm_attributes == CH9_USB_EP_BULK &&
+	     swap_le16_to_cpu(desc->w_max_packet_size) >
+	     ep_maxpacket(ep)) || !desc->w_max_packet_size) {
 		cvidbg("%s: bad %s maxpacket\n", __func__, _ep->name);
 		return -ERANGE;
 	}
 
 	dev = ep->dev;
 	if (!dev->driver || dev->gadget.speed == CH9_USB_SPEED_UNKNOWN) {
-
 		cvidbg("%s: bogus device state\n", __func__);
 		return -ESHUTDOWN;
 	}
@@ -748,7 +735,7 @@ static int cvi_ep_enable(struct usb_ep *_ep,
 	ep->ep.desc = desc;
 	ep->desc = desc;
 	ep->pio_irqs = 0;
-	ep->ep.maxpacket = le16ToCpu(desc->wMaxPacketSize);
+	ep->ep.maxpacket = swap_le16_to_cpu(desc->w_max_packet_size);
 
 	/* Reset halt state */
 	cvi_udc_set_nak(ep);
@@ -756,25 +743,25 @@ static int cvi_ep_enable(struct usb_ep *_ep,
 
 	cvi_udc_ep_activate(ep);
 
-	cvidbg("%s: enabled %s, stopped = %d, maxpacket = %d\n",
-		__func__, _ep->name, ep->stopped, ep->ep.maxpacket);
+	cvidbg("%s: enabled %s, stopped = %d, maxpacket = %d\n", __func__,
+	       _ep->name, ep->stopped, ep->ep.maxpacket);
 
 	return 0;
 }
 
-void cvi_hsotg_set_bit(uint32_t *reg, uint32_t val)
+void cvi_hsotg_set_bit(u32 *reg, u32 val)
 {
 	cvi_uncached_write32(cvi_uncached_read32(reg) | val, reg);
 }
 
-void cvi_hsotg_clear_bit(uint32_t *reg, uint32_t val)
+void cvi_hsotg_clear_bit(u32 *reg, u32 val)
 {
 	cvi_uncached_write32(cvi_uncached_read32(reg) & ~val, reg);
 }
 
-int cvi_hsotg_wait_bit_set(uint32_t *reg, uint32_t bit, uint32_t timeout)
+int cvi_hsotg_wait_bit_set(u32 *reg, u32 bit, u32 timeout)
 {
-	uint32_t i;
+	u32 i;
 
 	for (i = 0; i < timeout; i++) {
 		if (cvi_uncached_read32(reg) & bit)
@@ -787,8 +774,8 @@ int cvi_hsotg_wait_bit_set(uint32_t *reg, uint32_t bit, uint32_t timeout)
 
 static void cvi_ep_stop_xfer(struct cvi_udc *dev, struct cvi_ep *ep)
 {
-	uint32_t ep_num = ep_index(ep);
-	uint32_t *epctrl_reg, *epint_reg;
+	u32 ep_num = ep_index(ep);
+	u32 *epctrl_reg, *epint_reg;
 
 	epctrl_reg = ep_is_in(ep) ? &reg->in_endp[ep_num].diepctl :
 		     &reg->out_endp[ep_num].doepctl;
@@ -800,35 +787,31 @@ static void cvi_ep_stop_xfer(struct cvi_udc *dev, struct cvi_ep *ep)
 		if (cvi_hsotg_wait_bit_set(epint_reg, INEPNAKEFF, 100))
 			printf("%s: timeout DIEPINT.NAKEFF\n", __func__);
 	} else {
-		if (!(cvi_uncached_read32(&reg->gintsts) & INT_GOUTNakEff)) {
+		if (!(cvi_uncached_read32(&reg->gintsts) & int_gout_nak_eff))
 			cvi_hsotg_set_bit(&reg->dctl, SGOUTNAK);
-		}
 		/* Wait for global nak to take effect */
-		if (cvi_hsotg_wait_bit_set(&reg->gintsts, INT_GOUTNakEff, 100)) {
+		if (cvi_hsotg_wait_bit_set(&reg->gintsts, int_gout_nak_eff, 100))
 			printf("%s: timeout GINTSTS.GOUTNAKEFF\n", __func__);
-		}
 	}
 
 	/* disable ep */
 	cvi_hsotg_set_bit(epctrl_reg, DEPCTL_SNAK | DEPCTL_EPDIS);
 	/* Wait for ep to be disabled */
-	if (cvi_hsotg_wait_bit_set(epint_reg, EPDISBLD, 100)) {
+	if (cvi_hsotg_wait_bit_set(epint_reg, EPDISBLD, 100))
 		printf("%s: timeout DOEPCTL.EPDisable\n", __func__);
-	}
 	/* Clear EPDISBLD interrupt */
 	cvi_hsotg_set_bit(epint_reg, EPDISBLD);
-	if (ep_is_in(ep)) {
+	if (ep_is_in(ep))
 		cvi_hsotg_txfifo_flush(dev, ep->fifo_num);
-	} else {
+	else
 		cvi_hsotg_set_bit(&reg->dctl, CGOUTNAK);
-	}
 }
 
 static int _cvi_ep_disable(struct cvi_ep *ep)
 {
-	uint32_t ep_num = ep_index(ep);
-	uint32_t *epctrl_reg;
-	uint32_t ctrl;
+	u32 ep_num = ep_index(ep);
+	u32 *epctrl_reg;
+	u32 ctrl;
 
 	if (ep == &the_controller->ep[0]) {
 		printf("%s: call for ep0-out\n", __func__);
@@ -866,7 +849,7 @@ static int cvi_ep_disable(struct usb_ep *_ep)
 
 	if (!_ep || !ep->desc) {
 		cvidbg("%s: %s not enabled\n", __func__,
-			_ep ? ep->ep.name : NULL);
+		       _ep ? ep->ep.name : NULL);
 		return -EINVAL;
 	}
 
@@ -926,9 +909,8 @@ static int cvi_dequeue(struct usb_ep *_ep, struct usb_request *_req)
 		if (&req->req == _req)
 			break;
 	}
-	if (&req->req != _req) {
+	if (&req->req != _req)
 		return -EINVAL;
-	}
 
 	cvi_done(ep, req, -ECONNRESET);
 
@@ -1004,7 +986,7 @@ static const struct usb_gadget_ops cvi_udc_ops = {
 	.wakeup = wakeup,
 };
 
-uint8_t cvi_phy_to_log_ep(uint8_t phy_num, uint8_t dir)
+u8 cvi_phy_to_log_ep(u8 phy_num, u8 dir)
 {
 	return (phy_num) ? ((phy_num << 1) - (!!dir)) : 0;
 }
@@ -1050,37 +1032,37 @@ int cvi_udc_probe(struct cvi_plat_otg_data *pdata)
 	dev->ep[0].ep.ops = &cvi_ep_ops;
 	dev->ep[0].ep.maxpacket = EP0_FIFO_SIZE;
 	dev->ep[0].dev = dev;
-	dev->ep[0].bEndpointAddress = 0;
-	dev->ep[0].bmAttributes = 0;
+	dev->ep[0].b_endpoint_address = 0;
+	dev->ep[0].bm_attributes = 0;
 	dev->ep[0].ep_type = ep_control;
 	dev->ep[1].ep.name = ep1name;
 	dev->ep[1].ep.ops = &cvi_ep_ops;
 	dev->ep[1].ep.maxpacket = EP_FIFO_SIZE;
 	dev->ep[1].dev = dev;
-	dev->ep[1].bEndpointAddress = USB_DIR_IN | 1;
-	dev->ep[1].bmAttributes = CH9_USB_EP_BULK;
+	dev->ep[1].b_endpoint_address = USB_DIR_IN | 1;
+	dev->ep[1].bm_attributes = CH9_USB_EP_BULK;
 	dev->ep[1].ep_type = ep_bulk_out;
 	dev->ep[1].fifo_num = 1;
 	dev->ep[2].ep.name = ep2name;
 	dev->ep[2].ep.ops = &cvi_ep_ops;
 	dev->ep[2].ep.maxpacket = EP_FIFO_SIZE;
 	dev->ep[2].dev = dev;
-	dev->ep[2].bEndpointAddress = USB_DIR_OUT | 1;
-	dev->ep[2].bmAttributes = CH9_USB_EP_BULK;
+	dev->ep[2].b_endpoint_address = USB_DIR_OUT | 1;
+	dev->ep[2].bm_attributes = CH9_USB_EP_BULK;
 	dev->ep[2].ep_type = ep_bulk_in;
 	dev->ep[2].fifo_num = 1;
 	dev->ep[3].ep.name = ep3name;
 	dev->ep[3].ep.ops = &cvi_ep_ops;
 	dev->ep[3].ep.maxpacket = EP_FIFO_SIZE;
 	dev->ep[3].dev = dev;
-	dev->ep[3].bEndpointAddress = USB_DIR_IN | 2;
-	dev->ep[3].bmAttributes = CH9_USB_EP_INTERRUPT;
+	dev->ep[3].b_endpoint_address = USB_DIR_IN | 2;
+	dev->ep[3].bm_attributes = CH9_USB_EP_INTERRUPT;
 	dev->ep[3].ep_type = ep_interrupt;
 	dev->ep[3].fifo_num = 2;
 
 	the_controller = dev;
 
-	dev->usb_ctrl = (CH9_UsbSetup *)pdata->ctrl_req;
+	dev->usb_ctrl = (ch9_usb_setup *)pdata->ctrl_req;
 	if (!dev->usb_ctrl) {
 		printf("No memory available for UDC!\n");
 		return -ENOMEM;
@@ -1096,12 +1078,12 @@ int cvi_udc_probe(struct cvi_plat_otg_data *pdata)
 
 int cviusb_gadget_handle_interrupts(int index)
 {
-	uint32_t intr_status = cvi_uncached_read32(&reg->gintsts);
-	uint32_t gintmsk = cvi_uncached_read32(&reg->gintmsk);
+	u32 intr_status = cvi_uncached_read32(&reg->gintsts);
+	u32 gintmsk = cvi_uncached_read32(&reg->gintmsk);
 
 #ifdef DEBUG
 	{
-		static uint32_t print_cnt = 0xFFFF;
+		static u32 print_cnt = 0xFFFF;
 
 		if (print_cnt) {
 			print_cnt--;

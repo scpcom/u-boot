@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * drivers/usb/gadget/cvi_udc_otg_xfer_dma.c
  * Designware CVI on-chip full/high speed USB OTG 2.0 device controllers
@@ -14,8 +15,6 @@
  * Ported to u-boot:
  * Marek Szyprowski <m.szyprowski@samsung.com>
  * Lukasz Majewski <l.majewski@samsumg.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
 #include <linux/errno.h>
@@ -53,7 +52,7 @@ static char *state_names[] = {
 #define GET_MAX_LUN_REQUEST	0xFE
 #define BOT_RESET_REQUEST	0xFF
 
-static void set_max_pktsize(struct cvi_udc *dev, CH9_UsbSpeed speed)
+static void set_max_pktsize(struct cvi_udc *dev, ch9_usb_speed speed)
 {
 	unsigned int ep_ctrl;
 	struct cvi_usbotg_reg *reg = dev->reg;
@@ -113,7 +112,7 @@ void cvi_udc_pre_setup(struct cvi_udc *dev)
 	cvidbg_cond(DEBUG_SETUP,
 		     "%s : Prepare Setup packets.\n", __func__);
 
-	cvi_uncached_write32(DOEPT_SIZ_SUS_CNT(1) | DOEPT_SIZ_PKT_CNT(1) | sizeof(CH9_UsbSetup),
+	cvi_uncached_write32(DOEPT_SIZ_SUS_CNT(1) | DOEPT_SIZ_PKT_CNT(1) | sizeof(ch9_usb_setup),
 			      &reg->out_endp[EP0_CON].doeptsiz);
 	cvi_uncached_write32(dev->usb_ctrl_dma_addr, &reg->out_endp[EP0_CON].doepdma);
 
@@ -146,7 +145,7 @@ static inline void cvi_ep0_complete_out(struct cvi_udc *dev)
 
 	//cvidbg_cond(1,
 	//	   "CO\n");
-	cvi_uncached_write32(DOEPT_SIZ_PKT_CNT(1) | sizeof(CH9_UsbSetup),
+	cvi_uncached_write32(DOEPT_SIZ_PKT_CNT(1) | sizeof(ch9_usb_setup),
 			      &reg->out_endp[EP0_CON].doeptsiz);
 	cvi_uncached_write32(dev->usb_ctrl_dma_addr, &reg->out_endp[EP0_CON].doepdma);
 
@@ -160,7 +159,7 @@ static inline void cvi_ep0_complete_out(struct cvi_udc *dev)
 		     __func__, cvi_uncached_read32(&reg->in_endp[EP0_CON].diepctl));
 	cvidbg_cond(DEBUG_EP0 != 0, "%s:EP0 ZLP DOEPCTL0 = 0x%x\n",
 		     __func__, cvi_uncached_read32(&reg->out_endp[EP0_CON].doepctl));
-	cvi_log_write(0x88888, ep_ctrl, dev->usb_ctrl_dma_addr, DOEPT_SIZ_PKT_CNT(1) | sizeof(CH9_UsbSetup), 0);
+	cvi_log_write(0x88888, ep_ctrl, dev->usb_ctrl_dma_addr, DOEPT_SIZ_PKT_CNT(1) | sizeof(ch9_usb_setup), 0);
 
 }
 
@@ -506,9 +505,8 @@ static void process_ep_in_intr(struct cvi_udc *dev)
 				complete_tx(dev, ep_num);
 
 				if (ep_num == 0) {
-					if (dev->test_mode) {
+					if (dev->test_mode)
 						cvi_set_test_mode(dev, dev->test_mode);
-					}
 					if (dev->ep0state ==
 					    WAIT_FOR_IN_COMPLETE)
 						dev->ep0state = WAIT_FOR_SETUP;
@@ -603,9 +601,8 @@ int cvi_udc_irq(int irq, void *_dev)
 		     "DAINT : 0x%x, DAINTMSK : 0x%x\n",
 		     cvi_uncached_read32(&reg->daint), cvi_uncached_read32(&reg->daintmsk));
 
-	if (!intr_status) {
+	if (!intr_status)
 		return 0;
-	}
 
 	cvi_log_write(0xEFEF, intr_status, dev->ep0state,
 		       cvi_uncached_read32(&reg->daint), 0);
@@ -658,10 +655,8 @@ int cvi_udc_irq(int irq, void *_dev)
 		//cvi_hsotg_clear_bit(&reg->pcgcctl, PCGCTL_GATEHCLK);
 		//cvi_hsotg_clear_bit(&reg->pcgcctl, PCGCTL_STOPPCLK);
 
-		if (dev->gadget.speed != CH9_USB_SPEED_UNKNOWN && dev->driver && dev->driver->resume) {
-
+		if (dev->gadget.speed != CH9_USB_SPEED_UNKNOWN && dev->driver && dev->driver->resume)
 			dev->driver->resume(&dev->gadget);
-		}
 	}
 
 	if ((intr_status & INT_RESET) || (intr_status & INT_RESETDET)) {
@@ -936,8 +931,8 @@ void cvi_ep0_read(struct cvi_udc *dev)
 		cvi_udc_ep0_zlp(dev);
 
 		cvidbg_cond(DEBUG_EP0 != 0,
-			     "%s: req.length = 0, bRequest = %d\n",
-			     __func__, dev->usb_ctrl->bRequest);
+			     "%s: req.length = 0, b_request = %d\n",
+			     __func__, dev->usb_ctrl->b_request);
 		return;
 	}
 
@@ -984,17 +979,17 @@ int cvi_ep0_write(struct cvi_udc *dev)
 	return 1;
 }
 
-static int cvi_udc_get_status(struct cvi_udc *dev, CH9_UsbSetup *crq)
+static int cvi_udc_get_status(struct cvi_udc *dev, ch9_usb_setup *crq)
 {
-	uint8_t ep_num = cvi_phy_to_log_ep(crq->wIndex & 0x7F, !!(crq->wIndex & 0x80));
+	uint8_t ep_num = cvi_phy_to_log_ep(crq->w_index & 0x7F, !!(crq->w_index & 0x80));
 	uint16_t g_status = 0;
 	uint32_t ep_ctrl;
 	struct cvi_usbotg_reg *reg = dev->reg;
 
 	cvidbg_cond(DEBUG_SETUP != 0,
 		     "%s: *** USB_REQ_GET_STATUS\n", __func__);
-	printf("crq->brequest:0x%x\n", crq->bmRequestType & CH9_REQ_RECIPIENT_MASK);
-	switch (crq->bmRequestType & CH9_REQ_RECIPIENT_MASK) {
+	printf("crq->brequest:0x%x\n", crq->bm_request_type & CH9_REQ_RECIPIENT_MASK);
+	switch (crq->bm_request_type & CH9_REQ_RECIPIENT_MASK) {
 	case CH9_USB_REQ_RECIPIENT_INTERFACE:
 		g_status = 0;
 		cvidbg_cond(DEBUG_SETUP != 0,
@@ -1010,9 +1005,9 @@ static int cvi_udc_get_status(struct cvi_udc *dev, CH9_UsbSetup *crq)
 		break;
 
 	case CH9_USB_REQ_RECIPIENT_ENDPOINT:
-		if (crq->wLength > 2) {
+		if (crq->w_length > 2) {
 			cvidbg_cond(DEBUG_SETUP != 0,
-				     "\tGET_STATUS:Not support EP or wLength\n");
+				     "\tGET_STATUS:Not support EP or w_length\n");
 			return 1;
 		}
 
@@ -1123,9 +1118,8 @@ static void cvi_udc_ep_clear_stall(struct cvi_ep *ep)
 		 * ClearFeature(ENDPOINT_HALT) request always results in the
 		 * data toggle being reinitialized to DATA0.
 		 */
-		if (ep->bmAttributes == CH9_USB_EP_INTERRUPT || ep->bmAttributes == CH9_USB_EP_BULK) {
+		if (ep->bm_attributes == CH9_USB_EP_INTERRUPT || ep->bm_attributes == CH9_USB_EP_BULK)
 			ep_ctrl |= DEPCTL_SETD0PID; /* DATA0 */
-		}
 
 		cvi_uncached_write32(ep_ctrl, &reg->in_endp[ep_num].diepctl);
 		cvidbg("%s: cleared stall, DIEPCTL%d = 0x%x\n",
@@ -1137,9 +1131,8 @@ static void cvi_udc_ep_clear_stall(struct cvi_ep *ep)
 		/* clear stall bit */
 		ep_ctrl &= ~DEPCTL_STALL;
 
-		if (ep->bmAttributes == CH9_USB_EP_INTERRUPT || ep->bmAttributes == CH9_USB_EP_BULK) {
+		if (ep->bm_attributes == CH9_USB_EP_INTERRUPT || ep->bm_attributes == CH9_USB_EP_BULK)
 			ep_ctrl |= DEPCTL_SETD0PID; /* DATA0 */
-		}
 
 		cvi_uncached_write32(ep_ctrl, &reg->out_endp[ep_num].doepctl);
 		cvidbg("%s: cleared stall, DOEPCTL%d = 0x%x\n",
@@ -1157,7 +1150,7 @@ int cvi_udc_set_halt(struct usb_ep *_ep, int value)
 	ep_num = ep_index(ep);
 
 	if (!_ep || !ep->desc || ep_num == EP0_CON ||
-	    ep->desc->bmAttributes == CH9_USB_EP_ISOCHRONOUS) {
+	    ep->desc->bm_attributes == CH9_USB_EP_ISOCHRONOUS) {
 		cvidbg("%s: %s bad ep or descriptor\n", __func__, ep->ep.name);
 		return -EINVAL;
 	}
@@ -1215,7 +1208,7 @@ void cvi_udc_ep_activate(struct cvi_ep *ep)
 	 */
 	if (!(ep_ctrl & DEPCTL_USBACTEP)) {
 		ep_ctrl = (ep_ctrl & ~DEPCTL_TYPE_MASK) |
-			(ep->bmAttributes << DEPCTL_TYPE_BIT);
+			(ep->bm_attributes << DEPCTL_TYPE_BIT);
 		ep_ctrl = (ep_ctrl & ~DEPCTL_MPS_MASK) |
 			(ep->ep.maxpacket << DEPCTL_MPS_BIT);
 		ep_ctrl |= (DEPCTL_SETD0PID | DEPCTL_USBACTEP | DEPCTL_SNAK);
@@ -1244,7 +1237,7 @@ static int cvi_udc_clear_feature(struct usb_ep *_ep)
 	struct cvi_udc	*dev;
 	struct cvi_ep	*ep;
 	uint8_t		ep_num;
-	CH9_UsbSetup *usb_ctrl;
+	ch9_usb_setup *usb_ctrl;
 
 	ep = container_of(_ep, struct cvi_ep, ep);
 	ep_num = ep_index(ep);
@@ -1256,15 +1249,15 @@ static int cvi_udc_clear_feature(struct usb_ep *_ep)
 		     "%s: ep_num = %d, is_in = %d, clear_feature_flag = %d\n",
 		     __func__, ep_num, ep_is_in(ep), dev->clear_feature_flag);
 
-	if (usb_ctrl->wLength != 0) {
+	if (usb_ctrl->w_length != 0) {
 		cvidbg_cond(DEBUG_SETUP != 0,
-			     "\tCLEAR_FEATURE: wLength is not zero.....\n");
+			     "\tCLEAR_FEATURE: w_length is not zero.....\n");
 		return 1;
 	}
 
-	switch (usb_ctrl->bmRequestType & CH9_REQ_RECIPIENT_MASK) {
+	switch (usb_ctrl->bm_request_type & CH9_REQ_RECIPIENT_MASK) {
 	case CH9_USB_REQ_RECIPIENT_DEVICE:
-		switch (usb_ctrl->wValue) {
+		switch (usb_ctrl->w_value) {
 		case CH9_USB_FS_DEVICE_REMOTE_WAKEUP:
 			cvidbg_cond(DEBUG_SETUP != 0,
 				     "\tOFF:USB_DEVICE_REMOTE_WAKEUP\n");
@@ -1282,10 +1275,10 @@ static int cvi_udc_clear_feature(struct usb_ep *_ep)
 
 	case CH9_USB_REQ_RECIPIENT_ENDPOINT:
 		cvidbg_cond(DEBUG_SETUP != 0,
-			     "\tCLEAR_FEATURE:CH9_USB_REQ_RECIPIENT_ENDPOINT, wValue = %d\n",
-			     usb_ctrl->wValue);
+			     "\tCLEAR_FEATURE:CH9_USB_REQ_RECIPIENT_ENDPOINT, w_value = %d\n",
+			     usb_ctrl->w_value);
 
-		if (usb_ctrl->wValue == CH9_USB_FS_ENDPOINT_HALT) {
+		if (usb_ctrl->w_value == CH9_USB_FS_ENDPOINT_HALT) {
 			if (ep_num == 0) {
 				cvi_udc_ep0_set_stall(ep, 1);
 				return 0;
@@ -1311,7 +1304,7 @@ static int cvi_udc_set_feature(struct usb_ep *_ep)
 	struct cvi_udc	*dev;
 	struct cvi_ep	*ep;
 	uint8_t		ep_num;
-	CH9_UsbSetup *usb_ctrl;
+	ch9_usb_setup *usb_ctrl;
 
 	ep = container_of(_ep, struct cvi_ep, ep);
 	ep_num = ep_index(ep);
@@ -1322,15 +1315,15 @@ static int cvi_udc_set_feature(struct usb_ep *_ep)
 		     "%s: *** USB_REQ_SET_FEATURE , ep_num = %d\n",
 		      __func__, ep_num);
 
-	if (usb_ctrl->wLength != 0) {
+	if (usb_ctrl->w_length != 0) {
 		cvidbg_cond(DEBUG_SETUP != 0,
-			     "\tSET_FEATURE: wLength is not zero.....\n");
+			     "\tSET_FEATURE: w_length is not zero.....\n");
 		return 1;
 	}
 
-	switch (usb_ctrl->bmRequestType & CH9_REQ_RECIPIENT_MASK) {
+	switch (usb_ctrl->bm_request_type & CH9_REQ_RECIPIENT_MASK) {
 	case CH9_USB_REQ_RECIPIENT_DEVICE:
-		switch (usb_ctrl->wValue) {
+		switch (usb_ctrl->w_value) {
 		case CH9_USB_FS_DEVICE_REMOTE_WAKEUP:
 			cvidbg_cond(DEBUG_SETUP != 0,
 				     "\tSET_FEATURE:USB_DEVICE_REMOTE_WAKEUP\n");
@@ -1352,7 +1345,7 @@ static int cvi_udc_set_feature(struct usb_ep *_ep)
 				     "\tSET: USB_DEVICE_A_ALT_HNP_SUPPORT\n");
 			break;
 		case CH9_USB_FS_TEST_MODE:
-			dev->test_mode = usb_ctrl->wIndex >> 8;
+			dev->test_mode = usb_ctrl->w_index >> 8;
 			break;
 		}
 
@@ -1367,7 +1360,7 @@ static int cvi_udc_set_feature(struct usb_ep *_ep)
 	case CH9_USB_REQ_RECIPIENT_ENDPOINT:
 		cvidbg_cond(DEBUG_SETUP != 0,
 			     "\tSET_FEATURE: CH9_USB_REQ_RECIPIENT_ENDPOINT\n");
-		if (usb_ctrl->wValue == CH9_USB_FS_ENDPOINT_HALT) {
+		if (usb_ctrl->w_value == CH9_USB_FS_ENDPOINT_HALT) {
 			if (ep_num == 0) {
 				cvi_udc_ep0_set_stall(ep, 1);
 				return 0;
@@ -1391,7 +1384,7 @@ static void cvi_ep0_setup(struct cvi_udc *dev)
 	struct cvi_ep *ep = &dev->ep[0];
 	int i;
 	uint8_t ep_num;
-	CH9_UsbSetup *usb_ctrl = dev->usb_ctrl;
+	ch9_usb_setup *usb_ctrl = dev->usb_ctrl;
 	uint8_t three_stage = 0;
 
 	/* Nuke all previous transfers */
@@ -1401,13 +1394,13 @@ static void cvi_ep0_setup(struct cvi_udc *dev)
 	cvi_fifo_read(ep, (uintptr_t *)usb_ctrl, 8);
 
 	cvidbg_cond(DEBUG_SETUP != 0,
-		     "%s: bmRequestType = 0x%x(%s), bRequest = 0x%x, wLength = 0x%x, wValue = 0x%x, wIndex= 0x%x\n",
-		     __func__, usb_ctrl->bmRequestType,
-		     (usb_ctrl->bmRequestType & USB_DIR_IN) ? "IN" : "OUT",
-		     usb_ctrl->bRequest,
-		     usb_ctrl->wLength, usb_ctrl->wValue, usb_ctrl->wIndex);
+		     "%s: bm_request_type = 0x%x(%s), b_request = 0x%x, w_length = 0x%x, w_value = 0x%x, w_index= 0x%x\n",
+		     __func__, usb_ctrl->bm_request_type,
+		     (usb_ctrl->bm_request_type & USB_DIR_IN) ? "IN" : "OUT",
+		     usb_ctrl->b_request,
+		     usb_ctrl->w_length, usb_ctrl->w_value, usb_ctrl->w_index);
 
-	three_stage = usb_ctrl->wLength ? 1 : 0;
+	three_stage = usb_ctrl->w_length ? 1 : 0;
 #ifdef DEBUG
 	{
 		int i, len = sizeof(*usb_ctrl);
@@ -1424,39 +1417,38 @@ static void cvi_ep0_setup(struct cvi_udc *dev)
 #endif
 
 	/* Set direction of EP0 */
-	if (usb_ctrl->bmRequestType & USB_DIR_IN) {
-		ep->bEndpointAddress |= USB_DIR_IN;
-	} else {
-		ep->bEndpointAddress &= ~USB_DIR_IN;
-	}
+	if (usb_ctrl->bm_request_type & USB_DIR_IN)
+		ep->b_endpoint_address |= USB_DIR_IN;
+	else
+		ep->b_endpoint_address &= ~USB_DIR_IN;
 	/* cope with automagic for some standard requests. */
-	dev->req_std = (usb_ctrl->bmRequestType & CH9_USB_REQ_TYPE_MASK)
+	dev->req_std = (usb_ctrl->bm_request_type & CH9_USB_REQ_TYPE_MASK)
 		== CH9_USB_REQ_TYPE_STANDARD;
 
 	dev->req_pending = 1;
 
 	/* Handle some SETUP packets ourselves */
 	if (dev->req_std) {
-		switch (usb_ctrl->bRequest) {
+		switch (usb_ctrl->b_request) {
 		case CH9_USB_REQ_SET_ADDRESS:
-			cvi_log_write(0xBBBBB, 1, usb_ctrl->wValue, 0, 0);
+			cvi_log_write(0xBBBBB, 1, usb_ctrl->w_value, 0, 0);
 			cvidbg_cond(DEBUG_SETUP != 0,
 				     "%s: *** USB_REQ_SET_ADDRESS (%d)\n",
-				     __func__, usb_ctrl->wValue);
-			if (usb_ctrl->bmRequestType
+				     __func__, usb_ctrl->w_value);
+			if (usb_ctrl->bm_request_type
 				!= (CH9_USB_REQ_TYPE_STANDARD | CH9_USB_REQ_RECIPIENT_DEVICE))
 				break;
 
-			cvi_set_address(dev, usb_ctrl->wValue);
+			cvi_set_address(dev, usb_ctrl->w_value);
 			return;
 
 		case CH9_USB_REQ_SET_CONFIGURATION:
-			cvi_log_write(0xBBBBB, 2, usb_ctrl->wValue, 0, 0);
+			cvi_log_write(0xBBBBB, 2, usb_ctrl->w_value, 0, 0);
 			cvidbg_cond(DEBUG_SETUP != 0,
 				     "=====================================\n");
 			cvidbg_cond(DEBUG_SETUP != 0,
 				     "%s: USB_REQ_SET_CONFIGURATION (%d)\n",
-				     __func__, usb_ctrl->wValue);
+				     __func__, usb_ctrl->w_value);
 
 			break;
 
@@ -1471,7 +1463,7 @@ static void cvi_ep0_setup(struct cvi_udc *dev)
 			cvi_log_write(0xBBBBB, 4, 0, 0, 0);
 			cvidbg_cond(DEBUG_SETUP != 0,
 				     "%s: *** USB_REQ_SET_INTERFACE (%d)\n",
-				     __func__, usb_ctrl->wValue);
+				     __func__, usb_ctrl->w_value);
 
 			break;
 
@@ -1491,7 +1483,7 @@ static void cvi_ep0_setup(struct cvi_udc *dev)
 
 		case CH9_USB_REQ_CLEAR_FEATURE:
 			cvi_log_write(0xBBBBB, 7, 0, 0, 0);
-			ep_num = cvi_phy_to_log_ep(usb_ctrl->wIndex & 0x7F, !!(usb_ctrl->wIndex & 0x80));
+			ep_num = cvi_phy_to_log_ep(usb_ctrl->w_index & 0x7F, !!(usb_ctrl->w_index & 0x80));
 
 			if (!cvi_udc_clear_feature(&dev->ep[ep_num].ep))
 				return;
@@ -1500,7 +1492,7 @@ static void cvi_ep0_setup(struct cvi_udc *dev)
 
 		case CH9_USB_REQ_SET_FEATURE:
 			cvi_log_write(0xBBBBB, 8, 0, 0, 0);
-			ep_num = cvi_phy_to_log_ep(usb_ctrl->wIndex & 0x7F, !!(usb_ctrl->wIndex & 0x80));
+			ep_num = cvi_phy_to_log_ep(usb_ctrl->w_index & 0x7F, !!(usb_ctrl->w_index & 0x80));
 
 			if (!cvi_udc_set_feature(&dev->ep[ep_num].ep))
 				return;
@@ -1510,8 +1502,8 @@ static void cvi_ep0_setup(struct cvi_udc *dev)
 		default:
 			cvi_log_write(0xBBBBB, 9, 0, 0, 0);
 			cvidbg_cond(DEBUG_SETUP != 0,
-				     "%s: *** Default of usb_ctrl->bRequest=0x%x happened.\n",
-				     __func__, usb_ctrl->bRequest);
+				     "%s: *** Default of usb_ctrl->b_request=0x%x happened.\n",
+				     __func__, usb_ctrl->b_request);
 			break;
 		}
 	}
@@ -1527,14 +1519,14 @@ static void cvi_ep0_setup(struct cvi_udc *dev)
 		i = dev->driver->setup(&dev->gadget, usb_ctrl);
 
 		if (i < 0) {
-			uint32_t dir = (usb_ctrl->wLength == 0) ? 1 : ep_is_in(ep);
+			uint32_t dir = (usb_ctrl->w_length == 0) ? 1 : ep_is_in(ep);
 			/* setup processing failed, force stall */
 			cvi_udc_ep0_set_stall(ep, dir);
 			dev->ep0state = WAIT_FOR_SETUP;
 
 			cvidbg_cond(DEBUG_SETUP != 0,
-				     "\tdev->driver->setup failed (%d), bRequest = %d\n",
-				     i, usb_ctrl->bRequest);
+				     "\tdev->driver->setup failed (%d), b_request = %d\n",
+				     i, usb_ctrl->b_request);
 			return;
 
 		} else if (dev->req_pending) {

@@ -1,11 +1,10 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /* linux/arch/arm/plat-s3c/include/plat/regs-otg.h
  *
  * Copyright (C) 2004 Herbert Poetzl <herbert@13thfloor.at>
  *
  * Registers remapping:
  * Lukasz Majewski <l.majewski@samsumg.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __ASM_ARCH_REGS_USB_OTG_HS_H
@@ -13,74 +12,74 @@
 
 /* USB2.0 OTG Controller register */
 struct cvi_usbotg_phy {
-	uint32_t phypwr;
-	uint32_t phyclk;
-	uint32_t rstcon;
+	u32 phypwr;
+	u32 phyclk;
+	u32 rstcon;
 };
 
 /* Device Logical IN Endpoint-Specific Registers */
 struct cvi_dev_in_endp {
-	uint32_t diepctl;
-	uint8_t  res1[4];
-	uint32_t diepint;
-	uint8_t  res2[4];
-	uint32_t dieptsiz;
-	uint32_t diepdma;
-	uint32_t dtxfsts;
-	uint32_t diepdmab;
+	u32 diepctl;
+	u8  res1[4];
+	u32 diepint;
+	u8  res2[4];
+	u32 dieptsiz;
+	u32 diepdma;
+	u32 dtxfsts;
+	u32 diepdmab;
 };
 
 /* Device Logical OUT Endpoint-Specific Registers */
 struct cvi_dev_out_endp {
-	uint32_t doepctl;
-	uint8_t  res1[4];
-	uint32_t doepint;
-	uint8_t  res2[4];
-	uint32_t doeptsiz;
-	uint32_t doepdma;
-	uint8_t  res3[4];
-	uint32_t doepdmab;
+	u32 doepctl;
+	u8  res1[4];
+	u32 doepint;
+	u8  res2[4];
+	u32 doeptsiz;
+	u32 doepdma;
+	u8  res3[4];
+	u32 doepdmab;
 };
 
 struct ep_fifo {
-	uint32_t fifo;
-	uint8_t  res[4092];
+	u32 fifo;
+	u8  res[4092];
 };
 
 /* USB2.0 OTG Controller register */
 struct cvi_usbotg_reg {
 	/* Core Global Registers */
-	uint32_t gotgctl; /* OTG Control & Status */
-	uint32_t gotgint; /* OTG Interrupt */
-	uint32_t gahbcfg; /* Core AHB Configuration */
-	uint32_t gusbcfg; /* Core USB Configuration */
-	uint32_t grstctl; /* Core Reset */
-	uint32_t gintsts; /* Core Interrupt */
-	uint32_t gintmsk; /* Core Interrupt Mask */
-	uint32_t grxstsr; /* Receive Status Debug Read/Status Read */
-	uint32_t grxstsp; /* Receive Status Debug Pop/Status Pop */
-	uint32_t grxfsiz; /* Receive FIFO Size */
-	uint32_t gnptxfsiz; /* Non-Periodic Transmit FIFO Size */
-	uint8_t  res0[20];
-	uint32_t gsnpsid;
-	uint8_t  res1[192];
-	uint32_t dieptxf[15]; /* Device Periodic Transmit FIFO size register */
-	uint8_t  res2[1728];
+	u32 gotgctl; /* OTG Control & Status */
+	u32 gotgint; /* OTG Interrupt */
+	u32 gahbcfg; /* Core AHB Configuration */
+	u32 gusbcfg; /* Core USB Configuration */
+	u32 grstctl; /* Core Reset */
+	u32 gintsts; /* Core Interrupt */
+	u32 gintmsk; /* Core Interrupt Mask */
+	u32 grxstsr; /* Receive Status Debug Read/Status Read */
+	u32 grxstsp; /* Receive Status Debug Pop/Status Pop */
+	u32 grxfsiz; /* Receive FIFO Size */
+	u32 gnptxfsiz; /* Non-Periodic Transmit FIFO Size */
+	u8  res0[20];
+	u32 gsnpsid;
+	u8  res1[192];
+	u32 dieptxf[15]; /* Device Periodic Transmit FIFO size register */
+	u8  res2[1728];
 	/* Device Configuration */
-	uint32_t dcfg; /* Device Configuration Register */
-	uint32_t dctl; /* Device Control */
-	uint32_t dsts; /* Device Status */
-	uint8_t  res3[4];
-	uint32_t diepmsk; /* Device IN Endpoint Common Interrupt Mask */
-	uint32_t doepmsk; /* Device OUT Endpoint Common Interrupt Mask */
-	uint32_t daint; /* Device All Endpoints Interrupt */
-	uint32_t daintmsk; /* Device All Endpoints Interrupt Mask */
-	uint8_t  res4[224];
+	u32 dcfg; /* Device Configuration Register */
+	u32 dctl; /* Device Control */
+	u32 dsts; /* Device Status */
+	u8  res3[4];
+	u32 diepmsk; /* Device IN Endpoint Common Interrupt Mask */
+	u32 doepmsk; /* Device OUT Endpoint Common Interrupt Mask */
+	u32 daint; /* Device All Endpoints Interrupt */
+	u32 daintmsk; /* Device All Endpoints Interrupt Mask */
+	u8  res4[224];
 	struct cvi_dev_in_endp in_endp[16];
 	struct cvi_dev_out_endp out_endp[16];
-	uint8_t  res5[256];
-	uint32_t pcgcctl; /* Power and Clock Gating Control Register */
-	uint8_t  res6[508];
+	u8  res5[256];
+	u32 pcgcctl; /* Power and Clock Gating Control Register */
+	u8  res6[508];
 	struct ep_fifo ep[16];
 };
 
@@ -130,8 +129,8 @@ struct cvi_usbotg_reg {
 #define INT_SOF			(0x1<<3)
 #define INT_DEV_MODE			(0x0<<0)
 #define INT_HOST_MODE			(0x1<<1)
-#define INT_GOUTNakEff			(0x01<<7)
-#define INT_GINNakEff			(0x01<<6)
+#define int_gout_nak_eff			(0x01<<7)
+#define int_gin_nak_eff			(0x01<<6)
 
 #define FULL_SPEED_CONTROL_PKT_SIZE	8
 #define FULL_SPEED_BULK_PKT_SIZE	64
@@ -176,8 +175,7 @@ struct cvi_usbotg_reg {
 #define DAINT_OUT_BIT			(16)
 #define DAINT_MASK			(0xFFFF)
 
-/* CVI_UDC_OTG_DIEPCTL0/DOEPCTL0 device
-   control IN/OUT endpoint 0 control register */
+/* CVI_UDC_OTG_DIEPCTL0/DOEPCTL0 device control IN/OUT endpoint 0 control register */
 #define DEPCTL_EPENA			(0x1<<31)
 #define DEPCTL_EPDIS			(0x1<<30)
 #define DEPCTL_SETD1PID		(0x1<<29)
@@ -206,8 +204,7 @@ struct cvi_usbotg_reg {
 #define DIEPCTL0_NEXT_EP_BIT		(11)
 
 
-/* CVI_UDC_OTG_DIEPMSK/DOEPMSK device IN/OUT endpoint
-   common interrupt mask register */
+/* CVI_UDC_OTG_DIEPMSK/DOEPMSK device IN/OUT endpoint common interrupt mask register */
 /* CVI_UDC_OTG_DIEPINTn/DOEPINTn device IN/OUT endpoint interrupt register */
 #define BACK2BACK_SETUP_RECEIVED	(0x1<<6)
 #define INEPNAKEFF			(0x1<<6)

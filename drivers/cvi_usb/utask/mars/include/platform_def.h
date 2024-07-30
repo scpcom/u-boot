@@ -1,7 +1,6 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
 /*
  * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
- *
- * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #ifndef __PLATFORM_DEF_H__

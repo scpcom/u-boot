@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef CVI_STDTYPES_H
 #define CVI_STDTYPES_H
 #ifdef __KERNEL__
@@ -14,7 +16,7 @@
 typedef	uintptr_t	size_t;
 
 /* Define bool data type */
-#define bool	_Bool
+#define bool	_bool
 #define	true	1
 #define	false	0
 #define	__bool_true_false_are_defined 1

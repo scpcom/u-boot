@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef _SYSTEM_COMMON_H_
 #define _SYSTEM_COMMON_H_
 

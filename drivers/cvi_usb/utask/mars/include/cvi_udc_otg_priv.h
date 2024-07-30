@@ -1,8 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Designware CVI on-chip full/high speed USB device controllers
  * Copyright (C) 2005 for Samsung Electronics
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CVI_UDC_OTG_PRIV__
@@ -53,15 +52,15 @@ struct cvi_ep {
 	struct usb_ep ep;	/* must be put here! */
 	struct cvi_udc *dev;
 
-	const CH9_UsbEndpointDescriptor *desc;
+	const ch9_usb_endpoint_descriptor *desc;
 	struct list_head queue;
 	unsigned long pio_irqs;
 	int len;
 	void *dma_buf;
 
-	uint8_t stopped;
-	uint8_t bEndpointAddress;
-	uint8_t bmAttributes;
+	u8 stopped;
+	u8 b_endpoint_address;
+	u8 bm_attributes;
 
 	enum ep_type ep_type;
 	int fifo_num;
@@ -85,29 +84,29 @@ struct cvi_udc {
 
 	unsigned req_pending:1, req_std:1;
 
-	CH9_UsbSetup *usb_ctrl;
+	ch9_usb_setup *usb_ctrl;
 	dma_addr_t usb_ctrl_dma_addr;
 	struct cvi_usbotg_reg *reg;
 	unsigned int connected;
-	uint8_t clear_feature_num;
-	uint8_t clear_feature_flag;
-	uint8_t test_mode;
+	u8 clear_feature_num;
+	u8 clear_feature_flag;
+	u8 test_mode;
 
 };
 
-#define ep_is_in(EP) (((EP)->bEndpointAddress & USB_DIR_IN) == USB_DIR_IN)
-#define ep_index(EP) ((EP)->bEndpointAddress & 0xF)
+#define ep_is_in(EP) (((EP)->b_endpoint_address & USB_DIR_IN) == USB_DIR_IN)
+#define ep_index(EP) ((EP)->b_endpoint_address & 0xF)
 #define ep_maxpacket(EP) ((EP)->ep.maxpacket)
 
 void otg_phy_init(struct cvi_udc *dev);
 void otg_phy_off(struct cvi_udc *dev);
-void cvi_log_write(uint32_t tag, uint32_t param1, uint32_t param2, uint32_t param3, uint32_t param4);
+void cvi_log_write(u32 tag, u32 param1, u32 param2, u32 param3, u32 param4);
 void set_trigger_cnt(int cnt);
-uint8_t cvi_phy_to_log_ep(uint8_t phy_num, uint8_t dir);
+u8 cvi_phy_to_log_ep(u8 phy_num, u8 dir);
 void cvi_udc_pre_setup(struct cvi_udc *dev);
 void cvi_disconnect(struct cvi_udc *dev);
-void cvi_hsotg_set_bit(uint32_t *reg, uint32_t val);
-void cvi_hsotg_clear_bit(uint32_t *reg, uint32_t vla);
-int cvi_hsotg_wait_bit_set(uint32_t *reg, uint32_t bit, uint32_t timeout);
+void cvi_hsotg_set_bit(u32 *reg, u32 val);
+void cvi_hsotg_clear_bit(u32 *reg, u32 vla);
+int cvi_hsotg_wait_bit_set(u32 *reg, u32 bit, u32 timeout);
 
 #endif	/* __CVI_UDC_OTG_PRIV__ */

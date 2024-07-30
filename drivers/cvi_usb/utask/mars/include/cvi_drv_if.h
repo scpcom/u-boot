@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef CVI_DRV_IF_H
 #define CVI_DRV_IF_H
 
@@ -11,7 +13,7 @@
 struct usb_ep;
 struct usb_request;
 
-typedef void (*cvi_reqComplete)(struct usb_ep *ep, struct usb_request *req);
+typedef void (*cvi_req_complete)(struct usb_ep *ep, struct usb_request *req);
 /**
  * struct usb_request - describes one i/o request
  * @buf: Buffer used for data.  Always provide this; some controllers
@@ -80,7 +82,7 @@ struct usb_request {
 	unsigned int		zero:1;
 	unsigned int		short_not_ok:1;
 
-	cvi_reqComplete	complete;
+	cvi_req_complete	complete;
 	void			*context;
 
 	int			status;
@@ -97,7 +99,7 @@ struct usb_request {
  * endpoints they support, as well as their capabilities.
  */
 struct usb_ep_ops {
-	int (*enable)(struct usb_ep *ep, const CH9_UsbEndpointDescriptor *desc);
+	int (*enable)(struct usb_ep *ep, const ch9_usb_endpoint_descriptor *desc);
 	int (*disable)(struct usb_ep *ep);
 
 	struct usb_request *(*alloc_request)(struct usb_ep *ep);
@@ -146,7 +148,7 @@ struct usb_ep {
 	unsigned		maxpacket_limit:16;
 	unsigned		max_streams:16;
 	unsigned		maxburst:5;
-	const CH9_UsbEndpointDescriptor	*desc;
+	const ch9_usb_endpoint_descriptor	*desc;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -190,7 +192,7 @@ static inline void usb_ep_set_maxpacket_limit(struct usb_ep *ep,
  * returns zero, or a negative error code.
  */
 static inline int usb_ep_enable(struct usb_ep *ep,
-				const CH9_UsbEndpointDescriptor *desc)
+				const ch9_usb_endpoint_descriptor *desc)
 {
 	return ep->ops->enable(ep, desc);
 }
@@ -480,9 +482,9 @@ struct usb_gadget {
 	struct list_head		ep_list;	/* of usb_ep */
 	const struct usb_gadget_ops	*ops;
 	struct usb_ep			*ep0;
-	CH9_UsbSpeed			speed;
-	CH9_UsbSpeed			max_speed;
-	CH9_UsbSpeed			state;
+	ch9_usb_speed			speed;
+	ch9_usb_speed			max_speed;
+	ch9_usb_speed			state;
 	unsigned			is_dualspeed:1;
 	unsigned			is_otg:1;
 	unsigned			is_a_peripheral:1;
@@ -759,11 +761,11 @@ static inline int usb_gadget_disconnect(struct usb_gadget *gadget)
  */
 struct usb_gadget_driver {
 	char			*function;
-	CH9_UsbSpeed		speed;
+	ch9_usb_speed		speed;
 	int			(*bind)(struct usb_gadget *);
 	void			(*unbind)(struct usb_gadget *);
 	int			(*setup)(struct usb_gadget *,
-					 const CH9_UsbSetup *);
+					 const ch9_usb_setup *);
 	void			(*disconnect)(struct usb_gadget *);
 	void			(*suspend)(struct usb_gadget *);
 	void			(*resume)(struct usb_gadget *);

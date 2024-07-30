@@ -1,22 +1,27 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2023 bitmain
+ */
+
 #include <common.h>
 #include <linux/types.h>
 #include <stdlib.h>
 #include <cpu_func.h>
 
 /* see dps.h */
-uint32_t cvi_uncached_read32(uint32_t *address)
+u32 cvi_uncached_read32(u32 *address)
 {
 	return *address;
 }
 
 /* see dps.h */
-void cvi_uncached_write32(uint32_t value, uint32_t *address)
+void cvi_uncached_write32(u32 value, u32 *address)
 {
 	*address = value;
 }
 
 /* see dps.h */
-void cvi_buffer_copy(uint8_t *dst, uint8_t *src, uint32_t size)
+void cvi_buffer_copy(u8 *dst, u8 *src, u32 size)
 {
 	memcpy((void *)dst, (void *)src, size);
 }
@@ -41,6 +46,6 @@ void cvi_cache_flush(uintptr_t address, size_t size)
 #endif
 }
 
-void cvi_delay_ns(uint32_t ns)
+void cvi_delay_ns(u32 ns)
 {
 }

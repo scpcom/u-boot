@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef DPS_H
 #define DPS_H
 
@@ -12,54 +14,54 @@
  * @param[in] address the address
  * @return the word at the given address
  */
-extern uint32_t cvi_read32(volatile uint32_t *address);
+extern u32 cvi_read32(volatile u32 *address);
 
 /**
  * Write a (32-bit) word to memory
  * @param[in] address the address
  * @param[in] value the word to write
  */
-extern void cvi_write32(uint32_t value, volatile uint32_t *address);
+extern void cvi_write32(u32 value, volatile u32 *address);
 /**
  * Read a byte, bypassing the cache
  * @param[in] address the address
  * @return the byte at the given address
  */
-extern uint8_t cvi_uncached_read8(volatile uint8_t *address);
+extern u8 cvi_uncached_read8(volatile u8 *address);
 
 /**
  * Read a short, bypassing the cache
  * @param[in] address the address
  * @return the short at the given address
  */
-extern uint16_t cvi_uncached_read16(volatile uint16_t *address);
+extern u16 cvi_uncached_read16(volatile u16 *address);
 
 /**
  * Read a (32-bit) word, bypassing the cache
  * @param[in] address the address
  * @return the word at the given address
  */
-extern uint32_t cvi_uncached_read32(volatile uint32_t *address);
+extern u32 cvi_uncached_read32(volatile u32 *address);
 
 /**
  * Write a byte to memory, bypassing the cache
  * @param[in] address the address
  * @param[in] value the byte to write
  */
-extern void cvi_uncached_write8(uint8_t value, volatile uint8_t *address);
+extern void cvi_uncached_write8(u8 value, volatile u8 *address);
 
 /**
  * Write a short to memory, bypassing the cache
  * @param[in] address the address
  * @param[in] value the short to write
  */
-extern void cvi_uncached_write16(uint16_t value, volatile uint16_t *address);
+extern void cvi_uncached_write16(u16 value, volatile u16 *address);
 /**
  * Write a (32-bit) word to memory, bypassing the cache
  * @param[in] address the address
  * @param[in] value the word to write
  */
-extern void cvi_uncached_write32(uint32_t value, volatile uint32_t *address);
+extern void cvi_uncached_write32(u32 value, volatile u32 *address);
 /**
  * Write a (32-bit) address value to memory, bypassing the cache.
  * This function is for writing an address value, i.e. something that
@@ -68,7 +70,7 @@ extern void cvi_uncached_write32(uint32_t value, volatile uint32_t *address);
  * @param[in] location the (CPU) location where to write the address value
  * @param[in] value the address value to write
  */
-extern void cvi_write_phys32(uint32_t value, volatile uint32_t *location);
+extern void cvi_write_phys32(u32 value, volatile u32 *location);
 
 /**
  * Hardware specific memcpy.
@@ -76,7 +78,7 @@ extern void cvi_write_phys32(uint32_t value, volatile uint32_t *location);
  * @param[in] dst  destination address
  * @param[in] size size of the copy
  */
-extern void cvi_buffer_copy(volatile uint8_t *dst, volatile uint8_t *src, uint32_t size);
+extern void cvi_buffer_copy(volatile u8 *dst, volatile u8 *src, u32 size);
 
 /**
  * Invalidate the cache for the specified memory region.
@@ -128,6 +130,6 @@ extern void cvi_cache_flush(uintptr_t address, size_t size);
  * Delay software execution by a number of nanoseconds
  * @param[in] ns number of nanoseconds to delay software execution
  */
-extern void cvi_delay_ns(uint32_t ns);
+extern void cvi_delay_ns(u32 ns);
 
 #endif /* DPS_H */

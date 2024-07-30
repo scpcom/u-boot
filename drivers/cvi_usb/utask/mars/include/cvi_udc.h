@@ -1,9 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * drivers/usb/gadget/cvi_udc.h
  * Designware CVI on-chip full/high speed USB device controllers
  * Copyright (C) 2005 for Samsung Electronics
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CVI_USB_GADGET

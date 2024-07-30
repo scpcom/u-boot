@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2023 bitmain
+ */
+
 /**********************************************************************
  * main.c
  *
@@ -16,7 +21,7 @@ extern int acm_app(void);
 
 static void cvi_usb_hw_init(void)
 {
-	uint32_t value;
+	u32 value;
 
 	value = mmio_read_32(TOP_BASE + REG_TOP_SOFT_RST) & (~BIT_TOP_SOFT_RST_USB);
 	mmio_write_32(TOP_BASE + REG_TOP_SOFT_RST, value);

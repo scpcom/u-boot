@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
 #ifndef CVI_CH9_H
 #define CVI_CH9_H
 
@@ -308,19 +310,19 @@
 
 #define	CH9_USB_DCT_WIRELESS_USB_EXT 0x0C
 
-/** Describe supports LPM defined in bmAttribues field of CUSBD_Usb20ExtensionDescriptor */
+/** Describe supports LPM defined in bm_attribues field of CUSBD_Usb20ExtensionDescriptor */
 #define	CH9_USB_USB20_EXT_LPM_SUPPORT BIT(1)
 
 #define	CH9_USB_USB20_EXT_BESL_AND_ALTERNATE_HIRD BIT(2)
 
 /**
- * Describe supports LTM defined in bmAttribues field
+ * Describe supports LTM defined in bm_attribues field
  * of CUSBD_UsbSuperSpeedDeviceCapabilityDescriptor
  */
 #define	CH9_USB_SS_CAP_LTM BIT(1)
 
 /**
- * Describe speed supported defined in wSpeedSupported field
+ * Describe speed supported defined in w_speed_supported field
  * of CUSBD_UsbSuperSpeedDeviceCapabilityDescriptor
  */
 #define	CH9_USB_SS_CAP_SUPPORT_LS BIT(0)
@@ -331,7 +333,7 @@
 
 #define	CH9_USB_SS_CAP_SUPPORT_SS BIT(3)
 
-/** Describe encoding of bmSublinkSpeedAttr0 filed from CUSBD_UsbSuperSpeedPlusDescriptor */
+/** Describe encoding of bm_sublink_speed_attr0 filed from CUSBD_UsbSuperSpeedPlusDescriptor */
 #define	CH9_USB_SSP_SID_OFFSET 0
 
 #define	CH9_USB_SSP_SID_MASK 0 0x0000000f
@@ -352,7 +354,7 @@
 
 #define	CH9_USB_SSP_LSM_MASK (0x0000FFFF << CUSBD_USB_SSP_LSM_OFFSET)
 
-/** Description of bmAttributes field from  Configuration Description */
+/** Description of bm_attributes field from  Configuration Description */
 #define	CH9_USB_CONFIG_RESERVED BIT(7)
 
 /** Self Powered */
@@ -363,14 +365,14 @@
 /** Remote Wakeup */
 #define	CH9_USB_CONFIG_REMOTE_WAKEUP BIT(5)
 
-/** Definitions for bEndpointAddress field from  Endpoint descriptor */
+/** Definitions for b_endpoint_address field from  Endpoint descriptor */
 #define	CH9_USB_EP_DIR_MASK 0x80
 
 #define	CH9_USB_EP_DIR_IN 0x80
 
 #define	CH9_USB_EP_NUMBER_MASK 0x0f
 
-/** Endpoint attributes from Endpoint descriptor - bmAttributes field */
+/** Endpoint attributes from Endpoint descriptor - bm_attributes field */
 #define	CH9_USB_EP_TRANSFER_MASK 0x03
 
 #define	CH9_USB_EP_CONTROL 0x0
@@ -406,7 +408,7 @@
 
 #define	CH9_USB_EP_USAGE_NOTIFICATION (0x01 >> 4)
 
-/** Description of fields bmAttributes from OTG descriptor */
+/** Description of fields bm_attributes from OTG descriptor */
 #define	CH9_USB_OTG_ADP_MASK 0x4
 
 #define	CH9_USB_OTG_HNP_MASK 0x2
@@ -462,28 +464,28 @@
 /**********************************************************************
  * Forward declarations
  **********************************************************************/
-struct CH9_UsbSetup;
-struct CH9_UsbDeviceDescriptor;
-struct CH9_UsbBosDescriptor;
-struct CH9_UsbCapabilityDescriptor;
-struct CH9_Usb20ExtensionDescriptor;
-struct CH9_UsbSSDeviceCapabilityDescriptor;
-struct CH9_UsbContainerIdDescriptor;
-struct CH9_UsbPlatformDescriptor;
-struct CH9_UsbSSPlusDescriptor;
-struct CH9_UsbPTMCapabilityDescriptor;
-struct CH9_UsbConfigurationDescriptor;
-struct CH9_UsbInterfaceAssociationDescriptor;
-struct CH9_UsbInterfaceDescriptor;
-struct CH9_UsbEndpointDescriptor;
-struct CH9_UsbSSEndpointCompanionDescriptor;
-struct CH9_UsbSSPlusIsocEndpointCompanionDescriptor;
-struct CH9_UsbStringDescriptor;
-struct CH9_UsbDeviceQualifierDescriptor;
-struct CH9_UsbOtherSpeedConfigurationDescriptor;
-struct CH9_UsbHeaderDescriptor;
-struct CH9_UsbOtgDescriptor;
-struct CH9_ConfigParams;
+struct ch9_usb_setup;
+struct ch9_usb_device_descriptor;
+struct ch9_usb_bos_descriptor;
+struct ch9_usb_capability_descriptor;
+struct ch9_usb20_extension_descriptor;
+struct ch9_usb_ss_device_capability_descriptor;
+struct ch9_usb_container_id_descriptor;
+struct ch9_usb_platform_descriptor;
+struct ch9_usb_ss_plus_descriptor;
+struct ch9_usb_ptm_capability_descriptor;
+struct ch9_usb_configuration_descriptor;
+struct ch9_usb_interface_association_descriptor;
+struct ch9_usb_interface_descriptor;
+struct ch9_usb_endpoint_descriptor;
+struct ch9_usb_ss_endpoint_companion_descriptor;
+struct ch9_usb_ss_plus_isoc_endpoint_companion_descriptor;
+struct ch9_usb_sstring_descriptor;
+struct ch9_usb_device_qualifier_descriptor;
+struct ch9_usb_other_speed_configuration_descriptor;
+struct ch9_usb_header_descriptor;
+struct ch9_usb_otg_descriptor;
+struct ch9_config_params;
 
 /**********************************************************************
  * Enumerations
@@ -500,7 +502,7 @@ typedef enum {
 	CH9_USB_STATE_CONFIGURED = 5,
 	CH9_USB_STATE_SUSPENDED = 6,
 	CH9_USB_STATE_ERROR = 7,
-} CH9_UsbState;
+} ch9_usb_state;
 
 /** Speeds defined in USB Specification */
 typedef enum {
@@ -518,7 +520,7 @@ typedef enum {
 	CH9_USB_SPEED_SUPER = 5,
     /** usb 3.1 GEN2 (10Gb/s) */
 	CH9_USB_SPEED_SUPER_PLUS = 6,
-} CH9_UsbSpeed;
+} ch9_usb_speed;
 
 /**********************************************************************
  * Structures and unions
@@ -526,362 +528,362 @@ typedef enum {
  */
 
 /** Structure describes USB request (SETUP packet). See USB Specification (chapter 9.3) */
-typedef struct CH9_UsbSetup {
+typedef struct ch9_usb_setup {
     /** Characteristics of request */
-	uint8_t bmRequestType;
+	u8 bm_request_type;
     /** Specific request */
-	uint8_t bRequest;
+	u8 b_request;
     /** Field that varies according to request */
-	uint16_t wValue;
+	u16 w_value;
     /** typically used to pass an index or offset. */
-	uint16_t wIndex;
+	u16 w_index;
     /** Number of bytes to transfer if there is a data stage */
-	uint16_t wLength;
-} __packed CH9_UsbSetup;
+	u16 w_length;
+} __packed ch9_usb_setup;
 
 /** Standard Device Descriptor (see Table 9-11 of USB Spec 3.1) */
-typedef struct CH9_UsbDeviceDescriptor {
+typedef struct ch9_usb_device_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Device descriptor type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** USB Specification Release Number */
-	uint16_t bcdUSB;
+	u16 bcd_usb;
     /** Class code (assigned by the USB-IF) */
-	uint8_t bDeviceClass;
+	u8 b_device_class;
     /** Subclass code (assigned by the USB-IF */
-	uint8_t bDeviceSubClass;
+	u8 b_device_sub_class;
     /** Protocol code (assigned by the USB-IF */
-	uint8_t bDeviceProtocol;
+	u8 b_device_protocol;
     /** Maximum packet size for endpoint zero */
-	uint8_t bMaxPacketSize0;
+	u8 b_max_packet_size0;
     /** Vendor ID (assigned by the USB-IF */
-	uint16_t idVendor;
+	u16 id_vendor;
     /** Product ID (assigned by manufacturer) */
-	uint16_t idProduct;
+	u16 id_product;
     /** Device release number */
-	uint16_t bcdDevice;
+	u16 bcd_device;
     /** Index of string descriptor describing manufacturer */
-	uint8_t iManufacturer;
+	u8 i_manufacturer;
     /** Index of string descriptor describing product */
-	uint8_t iProduct;
+	u8 i_product;
     /** Index of string descriptor for serial number */
-	uint8_t iSerialNumber;
+	u8 i_serial_number;
     /** Number of possible configurations */
-	uint8_t bNumConfigurations;
-} __packed CH9_UsbDeviceDescriptor;
+	u8 b_num_configurations;
+} __packed ch9_usb_device_descriptor;
 
 /** Binary Device Object Store descriptor (see Table 9-12 of USB Spec 3.1) */
-typedef struct CH9_UsbBosDescriptor {
+typedef struct ch9_usb_bos_descriptor {
     /** Size of this descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Descriptor type: BOS */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Length of this descriptor and all of its sub descriptors */
-	uint16_t wTotalLength;
+	u16 w_total_length;
     /** The number of separate device capability descriptors in the BOS */
-	uint8_t bNumDeviceCaps;
-} __packed CH9_UsbBosDescriptor;
+	u8 b_num_device_caps;
+} __packed ch9_usb_bos_descriptor;
 
 /** Device Capability Descriptor (see Table 9-12 of USB Spec 3.1) */
-typedef struct CH9_UsbCapabilityDescriptor {
+typedef struct ch9_usb_capability_descriptor {
     /** Size of this descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Descriptor type: DEVICE CAPABILITY type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Capability type: USB 2.0 EXTENSION (002h) */
-	uint8_t bDevCapabilityType;
+	u8 b_dev_capability_type;
     /** Capability specific format */
-	uint32_t bmAttributes;
-} __packed CH9_UsbCapabilityDescriptor;
+	u32 bm_attributes;
+} __packed ch9_usb_capability_descriptor;
 
 /** USB 2.0 Extension Descriptor (see Table 9-15 of USB Spec 3.1) */
-typedef struct CH9_Usb20ExtensionDescriptor {
+typedef struct ch9_usb20_extension_descriptor {
     /** Size of this descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Descriptor type: DEVICE CAPABILITY type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Capability type: USB 2.0 EXTENSION (002h) */
-	uint8_t bDevCapabilityType;
+	u8 b_dev_capability_type;
     /** Capability specific format */
-	uint32_t bmAttributes;
-} __packed CH9_Usb20ExtensionDescriptor;
+	u32 bm_attributes;
+} __packed ch9_usb20_extension_descriptor;
 
 /** SuperSpeed USB Device Capability Descriptor (see Table 9-16 of USB Spec 3.1) */
-typedef struct CH9_UsbSSDeviceCapabilityDescriptor {
+typedef struct ch9_usb_ss_device_capability_descriptor {
     /** Size of this descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** DEVICE CAPABILITY Descriptor type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Capability type: SUPERSPEED_USB */
-	uint8_t bDevCapabilityType;
+	u8 b_dev_capability_type;
     /** Bitmap encoding of supported device level features */
-	uint8_t bmAttributes;
+	u8 bm_attributes;
     /** Bitmap encoding of the speed supported by device */
-	uint16_t wSpeedSupported;
+	u16 w_speed_supported;
     /**
      * The lowest speed at which all the functionality
      * supported by the device is available to the user
      */
-	uint8_t vFunctionalitySupport;
+	u8 v_functionality_support;
     /** U1 Device Exit Latency */
-	uint8_t bU1DevExitLat;
+	u8 b_u1_dev_exit_lat;
     /** U2 Device Exit Latency */
-	uint16_t bU2DevExitLat;
-} __packed CH9_UsbSSDeviceCapabilityDescriptor;
+	u16 b_u2_dev_exit_lat;
+} __packed ch9_usb_ss_device_capability_descriptor;
 
 /** Container ID Descriptor (see Table 9-17 of USB Spec 3.1) */
-typedef struct CH9_UsbContainerIdDescriptor {
+typedef struct ch9_usb_container_id_descriptor {
     /** Size of this descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** DEVICE CAPABILITY Descriptor type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Capability type: CONTAINER_ID */
-	uint8_t bDevCapabilityType;
+	u8 b_dev_capability_type;
     /** Field reserved and shall be set to zero */
-	uint8_t bReserved;
+	u8 b_reserved;
     /** unique number to device instance */
-	uint8_t ContainerId[16];
-} __packed CH9_UsbContainerIdDescriptor;
+	u8 container_id[16];
+} __packed ch9_usb_container_id_descriptor;
 
-typedef struct CH9_UsbPlatformDescriptor {
+typedef struct ch9_usb_platform_descriptor {
     /** Size of this descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** DEVICE CAPABILITY Descriptor type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Capability type: PLATFORM */
-	uint8_t bDevCapabilityType;
+	u8 b_dev_capability_type;
     /** Field reserved and shall be set to zero */
-	uint8_t bReserved;
+	u8 b_reserved;
     /** unique number to identifies a platform */
-	uint8_t PlatformCapabilityUUID[16];
+	u8 platform_capability_uuid[16];
     /** variable length */
-	uint8_t CapabilityData[0];
-} __packed CH9_UsbPlatformDescriptor;
+	u8 capability_data[0];
+} __packed ch9_usb_platform_descriptor;
 
 /** SuperSpeedPlus USB Device Capability  (see Table 9-19 of USB Spec 3.1) */
-typedef struct CH9_UsbSSPlusDescriptor {
+typedef struct ch9_usb_ss_plus_descriptor {
     /** Size of this descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** DEVICE CAPABILITY Descriptor type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Capability type: SUPERSPEED_PLUS */
-	uint8_t bDevCapabilityType;
+	u8 b_dev_capability_type;
     /** Field reserved and shall be set to zero */
-	uint8_t bReserved;
+	u8 b_reserved;
     /** Bitmap encoding of supported SuperSpeedPlus features */
-	uint32_t bmAttributes;
+	u32 bm_attributes;
     /** supported functionality */
-	uint16_t wFunctionalitySupport;
+	u16 w_functionality_support;
     /** Reserved. Shall be set to zero */
-	uint16_t wReserved;
+	u16 w_reserved;
     /** Sublink Speed Attribute */
-	uint32_t bmSublinkSpeedAttr0;
+	u32 bm_sublink_speed_attr0;
     /** Additional Lane Speed Attributes */
-	uint32_t bmSublinkSpeedAttrSSAC;
-} __packed CH9_UsbSSPlusDescriptor;
+	u32 bm_sublink_speed_attr_ssac;
+} __packed ch9_usb_ss_plus_descriptor;
 
 /** SuperSpeedPlus USB Device Capability  (see Table 9-19 of USB Spec 3.1) */
-typedef struct CH9_UsbPTMCapabilityDescriptor {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint8_t bDevCapabilityType;
-} __packed CH9_UsbPTMCapabilityDescriptor;
+typedef struct ch9_usb_ptm_capability_descriptor {
+	u8 b_length;
+	u8 b_descriptor_type;
+	u8 b_dev_capability_type;
+} __packed ch9_usb_ptm_capability_descriptor;
 
 /** Standard Configuration Descriptor (see Table 9-21 of USB Spec 3.1) */
-typedef struct CH9_UsbConfigurationDescriptor {
+typedef struct ch9_usb_configuration_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Configuration descriptor type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Total length of configuration */
-	uint16_t wTotalLength;
+	u16 w_total_length;
     /** Number of interfaces supported by configuration */
-	uint8_t bNumInterfaces;
+	u8 b_num_interfaces;
     /** Value use as an argument to SetConfiguration() request */
-	uint8_t bConfigurationValue;
+	u8 b_configuration_value;
     /** Index of string descriptor describing this configuration */
-	uint8_t iConfiguration;
+	u8 i_configuration;
     /** Configuration attributes */
-	uint8_t bmAttributes;
+	u8 bm_attributes;
     /** Maximum power consumption of the USB device */
-	uint8_t bMaxPower;
-} __packed CH9_UsbConfigurationDescriptor;
+	u8 b_max_power;
+} __packed ch9_usb_configuration_descriptor;
 
 /** Standard Interface Association Descriptor  (see Table 9-22 of USB Spec 3.1) */
-typedef struct CH9_UsbInterfaceAssociationDescriptor {
+typedef struct ch9_usb_interface_association_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Interface Association Descriptor Type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** interface number of this interface that is associated with this function */
-	uint8_t bFirstInterface;
+	u8 b_first_interface;
     /** Number of contiguous interfaces that are associated with this function */
-	uint8_t bInterfaceCount;
+	u8 b_interface_count;
     /** Class code assigned by USB-IF */
-	uint8_t bFunctionClass;
+	u8 b_function_class;
     /** Subclass code */
-	uint8_t bFunctionSubClass;
+	u8 b_function_sub_class;
     /** Protocol code */
-	uint8_t bFunctionProtocol;
+	u8 b_function_protocol;
     /** Index of string descriptor describing this function */
-	uint8_t iFunction;
-} __packed CH9_UsbInterfaceAssociationDescriptor;
+	u8 i_function;
+} __packed ch9_usb_interface_association_descriptor;
 
 /** Standard Interface Descriptor (see Table 9-23 of USB Spec 3.1) */
-typedef struct CH9_UsbInterfaceDescriptor {
+typedef struct ch9_usb_interface_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Interface Descriptor Type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Number of this interface */
-	uint8_t bInterfaceNumber;
+	u8 b_interface_number;
     /** Value used to select this alternate setting */
-	uint8_t bAlternateSetting;
+	u8 b_alternate_setting;
     /** Class code */
-	uint8_t bNumEndpoints;
+	u8 b_num_endpoints;
     /** Subclass code */
-	uint8_t bInterfaceClass;
+	u8 b_interface_class;
     /** Subclass code */
-	uint8_t bInterfaceSubClass;
+	u8 b_interface_sub_class;
     /** Protocol code */
-	uint8_t bInterfaceProtocol;
+	u8 b_interface_protocol;
     /** Index of string */
-	uint8_t iInterface;
-} __packed CH9_UsbInterfaceDescriptor;
+	u8 i_interface;
+} __packed ch9_usb_interface_descriptor;
 
 #define USB_DT_INTERFACE_SIZE		9
 
 #define USB_DIR_OUT			0		/* to device */
 #define USB_DIR_IN			0x80		/* to host */
 /** Standard Endpoint Descriptor */
-typedef struct CH9_UsbEndpointDescriptor {
+typedef struct ch9_usb_endpoint_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Endpoint Descriptor Type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** The address of the endpoint */
-	uint8_t bEndpointAddress;
+	u8 b_endpoint_address;
     /** Endpoint attribute */
-	uint8_t bmAttributes;
+	u8 bm_attributes;
     /** Maximum packet size for this endpoint */
-	uint16_t wMaxPacketSize;
+	u16 w_max_packet_size;
     /** interval for polling endpoint data transfer */
-	uint8_t bInterval;
-} __packed CH9_UsbEndpointDescriptor;
+	u8 b_interval;
+} __packed ch9_usb_endpoint_descriptor;
 
 #define USB_DT_ENDPOINT_SIZE		7
 #define USB_DT_ENDPOINT_AUDIO_SIZE	9	/* Audio extension */
 
 /** Standard SuperSpeed Endpoint Companion Descriptor (see Table 9-26 of USB Spec 3.1) */
-typedef struct CH9_UsbSSEndpointCompanionDescriptor {
+typedef struct ch9_usb_ss_endpoint_companion_descriptor {
     /** Size of descriptor in bytes */
-	uint8_t bLength;
+	u8 b_length;
     /** SUPERSPEED_USB_ENDPOINT_COMPANION Descriptor types */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Number of packets that endpoint can transmit as part of burst */
-	uint8_t bMaxBurst;
-	uint8_t bmAttributes;
+	u8 b_max_burst;
+	u8 bm_attributes;
     /** The total number of bytes  for every service interval */
-	uint16_t wBytesPerInterval;
-} __packed CH9_UsbSSEndpointCompanionDescriptor;
+	u16 w_bytes_per_interval;
+} __packed ch9_usb_ss_endpoint_companion_descriptor;
 
 /**
  * Standard SuperSpeedPlus Isochronous Endpoint
  * Companion Descriptor (see Table 9-27 of USB Spec 3.1)
  */
-typedef struct CH9_UsbSSPlusIsocEndpointCompanionDescriptor {
+typedef struct ch9_usb_ss_plus_isoc_endpoint_companion_descriptor {
     /** Size of descriptor in bytes */
-	uint8_t bLength;
+	u8 b_length;
     /** SUPERSPEEDPLUS_ISOCHRONOUS_ENDPOINT_COMPANION Descriptor types */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Reserved. Shall be set to zero */
-	uint16_t wReserved;
+	u16 w_reserved;
     /** The total number of bytes  for every service interval */
-	uint32_t dwBytesPerInterval;
-} __packed CH9_UsbSSPlusIsocEndpointCompanionDescriptor;
+	u32 dw_bytes_per_interval;
+} __packed ch9_usb_ss_plus_isoc_endpoint_companion_descriptor;
 
 /** Standard String Descriptor */
-typedef struct CH9_UsbStringDescriptor {
+typedef struct ch9_usb_sstring_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** STRING Descriptor Type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** UNICODE encoded string */
-	uint8_t *bString;
-} __packed CH9_UsbStringDescriptor;
+	u8 *b_string;
+} __packed ch9_usb_sstring_descriptor;
 
 /** Standard Device Qualifier Descriptor (see Table 9-9 of USB Spec 2.0) */
-typedef struct CH9_UsbDeviceQualifierDescriptor {
+typedef struct ch9_usb_device_qualifier_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Device Qualifier type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** USB Specification version number */
-	uint16_t bcdUSB;
+	u16 bcd_usb;
     /** Class code */
-	uint8_t bDeviceClass;
+	u8 b_device_class;
     /** Subclass code */
-	uint8_t bDeviceSubClass;
+	u8 b_device_sub_class;
     /** Protocol code */
-	uint8_t bDeviceProtocol;
+	u8 b_device_protocol;
     /** Maximum packet size for other speed */
-	uint8_t bMaxPacketSize0;
+	u8 b_max_packet_size0;
     /** Number of other speed configuration */
-	uint8_t bNumConfigurations;
+	u8 b_num_configurations;
     /** Reserved for future use */
-	uint8_t bReserved;
-} __packed CH9_UsbDeviceQualifierDescriptor;
+	u8 b_reserved;
+} __packed ch9_usb_device_qualifier_descriptor;
 
 /** Standard Other_Speed_Configuration descriptor (see Table 9-11 of USB Spec 2.0) */
-typedef struct CH9_UsbOtherSpeedConfigurationDescriptor {
+typedef struct ch9_usb_other_speed_configuration_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** Configuration descriptor type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Total length of configuration */
-	uint16_t wTotalLength;
+	u16 w_total_length;
     /** Number of interfaces supported by this speed configuration */
-	uint8_t bNumInterfaces;
+	u8 b_num_interfaces;
     /** Value to use to select configuration */
-	uint8_t bConfigurationValue;
+	u8 b_configuration_value;
     /** Index of string descriptor describing this configuration */
-	uint8_t iConfiguration;
+	u8 i_configuration;
     /** Configuration attributes */
-	uint8_t bmAttributes;
+	u8 bm_attributes;
     /** Maximum power consumption of the USB device */
-	uint8_t bMaxPower;
-} __packed CH9_UsbOtherSpeedConfigurationDescriptor;
+	u8 b_max_power;
+} __packed ch9_usb_other_speed_configuration_descriptor;
 
 /**
  * Header descriptor. All descriptor have the same header that
- * consist of bLength and bDescriptorType fields
+ * consist of b_length and b_descriptor_type fields
  */
-typedef struct CH9_UsbHeaderDescriptor {
+typedef struct ch9_usb_header_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** descriptor Type */
-	uint8_t bDescriptorType;
-} __packed CH9_UsbHeaderDescriptor;
+	u8 b_descriptor_type;
+} __packed ch9_usb_header_descriptor;
 
 /** OTG descriptor (see OTG spec. Table 6.1) */
-typedef struct CH9_UsbOtgDescriptor {
+typedef struct ch9_usb_otg_descriptor {
     /** Size of descriptor */
-	uint8_t bLength;
+	u8 b_length;
     /** OTG Descriptor Type */
-	uint8_t bDescriptorType;
+	u8 b_descriptor_type;
     /** Attribute field */
-	uint8_t bmAttributes;
+	u8 bm_attributes;
     /** OTG and EH supplement release number */
-	uint16_t bcdOTG;
-} __packed CH9_UsbOtgDescriptor;
+	u16 bcd_otg;
+} __packed ch9_usb_otg_descriptor;
 
-typedef struct CH9_ConfigParams {
+typedef struct ch9_config_params {
     /** U1 Device exit Latency */
-	uint8_t bU1devExitLat;
+	u8 b_u1_dev_exit_lat;
     /** U2 Device exit Latency */
-	uint16_t bU2DevExitLat;
-} __packed CH9_ConfigParams;
+	u16 b_u2_dev_exit_lat;
+} __packed ch9_config_params;
 
 /**
  *  @}
