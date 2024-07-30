@@ -16,12 +16,13 @@
 #endif
 #include <usb/dwc2_udc.h>
 #include <usb.h>
-#include "cv180x_reg.h"
+#include "mars_reg.h"
 #include "mmio.h"
-#include "cv180x_reg_fmux_gpio.h"
-#include "cv180x_pinlist_swconfig.h"
+#include "mars_reg_fmux_gpio.h"
+#include "mars_pinlist_swconfig.h"
 #include <linux/delay.h>
 #include <bootstage.h>
+#include <configs/mars-asic.h>
 
 #if defined(__riscv)
 #include <asm/csr.h>
@@ -30,18 +31,8 @@
 DECLARE_GLOBAL_DATA_PTR;
 #define SD1_SDIO_PAD
 
-#if defined(CV1801C_WEVB_0009A_SPINOR) ||	\
-	defined(CV1800C_WEVB_0009A_SPINOR) ||	\
-	defined(CV1801C_WEVB_0009A_SPINAND)
-#define CV180X_QFN_88_PIN
-#elif defined(CV1801C_WDMB_0009A_SPINOR)
-#define CV180X_QFN_88_PIN_38
-#else
-#define CV180X_QFN_68_PIN
-#endif
-
 #if defined(__aarch64__)
-static struct mm_region cv180x_mem_map[] = {
+static struct mm_region cv181x_mem_map[] = {
 	{
 		.virt = 0x0UL,
 		.phys = 0x0UL,
@@ -61,7 +52,7 @@ static struct mm_region cv180x_mem_map[] = {
 	}
 };
 
-struct mm_region *mem_map = cv180x_mem_map;
+struct mm_region *mem_map = cv181x_mem_map;
 #endif
 
 // #define PINMUX_CONFIG(PIN_NAME, FUNC_NAME) printf ("%s\n", PIN_NAME ##_ ##FUNC_NAME);
@@ -87,21 +78,6 @@ void pinmux_config(int io_type)
 			PINMUX_CONFIG(SD0_D2, SDIO0_D_2);
 			PINMUX_CONFIG(SD0_D3, SDIO0_D_3);
 			break;
-
-		case PINMUX_SPI0:
-			PINMUX_CONFIG(SD0_CMD, SPI0_SDO);
-			PINMUX_CONFIG(SD0_CLK, SPI0_SCK);
-			PINMUX_CONFIG(SD0_D0, SPI0_SDI);
-			PINMUX_CONFIG(SD0_D3, SPI0_CS_X);
-			break;
-
-		case PINMUX_SPI2:
-			PINMUX_CONFIG(SD1_CMD, SPI2_SDO);
-			PINMUX_CONFIG(SD1_CLK, SPI2_SCK);
-			PINMUX_CONFIG(SD1_D0, SPI2_SDI);
-			PINMUX_CONFIG(SD1_D3, SPI2_CS_X);
-			break;
-
 		case PINMUX_SDIO1:
 #if defined(SD1_SDIO_PAD)
 			/*
@@ -110,45 +86,67 @@ void pinmux_config(int io_type)
 			 */
 			mmio_write_32(TOP_BASE + 0x294,
 				      (mmio_read_32(TOP_BASE + 0x294) & 0xFFFFFBFF));
-			PINMUX_CONFIG(SD1_CMD, PWR_SD1_CMD);
-			PINMUX_CONFIG(SD1_CLK, PWR_SD1_CLK);
-			PINMUX_CONFIG(SD1_D0, PWR_SD1_D0);
-			PINMUX_CONFIG(SD1_D1, PWR_SD1_D1);
-			PINMUX_CONFIG(SD1_D2, PWR_SD1_D2);
-			PINMUX_CONFIG(SD1_D3, PWR_SD1_D3);
+			PINMUX_CONFIG(SD1_CMD, PWR_SD1_CMD_VO36);
+			PINMUX_CONFIG(SD1_CLK, PWR_SD1_CLK_VO37);
+			PINMUX_CONFIG(SD1_D0, PWR_SD1_D0_VO35);
+			PINMUX_CONFIG(SD1_D1, PWR_SD1_D1_VO34);
+			PINMUX_CONFIG(SD1_D2, PWR_SD1_D2_VO33);
+			PINMUX_CONFIG(SD1_D3, PWR_SD1_D3_VO32);
+#elif defined(SD1_MIPI_PAD)
+			/*
+			 * Name            Address            SD1  MIPI
+			 * reg_sd1_phy_sel REG_0x300_0294[10] 0x0  0x1
+			 */
+			mmio_write_32(TOP_BASE + 0x294,
+				      (mmio_read_32(TOP_BASE + 0x294) & 0xFFFFFBFF) | BIT(10));
+			PINMUX_CONFIG(PAD_MIPI_TXM4, SD1_CLK);
+			PINMUX_CONFIG(PAD_MIPI_TXP4, SD1_CMD);
+			PINMUX_CONFIG(PAD_MIPI_TXM3, SD1_D0);
+			PINMUX_CONFIG(PAD_MIPI_TXP3, SD1_D1);
+			PINMUX_CONFIG(PAD_MIPI_TXM2, SD1_D2);
+			PINMUX_CONFIG(PAD_MIPI_TXP2, SD1_D3);
 #endif
 			break;
-		case PINMUX_SPI_NOR:
-			PINMUX_CONFIG(SPINOR_HOLD_X, SPINOR_HOLD_X);
-			PINMUX_CONFIG(SPINOR_SCK, SPINOR_SCK);
-			PINMUX_CONFIG(SPINOR_MOSI, SPINOR_MOSI);
-			PINMUX_CONFIG(SPINOR_WP_X, SPINOR_WP_X);
-			PINMUX_CONFIG(SPINOR_MISO, SPINOR_MISO);
-			PINMUX_CONFIG(SPINOR_CS_X, SPINOR_CS_X);
-		break;
+		case PINMUX_EMMC:
+			PINMUX_CONFIG(EMMC_CLK, EMMC_CLK);
+			PINMUX_CONFIG(EMMC_RSTN, EMMC_RSTN);
+			PINMUX_CONFIG(EMMC_CMD, EMMC_CMD);
+			PINMUX_CONFIG(EMMC_DAT1, EMMC_DAT_1);
+			PINMUX_CONFIG(EMMC_DAT0, EMMC_DAT_0);
+			PINMUX_CONFIG(EMMC_DAT2, EMMC_DAT_2);
+			PINMUX_CONFIG(EMMC_DAT3, EMMC_DAT_3);
+			break;
 		case PINMUX_SPI_NAND:
-			PINMUX_CONFIG(SPINOR_HOLD_X, SPINAND_HOLD);
-			PINMUX_CONFIG(SPINOR_SCK, SPINAND_CLK);
-			PINMUX_CONFIG(SPINOR_MOSI, SPINAND_MOSI);
-			PINMUX_CONFIG(SPINOR_WP_X, SPINAND_WP);
-			PINMUX_CONFIG(SPINOR_MISO, SPINAND_MISO);
-			PINMUX_CONFIG(SPINOR_CS_X, SPINAND_CS);
+			PINMUX_CONFIG(EMMC_DAT2, SPINAND_HOLD);
+			PINMUX_CONFIG(EMMC_CLK, SPINAND_CLK);
+			PINMUX_CONFIG(EMMC_DAT0, SPINAND_MOSI);
+			PINMUX_CONFIG(EMMC_DAT3, SPINAND_WP);
+			PINMUX_CONFIG(EMMC_CMD, SPINAND_MISO);
+			PINMUX_CONFIG(EMMC_DAT1, SPINAND_CS);
 		break;
-		case PINMUX_USB:
-#if defined(CV180X_QFN_88_PIN)
-			PINMUX_CONFIG(PWR_GPIO0, PWR_GPIO_0);
-			PINMUX_CONFIG(PWR_GPIO1, PWR_GPIO_1);
-			PINMUX_CONFIG(ADC1, XGPIOB_3);
-			PINMUX_CONFIG(USB_VBUS_DET, USB_VBUS_DET);
-#elif defined(CV180X_QFN_88_PIN_38)
-			PINMUX_CONFIG(ADC1, XGPIOB_3);
-			PINMUX_CONFIG(USB_VBUS_DET, USB_VBUS_DET);
-#elif defined(CV180X_QFN_68_PIN)
-			PINMUX_CONFIG(SD1_GPIO0, PWR_GPIO_25);
-			PINMUX_CONFIG(SD1_GPIO1, PWR_GPIO_26);
-			PINMUX_CONFIG(ADC1, XGPIOB_3);
-			PINMUX_CONFIG(USB_VBUS_DET, USB_VBUS_DET);
-#endif
+		case PINMUX_DSI:
+			PINMUX_CONFIG(PAD_MIPI_TXM0, XGPIOC_12);
+			PINMUX_CONFIG(PAD_MIPI_TXP0, XGPIOC_13);
+			PINMUX_CONFIG(PAD_MIPI_TXM1, XGPIOC_14);
+			PINMUX_CONFIG(PAD_MIPI_TXP1, XGPIOC_15);
+			PINMUX_CONFIG(PAD_MIPI_TXM2, XGPIOC_16);
+			PINMUX_CONFIG(PAD_MIPI_TXP2, XGPIOC_17);
+			PINMUX_CONFIG(PAD_MIPI_TXM3, XGPIOC_20);
+			PINMUX_CONFIG(PAD_MIPI_TXP3, XGPIOC_21);
+			PINMUX_CONFIG(PAD_MIPI_TXM4, XGPIOC_18);
+			PINMUX_CONFIG(PAD_MIPI_TXP4, XGPIOC_19);
+		break;
+		case PINMUX_LVDS:
+			PINMUX_CONFIG(PAD_MIPI_TXM0, XGPIOC_12);
+			PINMUX_CONFIG(PAD_MIPI_TXP0, XGPIOC_13);
+			PINMUX_CONFIG(PAD_MIPI_TXM1, XGPIOC_14);
+			PINMUX_CONFIG(PAD_MIPI_TXP1, XGPIOC_15);
+			PINMUX_CONFIG(PAD_MIPI_TXM2, XGPIOC_16);
+			PINMUX_CONFIG(PAD_MIPI_TXP2, XGPIOC_17);
+			PINMUX_CONFIG(PAD_MIPI_TXM3, XGPIOC_20);
+			PINMUX_CONFIG(PAD_MIPI_TXP3, XGPIOC_21);
+			PINMUX_CONFIG(PAD_MIPI_TXM4, XGPIOC_18);
+			PINMUX_CONFIG(PAD_MIPI_TXP4, XGPIOC_19);
 		break;
 		default:
 			break;
@@ -157,8 +155,8 @@ void pinmux_config(int io_type)
 
 #include "../cvi_board_init.c"
 
-#if defined(CONFIG_PHY_CVITEK)
-static void cv180x_ephy_id_init(void)
+#if defined(CONFIG_PHY_CVITEK) /* config cvitek cv181x eth internal phy on ASIC board */
+static void cv181x_ephy_id_init(void)
 {
 	// set rg_ephy_apb_rw_sel 0x0804@[0]=1/APB by using APB interface
 	mmio_write_32(0x03009804, 0x0001);
@@ -194,11 +192,11 @@ static void cv180x_ephy_id_init(void)
 	mmio_write_32(0x03009804, 0x0000);
 }
 
-static void cv180x_ephy_led_pinmux(void)
+static void cv181x_ephy_led_pinmux(void)
 {
 	// LED PAD MUX
-	mmio_write_32(0x0300109c, 0x05);
-	mmio_write_32(0x030010a0, 0x05);
+	mmio_write_32(0x030010e0, 0x05);
+	mmio_write_32(0x030010e4, 0x05);
 	//(SD1_CLK selphy)
 	mmio_write_32(0x050270b0, 0x11111111);
 	//(SD1_CMD selphy)
@@ -206,30 +204,73 @@ static void cv180x_ephy_led_pinmux(void)
 }
 #endif
 
+void cpu_pwr_ctrl(void)
+{
+#if defined(CONFIG_RISCV)
+	mmio_write_32(0x01901008, 0x30001);// cortexa53_pwr_iso_en
+#elif defined(CONFIG_ARM)
+	mmio_write_32(0x01901004, 0x30001);// c906_top_pwr_iso_en
+#endif
+}
+
 int board_init(void)
 {
-	extern uint32_t BOOT0_START_TIME;
+/*
+** The default value of uart clk is 25M
+** If the UART CLK changes, you need to change the CLK source in DTS and cv181x-asic.h
+** eg:
+** cv181x-asic.h: #define CONFIG_SYS_NS16550_CLK		1188000000
+**
+** cv181x_base.dtsi: uart0 ~ uart4
+** uart0: serial@04140000 {
+**	compatible = "snps,dw-apb-uart";
+**	reg = <0x0 0x04140000 0x0 0x1000>;
+**	clock-frequency = <1188000000>;
+**	reg-shift = <2>;
+**	reg-io-width = <4>;
+**	status = "okay";
+**};
+*/
+#if CONFIG_SYS_NS16550_CLK == 396000000
+	mmio_write_32(DIV_CLK_CAM0_200 , BIT_DIV_RESET_CONT | BIT_SELT_DIV_REG | BIT_CLK_SRC |\
+	 BIT_CLK_DIV_FACT_16 | BIT_CLK_DIV_FACT_17);
+#elif CONFIG_SYS_NS16550_CLK == 594000000
+	mmio_write_32(DIV_CLK_CAM0_200 , BIT_DIV_RESET_CONT | BIT_SELT_DIV_REG | BIT_CLK_SRC |\
+	 BIT_CLK_DIV_FACT_17);
+#elif CONFIG_SYS_NS16550_CLK == 1188000000
+	mmio_write_32(DIV_CLK_CAM0_200 , BIT_DIV_RESET_CONT | BIT_SELT_DIV_REG | BIT_CLK_SRC |\
+	 BIT_CLK_DIV_FACT_16);
+#endif
+
+#ifndef CONFIG_TARGET_CVITEK_CV181X_FPGA
+	extern volatile uint32_t BOOT0_START_TIME;
 	uint16_t start_time = DIV_ROUND_UP(BOOT0_START_TIME, SYS_COUNTER_FREQ_IN_SECOND / 1000);
 
 	// Save uboot start time. time is from boot0.h
 	mmio_write_16(TIME_RECORDS_FIELD_UBOOT_START, start_time);
+#endif
 
-#if defined(CONFIG_PHY_CVITEK) /* config cvitek cv180x eth internal phy on ASIC board */
-	cv180x_ephy_id_init();
-	cv180x_ephy_led_pinmux();
+	cpu_pwr_ctrl();
+
+#if defined(CONFIG_PHY_CVITEK) /* config cvitek cv181x eth internal phy on ASIC board */
+	cv181x_ephy_id_init();
+	cv181x_ephy_led_pinmux();
 #endif
 
 #if defined(CONFIG_NAND_SUPPORT)
 	pinmux_config(PINMUX_SPI_NAND);
 #elif defined(CONFIG_SPI_FLASH)
 	pinmux_config(PINMUX_SPI_NOR);
+#elif defined(CONFIG_EMMC_SUPPORT)
+	pinmux_config(PINMUX_EMMC);
 #endif
-	// pinmux_config(PINMUX_SDIO1);
-	pinmux_config(PINMUX_USB);
-	//pinmux_config(PINMUX_SPI0);
-	//pinmux_config(PINMUX_SPI2);
+#ifdef CONFIG_DISPLAY_CVITEK_MIPI
+	pinmux_config(PINMUX_DSI);
+#elif defined(CONFIG_DISPLAY_CVITEK_LVDS)
+	pinmux_config(PINMUX_LVDS);
+#endif
+	pinmux_config(PINMUX_SDIO1);
 	cvi_board_init();
-
 	return 0;
 }
 

@@ -8,7 +8,7 @@
 #ifndef __CV180X_ASIC_H__
 #define __CV180X_ASIC_H__
 
-#include <../../../board/cvitek/cv180x/cv180x_reg.h>
+#include <../../../board/cvitek/phobos/phobos_reg.h>
 
 /* defined in cvipart.h */
 #undef CONFIG_ENV_OFFSET

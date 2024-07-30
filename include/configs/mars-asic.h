@@ -8,7 +8,7 @@
 #ifndef __CV181X_ASIC_H__
 #define __CV181X_ASIC_H__
 
-#include <../../../board/cvitek/cv181x/cv181x_reg.h>
+#include <../../../board/cvitek/mars/mars_reg.h>
 
 /* defined in cvipart.h */
 #undef CONFIG_ENV_OFFSET

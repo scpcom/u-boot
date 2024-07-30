@@ -33,8 +33,8 @@ endchoice
 
 #source "board/cvitek/cv1835/Kconfig"
 #source "board/cvitek/cv1822/Kconfig"
-source "board/cvitek/cv181x/Kconfig"
-source "board/cvitek/cv180x/Kconfig"
+source "board/cvitek/mars/Kconfig"
+source "board/cvitek/phobos/Kconfig"
 #source "board/cvitek/athena2/Kconfig"
 
 endif

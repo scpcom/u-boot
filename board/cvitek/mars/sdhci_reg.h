@@ -1,6 +1,6 @@
 #ifndef _SDHCI_REG_H
 #define _SDHCI_REG_H
-#include "cv181x_reg.h"
+#include "mars_reg.h"
 #define REG_TOP_SD_PWRSW_CTRL (0x1F4)
 
 #define REG_SDIO0_PAD_MASK (0xFFFFFFF3)

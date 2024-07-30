@@ -29,7 +29,7 @@ config TARGET_CVITEK_CV180X_FPGA
 endchoice
 
 config SYS_BOARD
-	default "cv180x"
+	default "phobos"
 
 config SYS_VENDOR
 	default "cvitek"
@@ -38,7 +38,7 @@ config SYS_CPU
 	default "generic"
 
 config SYS_CONFIG_NAME
-	default "cv180x-asic" if TARGET_CVITEK_CV180X_ASIC
+	default "phobos-asic" if TARGET_CVITEK_CV180X_ASIC
 	default "cv180x-palladium" if TARGET_CVITEK_CV180X_PALLADIUM
 	default "cv180x-fpga" if TARGET_CVITEK_CV180X_FPGA
 
