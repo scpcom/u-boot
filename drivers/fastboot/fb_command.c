@@ -456,6 +456,7 @@ static void flash(char *cmd_parameter, char *response)
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MTD) || CONFIG_IS_ENABLED(FASTBOOT_MULTI_FLASH_OPTION_MTD)
 	case BOOT_MODE_NOR:
 	case BOOT_MODE_NAND:
+	{
 		static bool mtd_flash = false;
 		if (!strncmp("mtd", cmd_parameter, 3))
 			mtd_flash = true;
@@ -471,6 +472,7 @@ static void flash(char *cmd_parameter, char *response)
 		}
 
 		return;
+	}
 #endif
 	case BOOT_MODE_EMMC:
 	case BOOT_MODE_SD:
@@ -504,6 +506,7 @@ static void erase(char *cmd_parameter, char *response)
 #ifdef CONFIG_FASTBOOT_SUPPORT_BLOCK_DEV
 	case BOOT_MODE_NOR:
 	case BOOT_MODE_NAND:
+	{
 		static bool mtd_flash = false;
 		if (!strncmp("mtd", cmd_parameter, 3))
 			mtd_flash = true;
@@ -520,6 +523,7 @@ static void erase(char *cmd_parameter, char *response)
 		/* erase blk dev */
 		fastboot_blk_erase(cmd_parameter, response);
 		return;
+	}
 #endif
 	case BOOT_MODE_EMMC:
 	case BOOT_MODE_SD:

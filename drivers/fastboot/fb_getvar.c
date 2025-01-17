@@ -130,16 +130,19 @@ static int getvar_get_part_info(const char *part_name, char *response,
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MTD) || CONFIG_IS_ENABLED(FASTBOOT_MULTI_FLASH_OPTION_MTD)
 	case BOOT_MODE_NOR:
 	case BOOT_MODE_NAND:
+	{
 		struct part_info *mtd_part_info;
 		r = fastboot_mtd_get_part_info(part_name, &mtd_part_info, response);
 		if (r >= 0 && size)
 			*size = mtd_part_info->size;
+	}
 		break;
 #endif
 
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC) || CONFIG_IS_ENABLED(FASTBOOT_MULTI_FLASH_OPTION_MMC)
 	case BOOT_MODE_EMMC:
 	case BOOT_MODE_SD:
+	{
 		struct blk_desc *dev_desc;
 		struct disk_partition part_info;
 
@@ -147,6 +150,7 @@ static int getvar_get_part_info(const char *part_name, char *response,
 						response);
 		if (r >= 0 && size)
 			*size = part_info.size * part_info.blksz;
+	}
 		break;
 #endif
 	default:
@@ -250,6 +254,7 @@ static void getvar_mtd_size(char *var_parameter, char *response)
 	case BOOT_MODE_NOR:
 	case BOOT_MODE_NAND:
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MTD) || CONFIG_IS_ENABLED(FASTBOOT_MULTI_FLASH_OPTION_MTD)
+	{
 		/*if select nor/nand, it would check if mtd dev exists or not*/
 		struct mtd_info *mtd;
 		mtd_probe_devices();
@@ -273,6 +278,7 @@ static void getvar_mtd_size(char *var_parameter, char *response)
 		}
 		fastboot_fail("flash to mtd dev but can not get mtd size", response);
 		return;
+	}
 #endif
 	default:
 		fastboot_okay("NULL", response);

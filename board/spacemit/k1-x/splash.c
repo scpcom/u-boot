@@ -149,6 +149,7 @@ int splash_screen_prepare(void)
 		env_set("splashsource", "nand_fs");
 		break;
 	case BOOT_MODE_NOR:
+	{
 		int blk_index;
 		char *blk_name;
 
@@ -163,6 +164,7 @@ int splash_screen_prepare(void)
 			env_set("splashsource", "nvme_fs");
 		else
 			printf("not defind blk dev while prepare for splash screen\n");
+	}
 		break;
 	case BOOT_MODE_SHELL:
 	case BOOT_MODE_USB:

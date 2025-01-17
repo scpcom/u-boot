@@ -284,6 +284,7 @@ static int load_from_device(struct cmd_tbl *cmdtp, char *load_str,
 
 #ifdef CONFIG_USB_STORAGE
 	case DEVICE_USB:
+	{
 		static bool usb_init_flag = false;
 		if (!usb_init_flag){
 			usb_init();
@@ -313,6 +314,7 @@ static int load_from_device(struct cmd_tbl *cmdtp, char *load_str,
 				break;
 			}
 		}
+	}
 		break;
 #else
 		printf("USB storage support is not enabled.\n");
@@ -959,6 +961,7 @@ void get_mtd_partition_file(struct flash_dev *fdev)
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MTD) || CONFIG_IS_ENABLED(FASTBOOT_MULTI_FLASH_OPTION_MTD)
 	case BOOT_MODE_NOR:
 	case BOOT_MODE_NAND:
+	{
 		/*if select nor/nand, it would check if mtd dev exists or not*/
 		struct mtd_info *mtd;
 		mtd_probe_devices();
@@ -982,6 +985,7 @@ void get_mtd_partition_file(struct flash_dev *fdev)
 		pr_info("get mtd partition file name:%s, \n", tmp_file);
 		strcpy(fdev->partition_file_name, tmp_file);
 		return;
+	}
 #endif
 	default:
 		return;

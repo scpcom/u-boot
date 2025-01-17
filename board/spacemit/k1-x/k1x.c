@@ -563,6 +563,7 @@ void import_env_from_bootfs(void)
 #endif
 		break;
 	case BOOT_MODE_NOR:
+	{
 		struct blk_desc *dev_desc;
 		char *blk_name;
 		int blk_index;
@@ -575,10 +576,12 @@ void import_env_from_bootfs(void)
 		dev_desc = blk_get_dev(blk_name, blk_index);
 		if (dev_desc)
 			_load_env_from_blk(dev_desc, blk_name, blk_index);
+	}
 		break;
 	case BOOT_MODE_EMMC:
 	case BOOT_MODE_SD:
 #ifdef CONFIG_MMC
+	{
 		int dev;
 		struct mmc *mmc;
 
@@ -593,6 +596,7 @@ void import_env_from_bootfs(void)
 		}
 
 		_load_env_from_blk(mmc_get_blk_desc(mmc), "mmc", dev);
+	}
 		break;
 #endif
 	default:
@@ -657,6 +661,7 @@ void setenv_boot_mode(void)
 		env_set("boot_device", "nand");
 		break;
 	case BOOT_MODE_NOR:
+	{
 		char *blk_name;
 		int blk_index;
 
@@ -667,6 +672,7 @@ void setenv_boot_mode(void)
 
 		env_set("boot_device", "nor");
 		env_set("boot_devnum", simple_itoa(blk_index));
+	}
 		break;
 	case BOOT_MODE_EMMC:
 		env_set("boot_device", "mmc");

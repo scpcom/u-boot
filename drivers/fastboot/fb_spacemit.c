@@ -74,6 +74,7 @@ int _write_gpt_partition(struct flash_dev *fdev)
 #if CONFIG_IS_ENABLED(FASTBOOT_SUPPORT_BLOCK_DEV)
 	case BOOT_MODE_NOR:
 	case BOOT_MODE_NAND:
+	{
 		char *blk_name;
 		int blk_index;
 
@@ -91,6 +92,7 @@ int _write_gpt_partition(struct flash_dev *fdev)
 			ret = -1;
 			goto err;
 		}
+	}
 		break;
 #endif
 	default:
