@@ -642,7 +642,7 @@ enum command_ret_t cmd_process(int flag, int argc, char *const argv[],
 	return rc;
 }
 
-int cmd_process_error(struct cmd_tbl *cmdtp, int err)
+enum command_ret_t cmd_process_error(struct cmd_tbl *cmdtp, int err)
 {
 	if (err == CMD_RET_USAGE)
 		return CMD_RET_USAGE;
