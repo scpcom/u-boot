@@ -207,7 +207,7 @@ static struct panel_desc_s panel_desc = {
         .dsi_init_cmds = dsi_init_cmds_zct2133v1_800x1280,
         .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_zct2133v1_800x1280)
 };
-#elif defined(MIPI_PANEL_mtd700920b)
+#elif defined(MIPI_PANEL_MTD700920B) || defined(MIPI_PANEL_mtd700920b)
 static struct panel_desc_s panel_desc = {
         .panel_name = "mtd700920b-800x1280",
         .dev_cfg = &dev_cfg_mtd700920b_800x1280,
