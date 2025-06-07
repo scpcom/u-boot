@@ -311,6 +311,12 @@ static int do_startvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 			panel_desc.hs_timing_cfg = &hs_timing_cfg_zct2133v1_800x1280;
 			panel_desc.dsi_init_cmds = dsi_init_cmds_zct2133v1_800x1280;
 			panel_desc.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_zct2133v1_800x1280);
+		} else if (strcmp(panel_name,"milkv_8hd") == 0) { // 8 inch
+			panel_desc.panel_name = "MILKV_8HD-800x1280";
+			panel_desc.dev_cfg = &dev_cfg_milkv_8hd_800x1280;
+			panel_desc.hs_timing_cfg = &hs_timing_cfg_milkv_8hd_800x1280;
+			panel_desc.dsi_init_cmds = dsi_init_cmds_milkv_8hd_800x1280;
+			panel_desc.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_milkv_8hd_800x1280);
 		} else if (strcmp(panel_name,"mtd700920b") == 0) { // 7inch
 			panel_desc.panel_name = "mtd700920b-800x1280";
 			panel_desc.dev_cfg = &dev_cfg_mtd700920b_800x1280;
