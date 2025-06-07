@@ -182,7 +182,7 @@ static struct panel_desc_s panel_desc = {
         .dsi_init_cmds = dsi_init_cmds_st7701_368x552_alt0,
         .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_368x552_alt0)
 };
-#elif defined(MIPI_PANEL_ST7701_UNKNOWN)
+#elif defined(MIPI_PANEL_ST7701_D310T9362V1) || defined(MIPI_PANEL_ST7701_UNKNOWN)
 #include "dsi_st7701_d310t9362v1.h"
 static struct panel_desc_s panel_desc = {
         .panel_name = "ST7701-480x800",
