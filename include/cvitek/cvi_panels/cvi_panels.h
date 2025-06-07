@@ -28,6 +28,7 @@ struct panel_desc_s {
 #include "dsi_st7701_d300fpc9307a.h"
 #include "dsi_zct2133v1.h"
 #include "dsi_mtd70092b.h"
+#include "dsi_milkv_8hd.h"
 #include "dsi_st7701_dxq5d0019b480854.h"
 #include "dsi_st7701_dxq5d0019_V0.h"
 #include "dsi_st7701_hd228001c31.h"
@@ -71,7 +72,6 @@ static struct panel_desc_s panel_desc = {
 	.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_jd9366ab_800x1280)
 };
 #elif defined(MIPI_PANEL_MILKV_8HD)
-#include "dsi_milkv_8hd.h"
 static struct panel_desc_s panel_desc = {
 	.panel_name = "MILKV_8HD-800x1280",
 	.dev_cfg = &dev_cfg_milkv_8hd_800x1280,
