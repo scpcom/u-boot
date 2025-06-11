@@ -27,6 +27,7 @@ struct panel_desc_s {
 
 #include "dsi_st7701_d300fpc9307a.h"
 #include "dsi_zct2133v1.h"
+#include "dsi_lt9611.h"
 #include "dsi_mtd70092b.h"
 #include "dsi_milkv_8hd.h"
 #include "dsi_st7701_dxq5d0019b480854.h"
@@ -206,6 +207,54 @@ static struct panel_desc_s panel_desc = {
         .hs_timing_cfg = &hs_timing_cfg_zct2133v1_800x1280,
         .dsi_init_cmds = dsi_init_cmds_zct2133v1_800x1280,
         .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_zct2133v1_800x1280)
+};
+#elif defined(MIPI_PANEL_LT9611_1920X1080_60HZ)
+static struct panel_desc_s panel_desc = {
+	.panel_name = "LT9611-1920x1080",
+	.dev_cfg = &dev_cfg_lt9611_1920x1080_60Hz,
+	.hs_timing_cfg = &hs_timing_cfg_lt9611,
+	.dsi_init_cmds = NULL,
+	.dsi_init_cmds_size = 0
+};
+#elif defined(MIPI_PANEL_LT9611_1920X1080_30HZ)
+static struct panel_desc_s panel_desc = {
+	.panel_name = "LT9611-1920x1080p30",
+	.dev_cfg = &dev_cfg_lt9611_1920x1080_30Hz,
+	.hs_timing_cfg = &hs_timing_cfg_lt9611,
+	.dsi_init_cmds = NULL,
+	.dsi_init_cmds_size = 0
+};
+#elif defined(MIPI_PANEL_LT9611_1280X720_60HZ)
+static struct panel_desc_s panel_desc = {
+	.panel_name = "LT9611-1280x720",
+	.dev_cfg = &dev_cfg_lt9611_1280x720_60Hz,
+	.hs_timing_cfg = &hs_timing_cfg_lt9611,
+	.dsi_init_cmds = NULL,
+	.dsi_init_cmds_size = 0
+};
+#elif defined(MIPI_PANEL_LT9611_1024X768_60HZ)
+static struct panel_desc_s panel_desc = {
+	.panel_name = "LT9611-1024x768",
+	.dev_cfg = &dev_cfg_lt9611_1024x768_60Hz,
+	.hs_timing_cfg = &hs_timing_cfg_lt9611,
+	.dsi_init_cmds = NULL,
+	.dsi_init_cmds_size = 0
+};
+#elif defined(MIPI_PANEL_LT9611_1280X1024_60HZ)
+static struct panel_desc_s panel_desc = {
+	.panel_name = "LT9611-1280x1024",
+	.dev_cfg = &dev_cfg_lt9611_1280x1024_60Hz,
+	.hs_timing_cfg = &hs_timing_cfg_lt9611,
+	.dsi_init_cmds = NULL,
+	.dsi_init_cmds_size = 0
+};
+#elif defined(MIPI_PANEL_LT9611_1600X1200_60HZ)
+static struct panel_desc_s panel_desc = {
+	.panel_name = "LT9611-1600x1200",
+	.dev_cfg = &dev_cfg_lt9611_1600x1200_60Hz,
+	.hs_timing_cfg = &hs_timing_cfg_lt9611,
+	.dsi_init_cmds = NULL,
+	.dsi_init_cmds_size = 0
 };
 #elif defined(MIPI_PANEL_MTD700920B) || defined(MIPI_PANEL_mtd700920b)
 static struct panel_desc_s panel_desc = {

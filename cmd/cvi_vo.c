@@ -311,6 +311,42 @@ static int do_startvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 			panel_desc.hs_timing_cfg = &hs_timing_cfg_zct2133v1_800x1280;
 			panel_desc.dsi_init_cmds = dsi_init_cmds_zct2133v1_800x1280;
 			panel_desc.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_zct2133v1_800x1280);
+		} else if (strcmp(panel_name,"lt9611_1920x1080_60hz") == 0) { // hdmi
+			panel_desc.panel_name = "LT9611-1920x1080";;
+			panel_desc.dev_cfg = &dev_cfg_lt9611_1920x1080_60Hz;
+			panel_desc.hs_timing_cfg = &hs_timing_cfg_lt9611;
+			panel_desc.dsi_init_cmds = NULL;
+			panel_desc.dsi_init_cmds_size = 0;
+		} else if (strcmp(panel_name,"lt9611_1920x1080_30hz") == 0) { // hdmi
+			panel_desc.panel_name = "LT9611-1920x1080p30";;
+			panel_desc.dev_cfg = &dev_cfg_lt9611_1920x1080_30Hz;
+			panel_desc.hs_timing_cfg = &hs_timing_cfg_lt9611;
+			panel_desc.dsi_init_cmds = NULL;
+			panel_desc.dsi_init_cmds_size = 0;
+		} else if (strcmp(panel_name,"lt9611_1280x720_60hz") == 0) { // hdmi
+			panel_desc.panel_name = "LT9611-1280x720";;
+			panel_desc.dev_cfg = &dev_cfg_lt9611_1280x720_60Hz;
+			panel_desc.hs_timing_cfg = &hs_timing_cfg_lt9611;
+			panel_desc.dsi_init_cmds = NULL;
+			panel_desc.dsi_init_cmds_size = 0;
+		} else if (strcmp(panel_name,"lt9611_1024x768_60hz") == 0) { // hdmi
+			panel_desc.panel_name = "LT9611-1024x768";;
+			panel_desc.dev_cfg = &dev_cfg_lt9611_1024x768_60Hz;
+			panel_desc.hs_timing_cfg = &hs_timing_cfg_lt9611;
+			panel_desc.dsi_init_cmds = NULL;
+			panel_desc.dsi_init_cmds_size = 0;
+		} else if (strcmp(panel_name,"lt9611_1280x1024_60hz") == 0) { // hdmi
+			panel_desc.panel_name = "LT9611-1280x1024";;
+			panel_desc.dev_cfg = &dev_cfg_lt9611_1280x1024_60Hz;
+			panel_desc.hs_timing_cfg = &hs_timing_cfg_lt9611;
+			panel_desc.dsi_init_cmds = NULL;
+			panel_desc.dsi_init_cmds_size = 0;
+		} else if (strcmp(panel_name,"lt9611_1600x1200_60hz") == 0) { // hdmi
+			panel_desc.panel_name = "LT9611-1600x1200";;
+			panel_desc.dev_cfg = &dev_cfg_lt9611_1600x1200_60Hz;
+			panel_desc.hs_timing_cfg = &hs_timing_cfg_lt9611;
+			panel_desc.dsi_init_cmds = NULL;
+			panel_desc.dsi_init_cmds_size = 0;
 		} else if (strcmp(panel_name,"milkv_8hd") == 0) { // 8 inch
 			panel_desc.panel_name = "MILKV_8HD-800x1280";
 			panel_desc.dev_cfg = &dev_cfg_milkv_8hd_800x1280;
