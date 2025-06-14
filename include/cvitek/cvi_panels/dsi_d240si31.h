@@ -163,5 +163,5 @@ const struct dsc_instr dsi_init_cmds_d240si31[] = {
 };
 
 #else
-#error "MIPI_TX_PARAM multi-delcaration!!"
+#error "_MIPI_TX_PARAM_D240SI31_H_ multi-delcaration!!"
 #endif
