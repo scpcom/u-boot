@@ -30,7 +30,7 @@
 #define D240SI31_HBP		30
 #define D240SI31_HFP		30
 
-#define DXQ_PIXEL_CLK(x) ((x##_VACT + x##_VSA + x##_VBP + x##_VFP) \
+#define D240SI31_PIXEL_CLK(x) ((x##_VACT + x##_VSA + x##_VBP + x##_VFP) \
 	* (x##_HACT + x##_HSA + x##_HBP + x##_HFP) * 60 / 1000)
 
 struct combo_dev_cfg_s dev_cfg_d240si31 = {
@@ -52,7 +52,7 @@ struct combo_dev_cfg_s dev_cfg_d240si31 = {
 		.vid_vsa_pos_polarity = true,
 		.vid_hsa_pos_polarity = false,
 	},
-	.pixel_clk = DXQ_PIXEL_CLK(D240SI31),
+	.pixel_clk = D240SI31_PIXEL_CLK(D240SI31),
 };
 
 const struct hs_settle_s hs_timing_cfg_d240si31 = { .prepare = 6, .zero = 32, .trail = 1 };
