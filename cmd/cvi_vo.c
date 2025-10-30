@@ -7,6 +7,7 @@
 #include <command.h>
 #include <common.h>
 #include <log.h>
+#include <mmio.h>
 #include <stdlib.h>
 #include <linux/delay.h>
 #include <cpu_func.h>
@@ -314,6 +315,67 @@ static bool fat_file_exists(const char *filename)
     }
 }
 
+static void kvm_hw_init(void)
+{
+	uint8_t kvm_alpha = 0;
+	uint8_t kvm_beta_pcie = 1;
+	uint8_t oled_exists = 0;
+
+	char *kvm_hw = NULL;
+	char buff[255];
+	if(get_value_from_header("kvm", "hw", buff, sizeof(buff)) == 0)
+		kvm_hw = buff;
+	else
+		kvm_hw = env_get("kvm_hw");
+
+	if (strcmp(kvm_hw,"alpha") == 0) {
+		kvm_alpha = 1;
+	} else if (strcmp(kvm_hw,"beta") == 0) {
+		kvm_beta_pcie = 1;
+	} else if (strcmp(kvm_hw,"pcie") == 0) {
+		kvm_beta_pcie = 1;
+	}
+
+	if (kvm_alpha) {
+		mmio_write_32(0x030010D0, 0x2); // I2C1_SCL
+		mmio_write_32(0x030010DC, 0x2); // I2C1_SDA
+		mmio_write_32(0x030010D4, 0x3); // GPIOE 19 OLED_RST
+	}
+
+	if (kvm_beta_pcie) {
+		mmio_write_32(0x0300103C, 0x3); // GPIOA 15 I2C5_SCL (bitbang)
+		mmio_write_32(0x03001058, 0x3); // GPIOA 27 I2C5_SDA (bitbang)
+		mmio_write_32(0x03001050, 0x3); // GPIOA 22 OLED_RST
+	}
+
+	if (kvm_alpha || kvm_beta_pcie) {
+		mmio_write_32(0x03001070, 0x2); // GPIOA 28 UART2 TX
+		mmio_write_32(0x03001074, 0x2); // GPIOA 29 UART2 RX
+		mmio_write_32(0x03001068, 0x6); // GPIOA 18 UART1 RX
+		mmio_write_32(0x03001064, 0x6); // GPIOA 19 UART1 TX
+	}
+
+	if (!kvm_alpha && !kvm_beta_pcie) {
+		return;
+	}
+
+	char *kvm_oled = NULL;
+	if(get_value_from_header("kvm", "oled", buff, sizeof(buff)) == 0)
+		kvm_oled = buff;
+	else
+		kvm_oled = env_get("kvm_oled");
+
+	if (strcmp(kvm_oled,"exists") == 0) {
+		oled_exists = 1;
+	}
+
+	if (!oled_exists) {
+		return;
+	}
+
+	//
+}
+
 /***************************************************/
 static int do_startvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -500,6 +562,8 @@ static int do_startvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 	default:
 	break;
 	}
+
+	kvm_hw_init();
 
 	return CMD_RET_SUCCESS;
 }
