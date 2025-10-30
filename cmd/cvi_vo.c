@@ -21,6 +21,7 @@
 #include <asm/io.h>
 #include "part.h"
 #include "fs.h"
+#include "kvm_oled_ctrl.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -315,6 +316,33 @@ static bool fat_file_exists(const char *filename)
     }
 }
 
+static void oled_show_string(char* str)
+{
+	OLED_state = 1;
+
+	OLED_Init();
+	OLED_ColorTurn(0);              //0正常显示 1 反色显示
+	OLED_DisplayTurn(0);    //0正常显示 1 屏幕翻转显示
+	OLED_Clear();
+
+	mdelay(OLED_DELAY);
+
+	if(kvm_hw_ver != 2){
+		OLED_Clear();
+		// OLED_Revolve();
+		//OLED_ShowLogo();
+		//OLED_ShowSipeedLogo();
+	} else {
+		OLED_Revolve();
+		//OLED_Showline_1();
+		//OLED_ShowSipeedLogo();
+	}
+
+	OLED_ShowString(0, 1, str, 16);
+
+	mdelay(OLED_DELAY);
+}
+
 static void kvm_hw_init(void)
 {
 	uint8_t kvm_alpha = 0;
@@ -330,10 +358,13 @@ static void kvm_hw_init(void)
 
 	if (strcmp(kvm_hw,"alpha") == 0) {
 		kvm_alpha = 1;
+		kvm_hw_ver = 0;
 	} else if (strcmp(kvm_hw,"beta") == 0) {
 		kvm_beta_pcie = 1;
+		kvm_hw_ver = 1;
 	} else if (strcmp(kvm_hw,"pcie") == 0) {
 		kvm_beta_pcie = 1;
+		kvm_hw_ver = 2;
 	}
 
 	if (kvm_alpha) {
@@ -373,7 +404,7 @@ static void kvm_hw_init(void)
 		return;
 	}
 
-	//
+	oled_show_string("Loading");
 }
 
 /***************************************************/
