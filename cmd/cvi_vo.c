@@ -318,7 +318,10 @@ static bool fat_file_exists(const char *filename)
 
 static void oled_show_string(char* str)
 {
-	OLED_state = 1;
+	OLED_state = oled_probe();
+	if(!OLED_state){
+		return;
+	}
 
 	OLED_Init();
 	OLED_ColorTurn(0);              //0正常显示 1 反色显示

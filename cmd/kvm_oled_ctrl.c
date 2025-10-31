@@ -1,29 +1,277 @@
 #include <common.h>
+#include <dm.h>
+#include <errno.h>
+#include <i2c.h>
+#include <asm/gpio.h>
 #include <asm/io.h>
+#include <linux/delay.h>
+#include <linux/err.h>
 
 #include "kvm_oled_const.h"
 #include "kvm_oled_ctrl.h"
 
-//i2c::I2C oled_alpha(1, i2c::Mode::MASTER);
-//i2c::I2C oled_beta(5, i2c::Mode::MASTER);
+#define I2C_oled_alpha	1 // i2c::Mode::MASTER
+#define I2C_oled_beta	5 // i2c::Mode::MASTER
+
+#define GPIO_oled_rst_alpha	"porte19" // 371
+#define GPIO_oled_rst_beta	"porta22" // 502
 
 uint8_t OLED_state = 0;
 uint8_t kvm_hw_ver = 0;
 
 #define I2C_ERR_IO 1
 
-int oled_alpha_writeto(int addr, const uint8_t *data, int len)
+#if CONFIG_IS_ENABLED(DM_I2C)
+#define DEFAULT_ADDR_LEN	(-1)
+#else
+#define DEFAULT_ADDR_LEN	1
+#endif
+
+#if CONFIG_IS_ENABLED(DM_I2C)
+static struct udevice *i2c_cur_bus;
+
+static int oled_i2c_set_bus_num(unsigned int busnum)
 {
-	//
+	struct udevice *bus;
+	int ret;
+
+	ret = uclass_get_device_by_seq(UCLASS_I2C, busnum, &bus);
+	if (ret) {
+		debug("%s: No bus %d\n", __func__, busnum);
+		return ret;
+	}
+	i2c_cur_bus = bus;
 
 	return 0;
 }
 
-int oled_beta_writeto(int addr, const uint8_t *data, int len)
+static int i2c_get_cur_bus(struct udevice **busp)
 {
-	//
+#ifdef CONFIG_I2C_SET_DEFAULT_BUS_NUM
+	if (!i2c_cur_bus) {
+		if (oled_i2c_set_bus_num(CONFIG_I2C_DEFAULT_BUS_NUMBER)) {
+			printf("Default I2C bus %d not found\n",
+			       CONFIG_I2C_DEFAULT_BUS_NUMBER);
+			return -ENODEV;
+		}
+	}
+#endif
+
+	if (!i2c_cur_bus) {
+		puts("No I2C bus selected\n");
+		return -ENODEV;
+	}
+	*busp = i2c_cur_bus;
 
 	return 0;
+}
+
+static int i2c_get_cur_bus_chip(uint chip_addr, struct udevice **devp)
+{
+	struct udevice *bus;
+	int ret;
+
+	ret = i2c_get_cur_bus(&bus);
+	if (ret)
+		return ret;
+
+	return i2c_get_chip(bus, chip_addr, 1, devp);
+}
+
+#else
+static int oled_i2c_set_bus_num(unsigned int busnum)
+{
+	return i2c_set_bus_num(busnum);
+}
+
+int __weak i2c_set_bus_num(unsigned int bus)
+{
+	return 0;
+}
+
+int __weak i2c_write(uchar chip, uint addr, int alen, uchar *buffer, int len)
+{
+	return -1;
+}
+#endif
+
+static int i2c_mw(uint chip, ulong addr, int alen, const uchar *data, int count)
+{
+	uchar byte;
+	int ret;
+#if CONFIG_IS_ENABLED(DM_I2C)
+	struct udevice *dev;
+#endif
+
+	//alen = get_alen(argv[2], DEFAULT_ADDR_LEN);
+	if (alen > 3)
+		return -I2C_ERR_IO;
+
+#if CONFIG_IS_ENABLED(DM_I2C)
+	ret = i2c_get_cur_bus_chip(chip, &dev);
+	if (!ret && alen != -1)
+		ret = i2c_set_chip_offset_len(dev, alen);
+	if (ret)
+		return -I2C_ERR_IO;
+#endif
+
+#if 0
+#if CONFIG_IS_ENABLED(DM_I2C)
+	ret = dm_i2c_write(dev, addr, data, count);
+#else
+	ret = i2c_write(chip, addr, alen, (uchar *)data, count);
+#endif
+	if (ret)
+		return -I2C_ERR_IO;
+
+	udelay(11000);
+
+#else
+	while (count-- > 0) {
+		byte = *data++;
+
+#if CONFIG_IS_ENABLED(DM_I2C)
+		ret = dm_i2c_write(dev, addr++, &byte, 1);
+#else
+		ret = i2c_write(chip, addr++, alen, &byte, 1);
+#endif
+		if (ret)
+			return -I2C_ERR_IO;
+		/*
+		 * Wait for the write to complete.  The write can take
+		 * up to 10mSec (we allow a little more time).
+		 */
+/*
+ * No write delay with FRAM devices.
+ */
+#if !defined(CONFIG_SYS_I2C_FRAM)
+		udelay(11000);
+#endif
+	}
+#endif
+
+	return 0;
+}
+
+static int gpio_get_description(struct udevice *dev, const char *bank_name,
+				 int offset)
+{
+	char buf[80];
+	struct gpio_desc desc;
+	int gpio;
+	int ret;
+
+	ret = gpio_get_function(dev, offset, NULL);
+	if (ret < 0)
+		goto err;
+	//if (!show_all && !(*flagsp & FLAG_SHOW_ALL) && ret == GPIOF_UNUSED)
+	//	return NULL;
+
+	ret = gpio_get_status(dev, offset, buf, sizeof(buf));
+	if (ret)
+		goto err;
+
+	desc.dev = dev;
+	desc.flags = GPIOD_IS_OUT;
+	desc.offset = offset;
+
+	gpio = gpio_get_number(&desc);
+
+	return gpio;
+err:
+	printf("Error %d\n", ret);
+	return ret;
+}
+
+static int name_to_gpio_num(const char *gpio_name)
+{
+	struct udevice *dev;
+	int banklen;
+	int ret;
+
+	if (gpio_name && !*gpio_name)
+		gpio_name = NULL;
+	for (ret = uclass_first_device(UCLASS_GPIO, &dev);
+	     dev;
+	     ret = uclass_next_device(&dev)) {
+		const char *bank_name;
+		int num_bits;
+
+		bank_name = gpio_get_bank_info(dev, &num_bits);
+		if (!num_bits) {
+			debug("GPIO device %s has no bits\n", dev->name);
+			continue;
+		}
+		banklen = bank_name ? strlen(bank_name) : 0;
+
+		if (!gpio_name || !bank_name ||
+		    !strncasecmp(gpio_name, bank_name, banklen)) {
+			const char *p;
+			int offset;
+			int gpio;
+
+			p = gpio_name + banklen;
+			if (gpio_name && *p) {
+				offset = dectoul(p, NULL);
+				gpio = gpio_get_description(dev, bank_name, offset);
+				printf("Bank %s Offset %d = %d\n", bank_name, offset, gpio);
+				return gpio;
+			}
+		}
+	}
+
+	return -ENODEV;
+}
+
+static int oled_gpio_out(const char *str_gpio, int value)
+{
+	int ret;
+	unsigned int gpio;
+
+	gpio = name_to_gpio_num(str_gpio);
+	if (gpio < 0)
+		return -1;
+
+	/* grab the pin before we tweak it */
+	ret = gpio_request(gpio, "cmd_gpio");
+	if (ret && ret != -EBUSY) {
+		printf("gpio: requesting pin %u failed\n", gpio);
+		return -1;
+	}
+
+	gpio_direction_output(gpio, value);
+
+	int nval = gpio_get_value(gpio);
+
+	if (IS_ERR_VALUE(nval)) {
+		printf("   Warning: no access to GPIO output value\n");
+		goto err;
+	} else if (nval != value) {
+		printf("   Warning: value of pin is still %d\n", nval);
+		goto err;
+	}
+
+	if (ret != -EBUSY)
+		gpio_free(gpio);
+
+	return 0;
+
+err:
+	if (ret != -EBUSY)
+		gpio_free(gpio);
+	return -1;
+}
+
+int oled_alpha_writeto(int addr, const uint8_t *data, int len)
+{
+	// I2C_oled_alpha
+	return i2c_mw(addr, 0, DEFAULT_ADDR_LEN, data, len);
+}
+
+int oled_beta_writeto(int addr, const uint8_t *data, int len)
+{
+	// I2C_oled_beta
+	return i2c_mw(addr, 0, DEFAULT_ADDR_LEN, data, len);
 }
 
 /* mode = OLED_CMD
@@ -53,8 +301,7 @@ void oled_write_register(uint8_t mode, uint8_t data)
 	return;
 }
 
-#if 0
-int oled_exist(void)
+int oled_probe(void)
 {
     // gpio::GPIO oled_rst("GPIOP19", gpio::Mode::OUT, gpio::Pull::PULL_UP);
     // oled_rst.high();
@@ -62,6 +309,7 @@ int oled_exist(void)
     // system("devmem 0x030010D0 32 0x2");
     // system("devmem 0x030010DC 32 0x2");
 
+#if 0
 	if(access("/etc/kvm/hw", F_OK) == 0){
 		uint8_t RW_Data[2];
 		FILE *fp = fopen("/etc/kvm/hw", "r");
@@ -70,29 +318,35 @@ int oled_exist(void)
 		if(RW_Data[0] == 'b') kvm_hw_ver = 1;
 		else if(RW_Data[0] == 'p') kvm_hw_ver = 2;
 	}
+#endif
 
 	uint8_t buf[2];
 
 	buf[0] = OLED_CMD;
 	buf[1] = 0xAE;
 	if(kvm_hw_ver == 0){
+		oled_gpio_out(GPIO_oled_rst_alpha, 1);
+		oled_i2c_set_bus_num(I2C_oled_alpha);
 		if(oled_alpha_writeto(OLED_ADDR, buf, 2) == (int)-I2C_ERR_IO){
 			return 0;
 		}
 	} else if(kvm_hw_ver == 1){
 		printf("beta\r\n");
+		oled_gpio_out(GPIO_oled_rst_beta, 1);
+		oled_i2c_set_bus_num(I2C_oled_beta);
 		if(oled_beta_writeto(OLED_ADDR, buf, 2) == (int)-I2C_ERR_IO){
 			return 0;
 		}
 	} else if(kvm_hw_ver == 2){
 		printf("PCIe\r\n");
+		oled_gpio_out(GPIO_oled_rst_beta, 1);
+		oled_i2c_set_bus_num(I2C_oled_beta);
 		if(oled_beta_writeto(OLED_PCIe_ADDR, buf, 2) == (int)-I2C_ERR_IO){
 			return 0;
 		}
 	}
 	return 1;
 }
-#endif
 
 // 坐标设置
 void OLED_Set_Pos(uint8_t x, uint8_t y) 
