@@ -266,10 +266,24 @@ static int i2c_gpio_read_data(struct i2c_gpio_bus *bus, uchar chip,
 	return 0;
 }
 
+static int i2c_gpio_check_gpios(struct udevice *dev, struct gpio_desc *desc, const char *name)
+{
+	int ret = 0;
+
+	if (!dm_gpio_is_valid(desc)) {
+		ret = gpio_request_by_name(dev, name, 0, desc, 0);
+	}
+
+	return ret;
+}
+
 static int i2c_gpio_xfer(struct udevice *dev, struct i2c_msg *msg, int nmsgs)
 {
 	struct i2c_gpio_bus *bus = dev_get_priv(dev);
 	int ret;
+
+	i2c_gpio_check_gpios(dev, &bus->gpios[PIN_SDA], "sda-gpios");
+	i2c_gpio_check_gpios(dev, &bus->gpios[PIN_SCL], "scl-gpios");
 
 	for (; nmsgs > 0; nmsgs--, msg++) {
 		bool next_is_read = nmsgs > 1 && (msg[1].flags & I2C_M_RD);
