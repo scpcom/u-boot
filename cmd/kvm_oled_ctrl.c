@@ -95,16 +95,16 @@ int __weak i2c_write(uchar chip, uint addr, int alen, uchar *buffer, int len)
 }
 #endif
 
-static int i2c_mw(uint chip, ulong addr, int alen, const uchar *data, int count)
+static int oled_i2c_out(uint chip, ulong addr, int alen, const uchar *data, int count)
 {
-	uchar byte;
 	int ret;
 #if CONFIG_IS_ENABLED(DM_I2C)
 	struct udevice *dev;
 #endif
 
-	//alen = get_alen(argv[2], DEFAULT_ADDR_LEN);
 	if (alen > 3)
+		return -I2C_ERR_IO;
+	if (count < 1)
 		return -I2C_ERR_IO;
 
 #if CONFIG_IS_ENABLED(DM_I2C)
@@ -115,7 +115,6 @@ static int i2c_mw(uint chip, ulong addr, int alen, const uchar *data, int count)
 		return -I2C_ERR_IO;
 #endif
 
-#if 0
 #if CONFIG_IS_ENABLED(DM_I2C)
 	ret = dm_i2c_write(dev, addr, data, count);
 #else
@@ -123,32 +122,6 @@ static int i2c_mw(uint chip, ulong addr, int alen, const uchar *data, int count)
 #endif
 	if (ret)
 		return -I2C_ERR_IO;
-
-	udelay(11000);
-
-#else
-	while (count-- > 0) {
-		byte = *data++;
-
-#if CONFIG_IS_ENABLED(DM_I2C)
-		ret = dm_i2c_write(dev, addr++, &byte, 1);
-#else
-		ret = i2c_write(chip, addr++, alen, &byte, 1);
-#endif
-		if (ret)
-			return -I2C_ERR_IO;
-		/*
-		 * Wait for the write to complete.  The write can take
-		 * up to 10mSec (we allow a little more time).
-		 */
-/*
- * No write delay with FRAM devices.
- */
-#if !defined(CONFIG_SYS_I2C_FRAM)
-		udelay(11000);
-#endif
-	}
-#endif
 
 	return 0;
 }
@@ -262,16 +235,16 @@ err:
 	return -1;
 }
 
-int oled_alpha_writeto(int addr, const uint8_t *data, int len)
+static int oled_alpha_writeto(int addr, const uint8_t *data, int len)
 {
 	// I2C_oled_alpha
-	return i2c_mw(addr, 0, DEFAULT_ADDR_LEN, data, len);
+	return oled_i2c_out(addr, data[0], DEFAULT_ADDR_LEN, &data[1], len-1);
 }
 
-int oled_beta_writeto(int addr, const uint8_t *data, int len)
+static int oled_beta_writeto(int addr, const uint8_t *data, int len)
 {
 	// I2C_oled_beta
-	return i2c_mw(addr, 0, DEFAULT_ADDR_LEN, data, len);
+	return oled_i2c_out(addr, data[0], DEFAULT_ADDR_LEN, &data[1], len-1);
 }
 
 /* mode = OLED_CMD
