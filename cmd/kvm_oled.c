@@ -343,3 +343,30 @@ U_BOOT_CMD(stopoled
 	, "    - stopoled [dev]"
 );
 
+#if !CONFIG_IS_ENABLED(CMD_CVI_VO)
+
+static int do_stuboled(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+{
+	return CMD_RET_SUCCESS;
+}
+
+U_BOOT_CMD(startvo
+	, 4, 0, do_stuboled
+	, "open vo device with a certain interface."
+	, "    - startvo [dev intftype sync]"
+);
+
+U_BOOT_CMD(startvl
+	, 6, 0, do_startoled
+	, "open video layer of the vo"
+	, "- startvl [layer address_in address_out img_size_addr_offset alignment]"
+);
+
+U_BOOT_CMD(setvobg
+	, 3, 0, do_stuboled
+	, "set vo background color"
+	, "    - setvobg [dev bgcolor]"
+)
+
+#endif
+
