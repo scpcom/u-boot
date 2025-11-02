@@ -27,7 +27,7 @@
 
 #define PANLE_ADAPTIVITY 0
 
-enum sclr_vo_intf intf_type = SCLR_VO_INTF_MIPI;
+enum sclr_vo_intf intf_type = SCLR_VO_INTF_DISABLE;
 
 static int lvds_panel_init(struct cvi_lvds_cfg_s *lvds_cfg)
 {
@@ -592,6 +592,7 @@ static int do_startvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 
 	switch (intf) {
 	case VO_INTF_MIPI: {
+		intf_type = SCLR_VO_INTF_MIPI;
 		mipi_tx_set_mode(0);
 		#if PANLE_ADAPTIVITY
 		dsi_panel_init_adaptivity();
@@ -641,6 +642,8 @@ static int do_stopvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
+	if (intf_type == SCLR_VO_INTF_DISABLE)
+		return CMD_RET_SUCCESS;
 
 	dev = simple_strtoul(argv[1], &endp, 10);
 	if (*argv[1] == 0 || *endp != 0)
@@ -669,6 +672,8 @@ static int do_startvl(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 
 	if (argc < 6)
 		return CMD_RET_USAGE;
+	if (intf_type == SCLR_VO_INTF_DISABLE)
+		return CMD_RET_SUCCESS;
 
 	layer = simple_strtoul(argv[1], &endp, 10);
 	if (*argv[1] == 0 || *endp != 0)
@@ -768,6 +773,8 @@ static int do_stopvl(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
+	if (intf_type == SCLR_VO_INTF_DISABLE)
+		return CMD_RET_SUCCESS;
 
 	layer = simple_strtoul(argv[1], &endp, 10);
 	if (*argv[1] == 0 || *endp != 0)
@@ -793,6 +800,8 @@ static int do_setvobg(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 
 	if (argc < 3)
 		return CMD_RET_USAGE;
+	if (intf_type == SCLR_VO_INTF_DISABLE)
+		return CMD_RET_SUCCESS;
 
 	dev = simple_strtoul(argv[1], &endp, 10);
 	if (*argv[1] == 0 || *endp != 0)
