@@ -349,7 +349,7 @@ static void oled_show_string(char* str)
 static void kvm_hw_init(void)
 {
 	uint8_t kvm_alpha = 0;
-	uint8_t kvm_beta_pcie = 1;
+	uint8_t kvm_beta_pcie = 0;
 	uint8_t oled_exists = 0;
 
 	char *kvm_hw = NULL;
