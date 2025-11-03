@@ -359,6 +359,9 @@ static void kvm_hw_init(void)
 	else
 		kvm_hw = env_get("kvm_hw");
 
+	if (!kvm_hw)
+		return;
+
 	if (strcmp(kvm_hw,"alpha") == 0) {
 		kvm_alpha = 1;
 		kvm_hw_ver = 0;
@@ -410,6 +413,9 @@ static void kvm_hw_init(void)
 		kvm_oled = buff;
 	else
 		kvm_oled = env_get("kvm_oled");
+
+	if (!kvm_oled)
+		return;
 
 	if (strcmp(kvm_oled,"exists") == 0) {
 		oled_exists = 1;
