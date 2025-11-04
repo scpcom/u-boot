@@ -54,6 +54,8 @@
 extern uint8_t OLED_state;
 extern uint8_t kvm_hw_ver;
 
+void kvm_hw_init(void);
+
 int oled_probe(void);
 void OLED_Clear(void);
 void OLED_Fill(void);

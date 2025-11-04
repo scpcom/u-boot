@@ -2438,6 +2438,15 @@ config CMD_CVI_SD_BOOT
 	help
 	  Support command boot from sd card if SD_BOOT is enable.
 
+config CMD_KVM_OLED
+	bool "OLED command supports NanoKVM"
+	depends on DM_I2C_GPIO
+	default y if TARGET_CVITEK
+	help
+	  Support for the NanoKVM OLED interface.
+	  startoled: start interface.
+	  stopoled: stop interface.
+
 config MMC_SPEED_MODE_SET
 	bool "set speed mode using mmc command"
 	depends on CMD_MMC

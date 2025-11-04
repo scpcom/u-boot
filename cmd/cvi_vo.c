@@ -21,7 +21,9 @@
 #include <asm/io.h>
 #include "part.h"
 #include "fs.h"
+#if CONFIG_IS_ENABLED(CMD_KVM_OLED)
 #include "kvm_oled_ctrl.h"
+#endif
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -316,125 +318,6 @@ static bool fat_file_exists(const char *filename)
     }
 }
 
-static void oled_show_string(char* str)
-{
-	OLED_state = oled_probe();
-	if(!OLED_state){
-		return;
-	}
-
-	OLED_Init();
-	OLED_ColorTurn(0);              //0正常显示 1 反色显示
-	OLED_DisplayTurn(0);    //0正常显示 1 屏幕翻转显示
-	OLED_Clear();
-
-	mdelay(OLED_DELAY);
-
-	if(kvm_hw_ver != 2){
-		OLED_Clear();
-		// OLED_Revolve();
-		//OLED_ShowLogo();
-		//OLED_ShowSipeedLogo();
-	} else {
-		OLED_Revolve();
-		//OLED_Showline_1();
-		//OLED_ShowSipeedLogo();
-	}
-
-	OLED_ShowString(0, 1, str, 16);
-
-	mdelay(OLED_DELAY);
-}
-
-static void kvm_hw_init(void)
-{
-	uint8_t kvm_alpha = 0;
-	uint8_t kvm_beta_pcie = 0;
-	uint8_t oled_exists = 0;
-
-	char *kvm_hw = NULL;
-	char buff[255];
-	if(get_value_from_header("kvm", "hw", buff, sizeof(buff)) == 0)
-		kvm_hw = buff;
-	else
-		kvm_hw = env_get("kvm_hw");
-
-	if (!kvm_hw)
-		return;
-
-	if (strcmp(kvm_hw,"alpha") == 0) {
-		kvm_alpha = 1;
-		kvm_hw_ver = 0;
-	} else if (strcmp(kvm_hw,"beta") == 0) {
-		kvm_beta_pcie = 1;
-		kvm_hw_ver = 1;
-	} else if (strcmp(kvm_hw,"pcie") == 0) {
-		kvm_beta_pcie = 1;
-		kvm_hw_ver = 2;
-	}
-
-	if (kvm_alpha) {
-		mmio_write_32(0x030010D0, 0x2); // I2C1_SCL
-		mmio_write_32(0x030010DC, 0x2); // I2C1_SDA
-		mmio_write_32(0x030010D4, 0x3); // GPIOE 19 OLED_RST
-	}
-
-	if (kvm_beta_pcie) {
-		mmio_write_32(0x0300103C, 0x3); // GPIOA 15 I2C5_SCL (bitbang)
-		mmio_write_32(0x03001058, 0x3); // GPIOA 27 I2C5_SDA (bitbang)
-		mmio_write_32(0x03001050, 0x3); // GPIOA 22 OLED_RST
-	}
-
-	if (kvm_alpha || kvm_beta_pcie) {
-		mmio_write_32(0x03001070, 0x2); // GPIOA 28 UART2 TX
-		mmio_write_32(0x03001074, 0x2); // GPIOA 29 UART2 RX
-		mmio_write_32(0x03001068, 0x6); // GPIOA 18 UART1 RX
-		mmio_write_32(0x03001064, 0x6); // GPIOA 19 UART1 TX
-	}
-
-	if (!kvm_alpha && !kvm_beta_pcie) {
-		return;
-	}
-
-	char *_bootargs = NULL;
-	char new_bootargs[256] = {0};
-	_bootargs = env_get("othbootargs");
-	memcpy(new_bootargs, _bootargs, strlen(_bootargs));
-
-	char kvm_hw_arg[64] = {0};
-	printf("kvm_hw=%s\n", kvm_hw);
-	sprintf(kvm_hw_arg, " kvm_hw=%s", kvm_hw);
-	memcpy(new_bootargs + strlen(new_bootargs), kvm_hw_arg, strlen(kvm_hw_arg));
-	printf("new_othbootargs[%ld]: %s\n", strlen(new_bootargs), new_bootargs);
-	env_set("othbootargs", new_bootargs);
-
-	char *kvm_oled = NULL;
-	if(get_value_from_header("kvm", "oled", buff, sizeof(buff)) == 0)
-		kvm_oled = buff;
-	else
-		kvm_oled = env_get("kvm_oled");
-
-	if (!kvm_oled)
-		return;
-
-	if (strcmp(kvm_oled,"exists") == 0) {
-		oled_exists = 1;
-	}
-
-	if (!oled_exists) {
-		return;
-	}
-
-	char kvm_oled_arg[64] = {0};
-	printf("kvm_oled=%s\n", kvm_oled);
-	sprintf(kvm_oled_arg, " kvm_oled=%s", kvm_oled);
-	memcpy(new_bootargs + strlen(new_bootargs), kvm_oled_arg, strlen(kvm_oled_arg));
-	printf("new_othbootargs[%ld]: %s\n", strlen(new_bootargs), new_bootargs);
-	env_set("othbootargs", new_bootargs);
-
-	oled_show_string("Loading");
-}
-
 /***************************************************/
 static int do_startvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -623,7 +506,9 @@ static int do_startvo(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 	break;
 	}
 
+#if CONFIG_IS_ENABLED(CMD_KVM_OLED)
 	kvm_hw_init();
+#endif
 
 	return CMD_RET_SUCCESS;
 }
