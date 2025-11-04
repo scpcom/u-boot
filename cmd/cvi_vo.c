@@ -398,11 +398,11 @@ static void kvm_hw_init(void)
 
 	char *_bootargs = NULL;
 	char new_bootargs[256] = {0};
-	printf("boot key pressed\n");
 	_bootargs = env_get("othbootargs");
 	memcpy(new_bootargs, _bootargs, strlen(_bootargs));
 
 	char kvm_hw_arg[64] = {0};
+	printf("kvm_hw=%s\n", kvm_hw);
 	sprintf(kvm_hw_arg, " kvm_hw=%s", kvm_hw);
 	memcpy(new_bootargs + strlen(new_bootargs), kvm_hw_arg, strlen(kvm_hw_arg));
 	printf("new_othbootargs[%ld]: %s\n", strlen(new_bootargs), new_bootargs);
@@ -426,6 +426,7 @@ static void kvm_hw_init(void)
 	}
 
 	char kvm_oled_arg[64] = {0};
+	printf("kvm_oled=%s\n", kvm_oled);
 	sprintf(kvm_oled_arg, " kvm_oled=%s", kvm_oled);
 	memcpy(new_bootargs + strlen(new_bootargs), kvm_oled_arg, strlen(kvm_oled_arg));
 	printf("new_othbootargs[%ld]: %s\n", strlen(new_bootargs), new_bootargs);
