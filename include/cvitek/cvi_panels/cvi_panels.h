@@ -36,6 +36,7 @@ struct panel_desc_s {
 #include "dsi_st7701_hd228001c31_alt0.h"
 #include "dsi_d240si31.h"
 #include "dsi_st7701_d310t9362v1.h"
+#include "dsi_st7701_lhcm228ts003a.h"
 
 #ifdef MIPI_PANEL_HX8394
 #include "dsi_hx8394_evb.h"
@@ -190,6 +191,14 @@ static struct panel_desc_s panel_desc = {
         .hs_timing_cfg = &hs_timing_cfg_st7701_d310t9362v1_480x800,
         .dsi_init_cmds = dsi_init_cmds_st7701_d310t9362v1_480x800,
         .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_d310t9362v1_480x800)
+};
+#elif defined(MIPI_PANEL_ST7701_LHCM228TS003A)
+static struct panel_desc_s panel_desc = {
+        .panel_name = "ST7701-368x552-lhcm",
+        .dev_cfg = &dev_cfg_st7701_368x552lhcm,
+        .hs_timing_cfg = &hs_timing_cfg_st7701_368x552lhcm,
+        .dsi_init_cmds = dsi_init_cmds_st7701_368x552lhcm,
+        .dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_st7701_368x552lhcm)
 };
 #elif defined(MIPI_PANEL_ST7785M)
 #include "dsi_st7785m.h"
