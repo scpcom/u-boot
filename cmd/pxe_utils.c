@@ -306,6 +306,20 @@ static void label_print(void *data)
 	printf("%s:\t%s\n", label->num, c);
 }
 
+static void append_othbootargs(char *bootargs, int max_size)
+{
+	char *_othbootargs = NULL;
+
+	_othbootargs = env_get("othbootargs");
+	if (!_othbootargs)
+		return;
+	if (strlen(bootargs)+1+strlen(_othbootargs) >= max_size)
+		return;
+
+	strcat(bootargs, " ");
+	strcat(bootargs, _othbootargs);
+}
+
 /*
  * Boot a label that specified 'localboot'. This requires that the 'localcmd'
  * environment variable is defined. Its contents will be executed as U-Boot
@@ -329,6 +343,7 @@ static int label_localboot(struct pxe_label *label)
 
 		cli_simple_process_macros(label->append, bootargs,
 					  sizeof(bootargs));
+		append_othbootargs(bootargs, sizeof(bootargs));
 		env_set("bootargs", bootargs);
 	}
 
@@ -518,6 +533,7 @@ static int label_boot(struct cmd_tbl *cmdtp, struct pxe_label *label)
 
 		if (label->append)
 			strncpy(bootargs, label->append, sizeof(bootargs));
+		append_othbootargs(bootargs, sizeof(bootargs));
 
 		strcat(bootargs, ip_str);
 		strcat(bootargs, mac_str);
