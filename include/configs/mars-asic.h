@@ -233,6 +233,9 @@
 	#endif
 
 	#define OTHERBOOTARGS   "earlycon=sbi riscv.fwsz="  __stringify(CVIMMAP_OPENSBI_SIZE) " " \
+		"reserved_mem_addr=cvifb=" __stringify(CVIMMAP_FRAMEBUFFER_ADDR) " " \
+		"reserved_mem_size=cvifb=" __stringify(CVIMMAP_FRAMEBUFFER_SIZE) ":" \
+		"ion=" __stringify(CVIMMAP_ION_SIZE) " " \
 		EARLYCON_RELEASE CONSOLE_LOGLEVEL
 
 	/* config mtdids */
