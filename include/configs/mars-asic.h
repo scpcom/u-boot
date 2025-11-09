@@ -232,10 +232,28 @@
 		#define EARLYCON_RELEASE   " "
 	#endif
 
+#if (CVIMMAP_FRAMEBUFFER_SIZE > 0)
+	#define CVI_FB_ADDR_ARG	"cvifb=" __stringify(CVIMMAP_FRAMEBUFFER_ADDR) ":"
+	#define CVI_FB_SIZE_ARG	"cvifb=" __stringify(CVIMMAP_FRAMEBUFFER_SIZE) ":"
+#else
+	#define CVI_FB_ADDR_ARG
+	#define CVI_FB_SIZE_ARG
+#endif
+
+#if (CVIMMAP_ION_SIZE > 0)
+	#define CVI_MEM_ARGS \
+		"reserved_mem_addr=" \
+		CVI_FB_ADDR_ARG \
+		"ion=" __stringify(CVIMMAP_ION_ADDR) " " \
+		"reserved_mem_size=" \
+		CVI_FB_SIZE_ARG \
+		"ion=" __stringify(CVIMMAP_ION_SIZE) " "
+#else
+	#define CVI_MEM_ARGS
+#endif
+
 	#define OTHERBOOTARGS   "earlycon=sbi riscv.fwsz="  __stringify(CVIMMAP_OPENSBI_SIZE) " " \
-		"reserved_mem_addr=cvifb=" __stringify(CVIMMAP_FRAMEBUFFER_ADDR) " " \
-		"reserved_mem_size=cvifb=" __stringify(CVIMMAP_FRAMEBUFFER_SIZE) ":" \
-		"ion=" __stringify(CVIMMAP_ION_SIZE) " " \
+		CVI_MEM_ARGS \
 		EARLYCON_RELEASE CONSOLE_LOGLEVEL
 
 	/* config mtdids */
