@@ -30,6 +30,7 @@ struct panel_desc_s {
 #include "dsi_lt9611.h"
 #include "dsi_mtd70092b.h"
 #include "dsi_milkv_8hd.h"
+#include "dsi_milkv_8hd_2lane.h"
 #include "dsi_milkv_st7796s.h"
 #include "dsi_st7701_dxq5d0019b480854.h"
 #include "dsi_st7701_dxq5d0019_V0.h"
@@ -82,6 +83,14 @@ static struct panel_desc_s panel_desc = {
 	.hs_timing_cfg = &hs_timing_cfg_milkv_8hd_800x1280,
 	.dsi_init_cmds = dsi_init_cmds_milkv_8hd_800x1280,
 	.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_milkv_8hd_800x1280)
+};
+#elif defined(MIPI_PANEL_MILKV_8HD_2LANE)
+static struct panel_desc_s panel_desc = {
+	.panel_name = "MILKV_8HD-800x1280-2LANE",
+	.dev_cfg = &dev_cfg_milkv_8hd_800x1280_2lane,
+	.hs_timing_cfg = &hs_timing_cfg_milkv_8hd_800x1280_2lane,
+	.dsi_init_cmds = dsi_init_cmds_milkv_8hd_800x1280_2lane,
+	.dsi_init_cmds_size = ARRAY_SIZE(dsi_init_cmds_milkv_8hd_800x1280_2lane)
 };
 #elif defined(MIPI_PANEL_MILKV_ST7796S)
 static struct panel_desc_s panel_desc = {
