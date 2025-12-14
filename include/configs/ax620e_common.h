@@ -130,4 +130,8 @@ root=/dev/mtdblock7 rw rootfstype=ubifs ubi.mtd=7,2048 root=ubi0:rootfs init=/li
 mtdparts=spi5.0:4M(uboot),768K(env),1M(atf),1M(dtb),32M(kernel),512K(param),192M(rootfs)"
 #endif
 
+#define CONFIG_EXTRA_ENV_SETTINGS \
+	"open_led=i2c dev 4;i2c mw 0x30 0x00 0x40 1;i2c mw 0x30 0x08 0x01 1;i2c mw 0x30 0x70 0x00 1;i2c mw 0x30 0x02 0x00 1;i2c mw 0x30 0x03 0x00 1;i2c mw 0x30 0x04 0x28 1;\0" \
+	"before_boot_cmd=run open_led\0"
+
 #endif
