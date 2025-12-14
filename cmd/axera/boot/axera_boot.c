@@ -532,6 +532,10 @@ int do_axera_boot(cmd_tbl_t * cmdtp, int flag, int argc, char *const argv[])
 	const char *x_kernel = "kernel";
 	const char *x_dtb = "dtb";
 
+	char *axera_boot_after_cmd = env_get("before_boot_cmd");
+	if(NULL != axera_boot_after_cmd) 
+		run_command(axera_boot_after_cmd, 0);
+
 #ifdef CONFIG_AXERA_EMAC
 	ax_shutdown_ephy();
 #endif
