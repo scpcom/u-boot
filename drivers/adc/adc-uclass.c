@@ -432,9 +432,20 @@ static int adc_pre_probe(struct udevice *dev)
 	return 0;
 }
 
+static int adc_post_bind(struct udevice *dev)
+{
+	int ret = 0;
+
+#if CONFIG_IS_ENABLED(OF_CONTROL) && !CONFIG_IS_ENABLED(OF_PLATDATA)
+	ret = dm_scan_fdt_dev(dev);
+#endif
+	return ret;
+}
+
 UCLASS_DRIVER(adc) = {
 	.id	= UCLASS_ADC,
 	.name	= "adc",
 	.pre_probe =  adc_pre_probe,
+	.post_bind = adc_post_bind,
 	.per_device_platdata_auto_alloc_size = ADC_UCLASS_PLATDATA_SIZE,
 };

@@ -36,7 +36,7 @@ static struct splash_location default_splash_locations[] = {
 		.name = "mmc_fs",
 		.storage = SPLASH_STORAGE_MMC,
 		.flags = SPLASH_STORAGE_FS,
-		.devpart = "0:1",
+		.devpart = "0:6",/*env kernel param rootfs soc opt*/
 	},
 	{
 		.name = "usb_fs",
@@ -82,7 +82,7 @@ static inline int splash_video_logo_load(void) { return -ENOSYS; }
 
 __weak int splash_screen_prepare(void)
 {
-	if (CONFIG_IS_ENABLED(SPLASH_SOURCE))
+	if (CONFIG_IS_ENABLED(SPLASH_SOURCE) || CONFIG_IS_ENABLED(AXERA_SPLASH_SOURCE))
 		return splash_source_load(default_splash_locations,
 					  ARRAY_SIZE(default_splash_locations));
 

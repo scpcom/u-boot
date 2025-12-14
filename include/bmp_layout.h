@@ -48,6 +48,15 @@ struct bmp_image {
 	struct bmp_color_table_entry color_table[0];
 };
 
+/* Image information */
+struct jpeg_image {
+	__u32 width;
+	__u32 height;
+	__u32 stride;
+	__u32 format;
+	__u64 phyAddr[3];
+};
+
 /* Data in the bmp_image is aligned to this length */
 #define BMP_DATA_ALIGN	4
 

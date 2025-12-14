@@ -169,6 +169,7 @@ static inline bool mmc_is_tuning_cmd(uint cmdidx)
 #define MMC_DISCARD_ARG		0x00000003
 #define MMC_SECURE_TRIM1_ARG	0x80000001
 #define MMC_SECURE_TRIM2_ARG	0x80008000
+#define MMC_SECURE_ARGS		0x80000000
 
 #define MMC_STATUS_MASK		(~0x0206BF7F)
 #define MMC_STATUS_SWITCH_ERROR	(1 << 7)
@@ -234,8 +235,13 @@ static inline bool mmc_is_tuning_cmd(uint cmdidx)
 #define EXT_CSD_PART_SWITCH_TIME	199	/* RO */
 #define EXT_CSD_SEC_CNT			212	/* RO, 4 bytes */
 #define EXT_CSD_HC_WP_GRP_SIZE		221	/* RO */
+#define EXT_CSD_ERASE_TIMEOUT_MULT	223	/* RO */
 #define EXT_CSD_HC_ERASE_GRP_SIZE	224	/* RO */
 #define EXT_CSD_BOOT_MULT		226	/* RO */
+#define EXT_CSD_SEC_TRIM_MULT		229	/* RO */
+#define EXT_CSD_SEC_ERASE_MULT		230	/* RO */
+#define EXT_CSD_SEC_FEATURE_SUPPORT	231	/* RO */
+#define EXT_CSD_TRIM_MULT		232	/* RO */
 #define EXT_CSD_GENERIC_CMD6_TIME       248     /* RO */
 #define EXT_CSD_BKOPS_SUPPORT		502	/* RO */
 
@@ -305,6 +311,8 @@ static inline bool mmc_is_tuning_cmd(uint cmdidx)
 
 #define EXT_CSD_WR_DATA_REL_USR		(1 << 0)	/* user data area WR_REL */
 #define EXT_CSD_WR_DATA_REL_GP(x)	(1 << ((x)+1))	/* GP part (x+1) WR_REL */
+
+#define EXT_CSD_SEC_GB_CL_EN		BIT(4)
 
 #define R1_ILLEGAL_COMMAND		(1 << 22)
 #define R1_APP_CMD			(1 << 5)
@@ -637,6 +645,14 @@ struct mmc {
 #if CONFIG_IS_ENABLED(MMC_WRITE)
 	uint write_bl_len;
 	uint erase_grp_size;	/* in 512-byte sectors */
+	uint erase_shift;
+	uint pref_erase;
+	uint eg_boundary;
+	uint max_busy_timeout;	/* max busy timeout in ms */
+	uint erase_group_def;	/* ext_csd[175] */
+	uint hc_erase_timeout;	/* 300ms * ext_csd[223] */
+	uint trim_timeout;	/* 300ms * ext_csd[224] */
+	uint sec_feature_support;	/* ext_csd[231] */
 #endif
 #if CONFIG_IS_ENABLED(MMC_HW_PARTITIONING)
 	uint hc_wp_grp_size;	/* in 512-byte sectors */
@@ -884,6 +900,8 @@ int mmc_get_env_dev(void);
 #ifndef CONFIG_SYS_MMC_MAX_BLK_COUNT
 #define CONFIG_SYS_MMC_MAX_BLK_COUNT 65535
 #endif
+#define MMC_ERASE_TIMEOUT_MS	5000
+unsigned int mmc_calc_max_discard(struct mmc *mmc);
 
 /**
  * mmc_get_blk_desc() - Get the block descriptor for an MMC device

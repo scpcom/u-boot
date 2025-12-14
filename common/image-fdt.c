@@ -174,7 +174,11 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 	of_len = *of_size + CONFIG_SYS_FDT_PAD;
 
 	/* If fdt_high is set use it to select the relocation address */
+#ifdef CONFIG_ARCH_AXERA
+	fdt_high = "0xffffffffffffffff\0";
+#else
 	fdt_high = env_get("fdt_high");
+#endif
 	if (fdt_high) {
 		void *desired_addr = (void *)simple_strtoul(fdt_high, NULL, 16);
 

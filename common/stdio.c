@@ -344,6 +344,12 @@ int stdio_add_devices(void)
 	i2c_init_all();
 #else
 #endif
+
+#ifdef CONFIG_VIDEO_AXERA
+	extern int ax_bootlogo_show(void);
+	ax_bootlogo_show();
+#endif
+
 #ifdef CONFIG_DM_VIDEO
 	/*
 	 * If the console setting is not in environment variables then

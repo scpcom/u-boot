@@ -45,4 +45,10 @@ config TFTP_BLOCKSIZE
 	help
 	  Default TFTP block size.
 
+config TFTP_PORT
+	int "TFTP port"
+	default 69
+	help
+	  Default TFTP port.
+
 endif   # if NET

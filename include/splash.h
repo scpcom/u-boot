@@ -48,7 +48,7 @@ struct splash_location {
 	char *ubivol;	/* UBI volume-name for ubifsmount */
 };
 
-#ifdef CONFIG_SPLASH_SOURCE
+#if defined(CONFIG_SPLASH_SOURCE) || defined(CONFIG_AXERA_SPLASH_SOURCE)
 int splash_source_load(struct splash_location *locations, uint size);
 #else
 static inline int splash_source_load(struct splash_location *locations,

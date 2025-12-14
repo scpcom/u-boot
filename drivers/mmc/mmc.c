@@ -20,8 +20,22 @@
 #include <linux/list.h>
 #include <div64.h>
 #include "mmc_private.h"
+#include <linux/log2.h>
+#include <axera_update.h>
 
 #define DEFAULT_CMD6_TIMEOUT_MS  500
+#ifdef CONFIG_AXERA_AX620E
+#define EMMC_RESET_N_FUNCTION
+#endif
+
+static const unsigned int taac_exp[] = {
+	1,	10,	100,	1000,	10000,	100000,	1000000, 10000000,
+};
+
+static const unsigned int taac_mant[] = {
+	0,	10,	12,	13,	15,	20,	25,	30,
+	35,	40,	45,	50,	55,	60,	70,	80,
+};
 
 static int mmc_set_signal_voltage(struct mmc *mmc, uint signal_voltage);
 
@@ -184,7 +198,7 @@ static int mmc_select_mode(struct mmc *mmc, enum bus_mode mode)
 	mmc->selected_mode = mode;
 	mmc->tran_speed = mmc_mode2freq(mmc, mode);
 	mmc->ddr_mode = mmc_is_mode_ddr(mode);
-	pr_debug("selecting mode %s (freq : %d MHz)\n", mmc_mode_name(mode),
+	printf("selecting mode %s (freq : %d MHz)\n", mmc_mode_name(mode),
 		 mmc->tran_speed / 1000000);
 	return 0;
 }
@@ -390,7 +404,6 @@ static int mmc_read_blocks(struct mmc *mmc, void *dst, lbaint_t start,
 	data.blocks = blkcnt;
 	data.blocksize = mmc->read_bl_len;
 	data.flags = MMC_DATA_READ;
-
 	if (mmc_send_cmd(mmc, &cmd, &data))
 		return 0;
 
@@ -400,9 +413,16 @@ static int mmc_read_blocks(struct mmc *mmc, void *dst, lbaint_t start,
 		cmd.resp_type = MMC_RSP_R1b;
 		if (mmc_send_cmd(mmc, &cmd, NULL)) {
 #if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
-			pr_err("mmc fail to send stop cmd\n");
+			pr_debug("mmc fail to send stop cmd\n");
 #endif
+#if !defined(CONFIG_MMC_SDHCI_AX620E)
 			return 0;
+#else
+			if (mmc_send_cmd(mmc, &cmd, NULL)) {
+				printf("mmc fail to send stop cmd again!\n");
+				return 0;
+			}
+#endif
 		}
 	}
 
@@ -447,7 +467,7 @@ ulong mmc_bread(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt,
 	}
 
 	if (mmc_set_blocklen(mmc, mmc->read_bl_len)) {
-		pr_debug("%s: Failed to set blocklen\n", __func__);
+		printf("%s: Failed to set blocklen\n", __func__);
 		return 0;
 	}
 
@@ -455,7 +475,7 @@ ulong mmc_bread(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt,
 		cur = (blocks_todo > mmc->cfg->b_max) ?
 			mmc->cfg->b_max : blocks_todo;
 		if (mmc_read_blocks(mmc, dst, start, cur) != cur) {
-			pr_debug("%s: Failed to read blocks\n", __func__);
+			printf("%s: Failed to read blocks\n", __func__);
 			return 0;
 		}
 		blocks_todo -= cur;
@@ -793,7 +813,7 @@ static int __mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value,
 		ret = mmc_send_status(mmc, &status);
 
 		if (!ret && (status & MMC_STATUS_SWITCH_ERROR)) {
-			pr_debug("switch failed %d/%d/0x%x !\n", set, index,
+			printf("switch failed %d/%d/0x%x !\n", set, index,
 				 value);
 			return -EIO;
 		}
@@ -1739,7 +1759,7 @@ static int sd_select_mode_and_width(struct mmc *mmc, uint card_caps)
 
 		for (w = widths; w < widths + ARRAY_SIZE(widths); w++) {
 			if (*w & caps & mwt->widths) {
-				pr_debug("trying mode %s width %d (at %d MHz)\n",
+				printf("trying mode %s width %d (at %d MHz)\n",
 					 mmc_mode_name(mwt->mode),
 					 bus_width(*w),
 					 mmc_mode2freq(mmc, mwt->mode) / 1000000);
@@ -2069,13 +2089,13 @@ static int mmc_select_mode_and_width(struct mmc *mmc, uint card_caps)
 		mmc_set_card_speed(mmc, MMC_HS, true);
 	else
 #endif
-		mmc_set_clock(mmc, mmc->legacy_speed, MMC_CLK_ENABLE);
+		// mmc_set_clock(mmc, mmc->legacy_speed, MMC_CLK_ENABLE);
 
 	for_each_mmc_mode_by_pref(card_caps, mwt) {
 		for_each_supported_width(card_caps & mwt->widths,
 					 mmc_is_mode_ddr(mwt->mode), ecbw) {
 			enum mmc_voltage old_voltage;
-			pr_debug("trying mode %s width %d (at %d MHz)\n",
+			pr_err("trying mode %s width %d (at %d MHz)\n",
 				 mmc_mode_name(mwt->mode),
 				 bus_width(ecbw->cap),
 				 mmc_mode2freq(mmc, mwt->mode) / 1000000);
@@ -2167,6 +2187,283 @@ error:
 #if CONFIG_IS_ENABLED(MMC_TINY)
 DEFINE_CACHE_ALIGN_BUFFER(u8, ext_csd_bkup, MMC_MAX_BLOCK_LEN);
 #endif
+
+int mmc_can_trim(struct mmc *card)
+{
+	if (card->ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT] & EXT_CSD_SEC_GB_CL_EN)
+		return 1;
+	return 0;
+}
+
+void mmc_init_erase(struct mmc *card)
+{
+	unsigned int sz, e, m, capacity, read_blkbits;
+
+	if (is_power_of_2(card->erase_grp_size))
+		card->erase_shift = ffs(card->erase_grp_size) - 1;
+	else
+		card->erase_shift = 0;
+
+	/*
+	 * It is possible to erase an arbitrarily large area of an SD or MMC
+	 * card.  That is not desirable because it can take a long time
+	 * (minutes) potentially delaying more important I/O, and also the
+	 * timeout calculations become increasingly hugely over-estimated.
+	 * Consequently, 'pref_erase' is defined as a guide to limit erases
+	 * to that size and alignment.
+	 *
+	 * For SD cards that define Allocation Unit size, limit erases to one
+	 * Allocation Unit at a time.
+	 * For MMC, have a stab at ai good value and for modern cards it will
+	 * end up being 4MiB. Note that if the value is too small, it can end
+	 * up taking longer to erase. Also note, erase_size is already set to
+	 * High Capacity Erase Size if available when this function is called.
+	 */
+	if (IS_SD(card) && card->ssr.au) {
+		card->pref_erase = card->ssr.au;
+		card->erase_shift = ffs(card->ssr.au) - 1;
+	} else if (card->erase_grp_size) {
+		m = ((card->csd[1] & 0x3ff) << 2) | ((card->csd[2] & 0xc0000000) >> 30);
+		e = ((card->csd[2] & 0x00038000) >> 15);
+		capacity = (1 + m) << (e + 2);
+		//printf("%s: csd[47-49] 0x%X, csd[62-73] 0x%X, csd->capacity 0x%X\n", __FUNCTION__, e, m, capacity);
+		read_blkbits = ((card->csd[1] >> 16) & 0xf);
+		//printf("%s: csd[64-95] 0x%X, read_blkbits csd[80-83] 0x%X\n", __FUNCTION__, card->csd[1], read_blkbits);
+		sz = (capacity << (read_blkbits - 9)) >> 11;
+		if (sz < 128)
+			card->pref_erase = 512 * 1024 / 512;
+		else if (sz < 512)
+			card->pref_erase = 1024 * 1024 / 512;
+		else if (sz < 1024)
+			card->pref_erase = 2 * 1024 * 1024 / 512;
+		else
+		{
+			card->pref_erase = 4 * 1024 * 1024 / 512;
+			//printf("%s: sz 0x%X, pref_erase 0x%X, erase_grp_size 0x%X\n", __FUNCTION__,
+				//sz, card->pref_erase, card->erase_grp_size);
+		}
+		if (card->pref_erase < card->erase_grp_size)
+			card->pref_erase = card->erase_grp_size;
+		else {
+			sz = card->pref_erase % card->erase_grp_size;
+			if (sz)
+				card->pref_erase += card->erase_grp_size - sz;
+		}
+	} else
+		card->pref_erase = 0;
+	//printf("%s: end pref_erase 0x%X\n", __FUNCTION__, card->pref_erase);
+}
+
+static unsigned int mmc_mmc_erase_timeout(struct mmc *card, unsigned int arg, unsigned int qty)
+{
+	unsigned int erase_timeout, mult, timeout_clks, timeout_us, r2w_factor, taac_clks, taac_ns, e, m;
+
+	if (arg == MMC_DISCARD_ARG ||
+	    (arg == MMC_TRIM_ARG && card->ext_csd[EXT_CSD_REV] >= 6)) {
+		erase_timeout = card->trim_timeout;
+	} else if (card->erase_group_def & 1) {
+		/* High Capacity Erase Group Size uses HC timeouts */
+		if (arg == MMC_TRIM_ARG)
+			erase_timeout = card->trim_timeout;
+		else
+			erase_timeout = card->hc_erase_timeout;
+	} else {
+		printf("%s: error loop, ext_csd[175] bit0 not set\n", __FUNCTION__);
+		/* CSD Erase Group Size uses write timeout */
+		r2w_factor = (card->csd[3] & 0x13000000) >> 26;
+		taac_clks = ((card->csd[0] & 0x0000ff00) >> 8) * 100;
+		mult = (10 << r2w_factor);
+		timeout_clks = taac_clks * mult;
+
+		m = (card->csd[0] & 0x00780000) >> 19;//UNSTUFF_BITS(resp, 115, 4);
+		e = (card->csd[0] & 0x00070000) >> 16;//UNSTUFF_BITS(resp, 112, 3);
+		taac_ns	 = (taac_exp[e] * taac_mant[m] + 9) / 10;
+
+		/* Avoid overflow: e.g. taac_ns=80000000 mult=1280 */
+		if (taac_ns < 1000000)
+			timeout_us = (taac_ns * mult) / 1000;
+		else
+			timeout_us = (taac_ns / 1000) * mult;
+
+		/*
+		 * ios.clock is only a target.  The real clock rate might be
+		 * less but not that much less, so fudge it by multiplying by 2.
+		 */
+		timeout_clks <<= 1;
+		timeout_us += (timeout_clks * 1000) / (card->clock / 1000);
+
+		erase_timeout = timeout_us / 1000;
+
+		/*
+		 * Theoretically, the calculation could underflow so round up
+		 * to 1ms in that case.
+		 */
+		if (!erase_timeout)
+			erase_timeout = 1;
+	}
+
+	/* Multiplier for secure operations */
+	if (arg & MMC_SECURE_ARGS) {
+		if (arg == MMC_SECURE_ERASE_ARG)
+			erase_timeout *= card->ext_csd[EXT_CSD_SEC_ERASE_MULT];
+		else
+			erase_timeout *= card->ext_csd[EXT_CSD_SEC_TRIM_MULT];
+	}
+
+	erase_timeout *= qty;
+
+	/*
+	 * Ensure at least a 1 second timeout for SPI as per
+	 * 'mmc_set_data_timeout()'
+	 */
+	if (mmc_host_is_spi(card) && erase_timeout < 1000)
+		erase_timeout = 1000;
+
+	return erase_timeout;
+}
+
+static unsigned int mmc_sd_erase_timeout(struct mmc *card, unsigned int arg, unsigned int qty)
+{
+	unsigned int erase_timeout;
+
+	if (card->ssr.erase_timeout) {
+		/* Erase timeout specified in SD Status Register (SSR) */
+		erase_timeout = card->ssr.erase_timeout * qty +
+				card->ssr.erase_offset;
+	} else {
+		/*
+		 * Erase timeout not specified in SD Status Register (SSR) so
+		 * use 250ms per write block.
+		 */
+		erase_timeout = 250 * qty;
+	}
+
+	/* Must not be less than 1 second */
+	if (erase_timeout < 1000)
+		erase_timeout = 1000;
+
+	return erase_timeout;
+}
+
+static unsigned int mmc_erase_timeout(struct mmc *card, unsigned int arg, unsigned int qty)
+{
+	if (IS_SD(card))
+		return mmc_sd_erase_timeout(card, arg, qty);
+	else
+		return mmc_mmc_erase_timeout(card, arg, qty);
+}
+
+static unsigned int mmc_do_calc_max_discard(struct mmc *card, unsigned int arg)
+{
+	unsigned int max_discard, x, y, qty = 0, max_qty, min_qty, timeout;
+	unsigned int last_timeout = 0;
+	unsigned int max_busy_timeout = card->max_busy_timeout ?
+			card->max_busy_timeout : MMC_ERASE_TIMEOUT_MS;
+
+	if (card->erase_shift) {
+		max_qty = UINT_MAX >> card->erase_shift;
+		min_qty = card->pref_erase >> card->erase_shift;
+	} else if (IS_SD(card)) {
+		printf("%s: error loop, not support sdcard\n", __FUNCTION__);
+		max_qty = UINT_MAX;
+		min_qty = card->pref_erase;
+	} else {
+		max_qty = UINT_MAX / card->erase_grp_size;
+		min_qty = card->pref_erase / card->erase_grp_size;
+	}
+	//printf("%s: max_qty 0x%X, min_qty 0x%X, max_busy_timeout 0x%X\n", __FUNCTION__, max_qty, min_qty, max_busy_timeout);
+
+	/*
+	 * We should not only use 'host->max_busy_timeout' as the limitation
+	 * when deciding the max discard sectors. We should set a balance value
+	 * to improve the erase speed, and it can not get too long timeout at
+	 * the same time.
+	 *
+	 * Here we set 'card->pref_erase' as the minimal discard sectors no
+	 * matter what size of 'host->max_busy_timeout', but if the
+	 * 'host->max_busy_timeout' is large enough for more discard sectors,
+	 * then we can continue to increase the max discard sectors until we
+	 * get a balance value. In cases when the 'host->max_busy_timeout'
+	 * isn't specified, use the default max erase timeout.
+	 */
+	do {
+		y = 0;
+		for (x = 1; x && x <= max_qty && max_qty - x >= qty; x <<= 1) {
+			timeout = mmc_erase_timeout(card, arg, qty + x);
+
+			if (qty + x > min_qty && timeout > max_busy_timeout)
+				break;
+
+			if (timeout < last_timeout)
+				break;
+			last_timeout = timeout;
+			y = x;
+		}
+		qty += y;
+	} while (y);
+
+	if (!qty)
+		return 0;
+
+	/*
+	 * When specifying a sector range to trim, chances are we might cross
+	 * an erase-group boundary even if the amount of sectors is less than
+	 * one erase-group.
+	 * If we can only fit one erase-group in the controller timeout budget,
+	 * we have to care that erase-group boundaries are not crossed by a
+	 * single trim operation. We flag that special case with "eg_boundary".
+	 * In all other cases we can just decrement qty and pretend that we
+	 * always touch (qty + 1) erase-groups as a simple optimization.
+	 */
+	if (qty == 1)
+		card->eg_boundary = 1;
+	else
+		qty--;
+
+	/* Convert qty to sectors */
+	if (card->erase_shift) {
+		max_discard = qty << card->erase_shift;
+		//printf("%s: qty 0x%X, erase_shift 0x%X, max_discard 0x%X\n",
+			//__FUNCTION__, qty, card->erase_shift, max_discard);
+	}
+	else if (IS_SD(card)) {
+		printf("%s: error loop, not support sdcard\n", __FUNCTION__);
+		max_discard = qty + 1;
+	}
+	else
+		max_discard = qty * card->erase_grp_size;
+
+	return max_discard;
+}
+
+unsigned int mmc_calc_max_discard(struct mmc *card)
+{
+	unsigned int max_discard, max_trim;
+
+	/*
+	 * Without erase_group_def set, MMC erase timeout depends on clock
+	 * frequence which can change.  In that case, the best choice is
+	 * just the preferred erase size.
+	 */
+	if (IS_MMC(card) && !(card->erase_group_def & 1)) {
+		printf("%s: error loop, ext_csd[175] bit0 not set\n", __FUNCTION__);
+		return card->pref_erase;
+	}
+
+	max_discard = mmc_do_calc_max_discard(card, MMC_ERASE_ARG);
+	if (mmc_can_trim(card)) {
+		max_trim = mmc_do_calc_max_discard(card, MMC_TRIM_ARG);
+		printf("%s: max_discard = 0x%X, max_trim = 0x%X\n", __FUNCTION__, max_discard, max_trim);
+		if (max_trim < max_discard || max_discard == 0)
+			max_discard = max_trim;
+	} else if (max_discard < card->erase_grp_size) {
+		max_discard = 0;
+	}
+	printf("%s: calculated max. discard sectors %u for timeout %u ms\n",
+		__FUNCTION__, max_discard, card->max_busy_timeout ?
+		card->max_busy_timeout : MMC_ERASE_TIMEOUT_MS);
+	return max_discard;
+}
 
 static int mmc_startup_v4(struct mmc *mmc)
 {
@@ -2314,7 +2611,7 @@ static int mmc_startup_v4(struct mmc *mmc)
 	if ((ext_csd[EXT_CSD_PARTITIONING_SUPPORT] & PART_SUPPORT) &&
 	    (ext_csd[EXT_CSD_PARTITIONS_ATTRIBUTE] & PART_ENH_ATTRIB))
 		has_parts = true;
-	if (has_parts) {
+	if ((has_parts) || (IS_MMC(mmc) && (mmc->version >= MMC_VERSION_3))) {
 		err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 				 EXT_CSD_ERASE_GROUP_DEF, 1);
 
@@ -2322,6 +2619,7 @@ static int mmc_startup_v4(struct mmc *mmc)
 			goto error;
 
 		ext_csd[EXT_CSD_ERASE_GROUP_DEF] = 1;
+		mmc->erase_group_def = ext_csd[EXT_CSD_ERASE_GROUP_DEF];
 	}
 
 	if (ext_csd[EXT_CSD_ERASE_GROUP_DEF] & 0x01) {
@@ -2329,6 +2627,19 @@ static int mmc_startup_v4(struct mmc *mmc)
 		/* Read out group size from ext_csd */
 		mmc->erase_grp_size =
 			ext_csd[EXT_CSD_HC_ERASE_GRP_SIZE] * 1024;
+		if (IS_MMC(mmc)) {
+			//printf("%s: ext_csd erase_grp_size = 0x%X\n", __FUNCTION__, mmc->erase_grp_size);
+			mmc->sec_feature_support = ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT];
+			mmc->hc_erase_timeout = 300 * ext_csd[EXT_CSD_ERASE_TIMEOUT_MULT];
+			mmc->trim_timeout = 300 * ext_csd[EXT_CSD_TRIM_MULT];
+			mmc_init_erase(mmc);
+			//printf("%s: hc_erase_timeout %d, trim_timeout %d\n, ext_csd[%d] 0x%X, ext_csd[%d] 0x%X, ext_csd[%d] 0x%X, ext_csd[%d] 0x%X\n",
+				//__FUNCTION__, mmc->hc_erase_timeout, mmc->trim_timeout,
+				//EXT_CSD_ERASE_GROUP_DEF, ext_csd[EXT_CSD_ERASE_GROUP_DEF],
+				//EXT_CSD_ERASE_TIMEOUT_MULT, ext_csd[EXT_CSD_ERASE_TIMEOUT_MULT],
+				//EXT_CSD_HC_ERASE_GRP_SIZE, ext_csd[EXT_CSD_HC_ERASE_GRP_SIZE],
+				//EXT_CSD_TRIM_MULT, ext_csd[EXT_CSD_TRIM_MULT]);
+		}
 #endif
 		/*
 		 * if high capacity and partition setting completed
@@ -2362,6 +2673,32 @@ static int mmc_startup_v4(struct mmc *mmc)
 #endif
 
 	mmc->wr_rel_set = ext_csd[EXT_CSD_WR_REL_SET];
+#ifdef EMMC_RESET_N_FUNCTION
+	if (IS_MMC(mmc)) {
+		switch (ext_csd[EXT_CSD_RST_N_FUNCTION]) {
+		case 0:
+			pr_err("ext_csd[%d]=0x%x, RST_n signal is temporarily disabled, need set to 0x1\n", EXT_CSD_RST_N_FUNCTION, ext_csd[EXT_CSD_RST_N_FUNCTION]);
+			mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_RST_N_FUNCTION, 1);
+			break;
+
+		case 1:
+			pr_info("ext_csd[%d]=0x%x, RST_n signal is permanently enabled\n", EXT_CSD_RST_N_FUNCTION, ext_csd[EXT_CSD_RST_N_FUNCTION]);
+			break;
+
+		case 2:
+			pr_info("ext_csd[%d]=0x%x, RST_n signal is permanently disabled\n", EXT_CSD_RST_N_FUNCTION, ext_csd[EXT_CSD_RST_N_FUNCTION]);
+			break;
+
+		default:
+			pr_err("ext_csd[%d]=0x%x, Reserved\n", EXT_CSD_RST_N_FUNCTION, ext_csd[EXT_CSD_RST_N_FUNCTION]);
+			break;
+		}
+	}
+#endif
+
+#ifdef CONFIG_SUPPORT_EMMC_BOOT
+	set_emmc_boot_mode_after_dl();
+#endif
 
 	return 0;
 error:
@@ -2908,7 +3245,7 @@ int mmc_init(struct mmc *mmc)
 	if (!err)
 		err = mmc_complete_init(mmc);
 	if (err)
-		pr_info("%s: %d, time %lu\n", __func__, err, get_timer(start));
+		pr_err("%s: %d, time %lu\n", __func__, err, get_timer(start));
 
 	return err;
 }

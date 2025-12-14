@@ -233,6 +233,73 @@ static int env_nand_save(void)
 }
 #endif /* CMD_SAVEENV */
 
+#if defined(CONFIG_CMD_ERASEENV)
+static int erase_env(const struct nand_env_location *location)
+{
+	struct mtd_info *mtd;
+	int ret = 0;
+
+	mtd = get_nand_dev_by_index(0);
+	if (!mtd)
+		return 1;
+
+	printf("Erasing %s...\n", location->name);
+	ret = nand_erase_opts(mtd, &location->erase_opts);
+	puts(ret ? "FAILED!\n" : "OK\n");
+
+	return ret;
+}
+
+static int env_nand_erase(void)
+{
+	int	ret = 0;
+	int	env_idx = 0;
+	static const struct nand_env_location location[] = {
+		{
+			.name = "NAND",
+			.erase_opts = {
+				.length = CONFIG_ENV_RANGE,
+				.offset = CONFIG_ENV_OFFSET,
+			},
+		},
+#ifdef CONFIG_ENV_OFFSET_REDUND
+		{
+			.name = "redundant NAND",
+			.erase_opts = {
+				.length = CONFIG_ENV_RANGE,
+				.offset = CONFIG_ENV_OFFSET_REDUND,
+			},
+		},
+#endif
+	};
+
+	if (CONFIG_ENV_RANGE < CONFIG_ENV_SIZE)
+		return 1;
+
+#ifdef CONFIG_ENV_OFFSET_REDUND
+	env_idx = (gd->env_valid == ENV_VALID);
+#endif
+
+	ret = erase_env(&location[env_idx]);
+#ifdef CONFIG_ENV_OFFSET_REDUND
+	if (!ret) {
+		/* preset other copy for next write */
+		gd->env_valid = gd->env_valid == ENV_REDUND ? ENV_VALID :
+				ENV_REDUND;
+		return ret;
+	}
+
+	env_idx = (env_idx + 1) & 1;
+	ret = erase_env(&location[env_idx]);
+	if (!ret)
+		printf("Warning: primary env erase failed,"
+				" redundancy is lost!\n");
+#endif
+
+	return ret;
+}
+#endif /* CONFIG_CMD_ERASEENV */
+
 #if defined(CONFIG_SPL_BUILD)
 static int readenv(size_t offset, u_char *buf)
 {
@@ -385,6 +452,9 @@ U_BOOT_ENV_LOCATION(nand) = {
 	.load		= env_nand_load,
 #if defined(CMD_SAVEENV)
 	.save		= env_save_ptr(env_nand_save),
+#endif
+#if defined(CONFIG_CMD_ERASEENV)
+	.erase		= env_nand_erase,
 #endif
 	.init		= env_nand_init,
 };

@@ -57,6 +57,27 @@ config APBH_DMA_BURST8
 
 endif
 
+config AXERA_DMA
+	bool "AXERA DMA driver"
+	help
+	  Enable the AXERA DMA driver for dma controller.
+	  This driver only support data transfer from memory to
+	  memory.
+
+config AXERA_DMAPER
+	bool "AXERA DMA Peripherals driver"
+	help
+	  Enable the AXERA DMA Peripherals driver for dma controller.
+	  This driver support data transfer from devices to
+	  memory and from memory to devices.
+
+config DW_DMA
+	bool "DW DMA driver"
+	help
+	  Enable the DW DMA driver for snopsys dma controller.
+	  This driver support data transfer from devices to
+	  memory and from memory to devices.
+
 source "drivers/dma/ti/Kconfig"
 
 endmenu # menu "DMA Support"

@@ -61,18 +61,18 @@ struct i2c_regs {
 	u32 comp_type;
 };
 
-#define IC_CLK			166666666
+#define IC_CLK			200000000
 #define NANO_TO_KILO		1000000
 
 /* High and low times in different speed modes (in ns) */
-#define MIN_SS_SCL_HIGHTIME	4000
-#define MIN_SS_SCL_LOWTIME	4700
-#define MIN_FS_SCL_HIGHTIME	600
+#define MIN_SS_SCL_HIGHTIME	4700
+#define MIN_SS_SCL_LOWTIME	5300
+#define MIN_FS_SCL_HIGHTIME	700
 #define MIN_FS_SCL_LOWTIME	1300
-#define MIN_FP_SCL_HIGHTIME	260
-#define MIN_FP_SCL_LOWTIME	500
-#define MIN_HS_SCL_HIGHTIME	60
-#define MIN_HS_SCL_LOWTIME	160
+#define MIN_FP_SCL_HIGHTIME	480
+#define MIN_FP_SCL_LOWTIME	540
+#define MIN_HS_SCL_HIGHTIME	120
+#define MIN_HS_SCL_LOWTIME	320
 
 /* Worst case timeout for 1 byte is kept as 2ms */
 #define I2C_BYTE_TO		(CONFIG_SYS_HZ/500)
@@ -176,6 +176,11 @@ struct dw_i2c_speed_config {
 	enum i2c_speed_mode speed_mode;
 };
 
+struct dw_reg_cfg {
+	u32 offset;
+	u32 shift;
+};
+
 /**
  * struct dw_i2c - private information for the bus
  *
@@ -189,6 +194,7 @@ struct dw_i2c_speed_config {
  * @clk: Clock input to the I2C controller
  */
 struct dw_i2c {
+	u64 comm_regs;
 	struct i2c_regs *regs;
 	struct dw_scl_sda_cfg *scl_sda_cfg;
 	struct reset_ctl_bulk resets;

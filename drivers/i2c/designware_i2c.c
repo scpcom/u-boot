@@ -17,7 +17,7 @@
 #include <linux/err.h>
 
 #ifdef CONFIG_SYS_I2C_DW_ENABLE_STATUS_UNSUPPORTED
-static int  dw_i2c_enable(struct i2c_regs *i2c_base, bool enable)
+static int dw_i2c_enable(struct i2c_regs *i2c_base, bool enable)
 {
 	u32 ena = enable ? IC_ENABLE_0B : 0;
 
@@ -52,7 +52,7 @@ static int dw_i2c_enable(struct i2c_regs *i2c_base, bool enable)
 /* High and low times in different speed modes (in ns) */
 enum {
 	/* SDA Hold Time */
-	DEFAULT_SDA_HOLD_TIME		= 300,
+	DEFAULT_SDA_HOLD_TIME = 300,
 };
 
 /**
@@ -89,33 +89,33 @@ struct i2c_mode_info {
 
 static const struct i2c_mode_info info_for_mode[] = {
 	[IC_SPEED_MODE_STANDARD] = {
-		I2C_SPEED_STANDARD_RATE,
-		MIN_SS_SCL_HIGHTIME,
-		MIN_SS_SCL_LOWTIME,
-		1000,
-		300,
-	},
+				    I2C_SPEED_STANDARD_RATE,
+				    MIN_SS_SCL_HIGHTIME,
+				    MIN_SS_SCL_LOWTIME,
+				    100,
+				    100,
+				    },
 	[IC_SPEED_MODE_FAST] = {
-		I2C_SPEED_FAST_RATE,
-		MIN_FS_SCL_HIGHTIME,
-		MIN_FS_SCL_LOWTIME,
-		300,
-		300,
-	},
+				I2C_SPEED_FAST_RATE,
+				MIN_FS_SCL_HIGHTIME,
+				MIN_FS_SCL_LOWTIME,
+				100,
+				100,
+				},
 	[IC_SPEED_MODE_FAST_PLUS] = {
-		I2C_SPEED_FAST_PLUS_RATE,
-		MIN_FP_SCL_HIGHTIME,
-		MIN_FP_SCL_LOWTIME,
-		260,
-		500,
-	},
+				     I2C_SPEED_FAST_PLUS_RATE,
+				     MIN_FP_SCL_HIGHTIME,
+				     MIN_FP_SCL_LOWTIME,
+				     100,
+				     100,
+				     },
 	[IC_SPEED_MODE_HIGH] = {
-		I2C_SPEED_HIGH_RATE,
-		MIN_HS_SCL_HIGHTIME,
-		MIN_HS_SCL_LOWTIME,
-		120,
-		120,
-	},
+				I2C_SPEED_HIGH_RATE,
+				MIN_HS_SCL_HIGHTIME,
+				MIN_HS_SCL_LOWTIME,
+				30,
+				30,
+				},
 };
 
 /**
@@ -129,8 +129,7 @@ static const struct i2c_mode_info info_for_mode[] = {
  * @return 0 if OK, -EINVAL if the calculation failed due to invalid data
  */
 static int dw_i2c_calc_timing(struct dw_i2c *priv, enum i2c_speed_mode mode,
-			      int ic_clk, int spk_cnt,
-			      struct dw_i2c_speed_config *config)
+			      int ic_clk, int spk_cnt, struct dw_i2c_speed_config *config)
 {
 	int fall_cnt, rise_cnt, min_tlow_cnt, min_thigh_cnt;
 	int hcnt, lcnt, period_cnt, diff, tot;
@@ -143,18 +142,15 @@ static int dw_i2c_calc_timing(struct dw_i2c *priv, enum i2c_speed_mode mode,
 	 */
 	info = &info_for_mode[mode];
 	period_cnt = ic_clk / info->speed;
-	scl_rise_time_ns = priv && priv->scl_rise_time_ns ?
-		 priv->scl_rise_time_ns : info->def_rise_time_ns;
-	scl_fall_time_ns = priv && priv->scl_fall_time_ns ?
-		 priv->scl_fall_time_ns : info->def_fall_time_ns;
+	scl_rise_time_ns = priv && priv->scl_rise_time_ns ? priv->scl_rise_time_ns : info->def_rise_time_ns;
+	scl_fall_time_ns = priv && priv->scl_fall_time_ns ? priv->scl_fall_time_ns : info->def_fall_time_ns;
 	rise_cnt = calc_counts(ic_clk, scl_rise_time_ns);
 	fall_cnt = calc_counts(ic_clk, scl_fall_time_ns);
 	min_tlow_cnt = calc_counts(ic_clk, info->min_scl_lowtime_ns);
 	min_thigh_cnt = calc_counts(ic_clk, info->min_scl_hightime_ns);
 
 	debug("dw_i2c: period %d rise %d fall %d tlow %d thigh %d spk %d\n",
-	      period_cnt, rise_cnt, fall_cnt, min_tlow_cnt, min_thigh_cnt,
-	      spk_cnt);
+	      period_cnt, rise_cnt, fall_cnt, min_tlow_cnt, min_thigh_cnt, spk_cnt);
 
 	/*
 	 * Back-solve for hcnt and lcnt according to the following equations:
@@ -187,18 +183,15 @@ static int dw_i2c_calc_timing(struct dw_i2c *priv, enum i2c_speed_mode mode,
 	config->scl_hcnt = hcnt;
 
 	/* Use internal default unless other value is specified */
-	sda_hold_time_ns = priv && priv->sda_hold_time_ns ?
-		 priv->sda_hold_time_ns : DEFAULT_SDA_HOLD_TIME;
+	sda_hold_time_ns = priv && priv->sda_hold_time_ns ? priv->sda_hold_time_ns : DEFAULT_SDA_HOLD_TIME;
 	config->sda_hold = calc_counts(ic_clk, sda_hold_time_ns);
 
-	debug("dw_i2c: hcnt = %d lcnt = %d sda hold = %d\n", hcnt, lcnt,
-	      config->sda_hold);
+	debug("dw_i2c: hcnt = %d lcnt = %d sda hold = %d\n", hcnt, lcnt, config->sda_hold);
 
 	return 0;
 }
 
-static int calc_bus_speed(struct dw_i2c *priv, int speed, ulong bus_clk,
-			  struct dw_i2c_speed_config *config)
+static int calc_bus_speed(struct dw_i2c *priv, int speed, ulong bus_clk, struct dw_i2c_speed_config *config)
 {
 	const struct dw_scl_sda_cfg *scl_sda_cfg = NULL;
 	struct i2c_regs *regs = priv->regs;
@@ -209,8 +202,7 @@ static int calc_bus_speed(struct dw_i2c *priv, int speed, ulong bus_clk,
 	if (priv)
 		scl_sda_cfg = priv->scl_sda_cfg;
 	/* Allow high speed if there is no config, or the config allows it */
-	if (speed >= I2C_SPEED_HIGH_RATE &&
-	    (!scl_sda_cfg || scl_sda_cfg->has_high_speed))
+	if (speed >= I2C_SPEED_HIGH_RATE/* && (!scl_sda_cfg || scl_sda_cfg->has_high_speed)*/)
 		i2c_spd = IC_SPEED_MODE_HIGH;
 	else if (speed >= I2C_SPEED_FAST_PLUS_RATE)
 		i2c_spd = IC_SPEED_MODE_FAST_PLUS;
@@ -236,8 +228,7 @@ static int calc_bus_speed(struct dw_i2c *priv, int speed, ulong bus_clk,
 			config->scl_lcnt = scl_sda_cfg->fs_lcnt;
 		}
 	} else {
-		ret = dw_i2c_calc_timing(priv, i2c_spd, bus_clk, spk_cnt,
-					 config);
+		ret = dw_i2c_calc_timing(priv, i2c_spd, bus_clk, spk_cnt, config);
 		if (ret)
 			return log_msg_ret("gen_confg", ret);
 	}
@@ -274,7 +265,7 @@ static int _dw_i2c_set_bus_speed(struct dw_i2c *priv, struct i2c_regs *i2c_base,
 
 	switch (config.speed_mode) {
 	case IC_SPEED_MODE_HIGH:
-		cntl |= IC_CON_SPD_SS;
+		cntl |= IC_CON_SPD_HS;
 		writel(config.scl_hcnt, &i2c_base->ic_hs_scl_hcnt);
 		writel(config.scl_lcnt, &i2c_base->ic_hs_scl_lcnt);
 		break;
@@ -342,8 +333,7 @@ static int i2c_wait_for_bb(struct i2c_regs *i2c_base)
 {
 	unsigned long start_time_bb = get_timer(0);
 
-	while ((readl(&i2c_base->ic_status) & IC_STATUS_MA) ||
-	       !(readl(&i2c_base->ic_status) & IC_STATUS_TFE)) {
+	while ((readl(&i2c_base->ic_status) & IC_STATUS_MA) || !(readl(&i2c_base->ic_status) & IC_STATUS_TFE)) {
 
 		/* Evaluate timeout */
 		if (get_timer(start_time_bb) > (unsigned long)(I2C_BYTE_TO_BB))
@@ -353,8 +343,7 @@ static int i2c_wait_for_bb(struct i2c_regs *i2c_base)
 	return 0;
 }
 
-static int i2c_xfer_init(struct i2c_regs *i2c_base, uchar chip, uint addr,
-			 int alen)
+static int i2c_xfer_init(struct i2c_regs *i2c_base, uchar chip, uint addr, int alen)
 {
 	if (i2c_wait_for_bb(i2c_base))
 		return 1;
@@ -363,8 +352,7 @@ static int i2c_xfer_init(struct i2c_regs *i2c_base, uchar chip, uint addr,
 	while (alen) {
 		alen--;
 		/* high byte address going out first */
-		writel((addr >> (alen * 8)) & 0xff,
-		       &i2c_base->ic_cmd_data);
+		writel((addr >> (alen * 8)) & 0xff, &i2c_base->ic_cmd_data);
 	}
 	return 0;
 }
@@ -402,8 +390,7 @@ static int i2c_xfer_finish(struct i2c_regs *i2c_base)
  *
  * Read from i2c memory.
  */
-static int __dw_i2c_read(struct i2c_regs *i2c_base, u8 dev, uint addr,
-			 int alen, u8 *buffer, int len)
+static int __dw_i2c_read(struct i2c_regs *i2c_base, u8 dev, uint addr, int alen, u8 * buffer, int len)
 {
 	unsigned long start_time_rx;
 	unsigned int active = 0;
@@ -423,8 +410,7 @@ static int __dw_i2c_read(struct i2c_regs *i2c_base, u8 dev, uint addr,
 	dev |= ((addr >> (alen * 8)) & CONFIG_SYS_I2C_EEPROM_ADDR_OVERFLOW);
 	addr &= ~(CONFIG_SYS_I2C_EEPROM_ADDR_OVERFLOW << (alen * 8));
 
-	debug("%s: fix addr_overflow: dev %02x addr %02x\n", __func__, dev,
-	      addr);
+	debug("%s: fix addr_overflow: dev %02x addr %02x\n", __func__, dev, addr);
 #endif
 
 	if (i2c_xfer_init(i2c_base, dev, addr, alen))
@@ -448,7 +434,7 @@ static int __dw_i2c_read(struct i2c_regs *i2c_base, u8 dev, uint addr,
 		}
 
 		if (readl(&i2c_base->ic_status) & IC_STATUS_RFNE) {
-			*buffer++ = (uchar)readl(&i2c_base->ic_cmd_data);
+			*buffer++ = (uchar) readl(&i2c_base->ic_cmd_data);
 			len--;
 			start_time_rx = get_timer(0);
 			active = 0;
@@ -470,8 +456,7 @@ static int __dw_i2c_read(struct i2c_regs *i2c_base, u8 dev, uint addr,
  *
  * Write to i2c memory.
  */
-static int __dw_i2c_write(struct i2c_regs *i2c_base, u8 dev, uint addr,
-			  int alen, u8 *buffer, int len)
+static int __dw_i2c_write(struct i2c_regs *i2c_base, u8 dev, uint addr, int alen, u8 * buffer, int len)
 {
 	int nb = len;
 	unsigned long start_time_tx;
@@ -491,8 +476,7 @@ static int __dw_i2c_write(struct i2c_regs *i2c_base, u8 dev, uint addr,
 	dev |= ((addr >> (alen * 8)) & CONFIG_SYS_I2C_EEPROM_ADDR_OVERFLOW);
 	addr &= ~(CONFIG_SYS_I2C_EEPROM_ADDR_OVERFLOW << (alen * 8));
 
-	debug("%s: fix addr_overflow: dev %02x addr %02x\n", __func__, dev,
-	      addr);
+	debug("%s: fix addr_overflow: dev %02x addr %02x\n", __func__, dev, addr);
 #endif
 
 	if (i2c_xfer_init(i2c_base, dev, addr, alen))
@@ -502,8 +486,7 @@ static int __dw_i2c_write(struct i2c_regs *i2c_base, u8 dev, uint addr,
 	while (len) {
 		if (readl(&i2c_base->ic_status) & IC_STATUS_TFNF) {
 			if (--len == 0) {
-				writel(*buffer | IC_STOP,
-				       &i2c_base->ic_cmd_data);
+				writel(*buffer | IC_STOP, &i2c_base->ic_cmd_data);
 			} else {
 				writel(*buffer, &i2c_base->ic_cmd_data);
 			}
@@ -511,12 +494,76 @@ static int __dw_i2c_write(struct i2c_regs *i2c_base, u8 dev, uint addr,
 			start_time_tx = get_timer(0);
 
 		} else if (get_timer(start_time_tx) > (nb * I2C_BYTE_TO)) {
-				printf("Timed out. i2c write Failed\n");
-				return 1;
+			printf("Timed out. i2c write Failed\n");
+			return 1;
 		}
 	}
 
 	return i2c_xfer_finish(i2c_base);
+}
+
+void dw_i2c_set_reg_bit(void *reg, u32 shift, bool en)
+{
+	u32 val;
+	if (en)
+		val = readl(reg) | BIT(shift);
+	else
+		val = readl(reg) & ~BIT(shift);
+	writel(val, reg);
+}
+
+static int dw_i2c_set_reset(struct udevice *bus, bool en)
+{
+	struct dw_i2c *priv = dev_get_priv(bus);
+	struct dw_reg_cfg reg_cfg[2];
+	int ret;
+
+	ret = fdtdec_get_int_array(gd->fdt_blob, dev_of_offset(bus), "reset",
+				   (u32 *) reg_cfg, 4);
+	if (ret) {
+		pr_err("%s get reset fail\n", __func__);
+		return -1;
+	}
+	dw_i2c_set_reg_bit((void *)priv->comm_regs + reg_cfg[0].offset,
+			   reg_cfg[0].shift, en);
+	dw_i2c_set_reg_bit((void *)priv->comm_regs + reg_cfg[1].offset,
+			   reg_cfg[1].shift, en);
+	return 0;
+}
+
+static int dw_i2c_clk_enable(struct udevice *bus, bool en)
+{
+	struct dw_i2c *priv = dev_get_priv(bus);
+	struct dw_reg_cfg reg_cfg[2];
+	int ret;
+
+	ret = fdtdec_get_int_array(gd->fdt_blob, dev_of_offset(bus), "clk",
+				   (u32 *) reg_cfg, 4);
+	if (ret) {
+		pr_err("%s get clk fail\n", __func__);
+		return -1;
+	}
+	dw_i2c_set_reg_bit((void *)(priv->comm_regs + reg_cfg[0].offset),
+			   reg_cfg[0].shift, en);
+	dw_i2c_set_reg_bit((void *)(priv->comm_regs + reg_cfg[1].offset),
+			   reg_cfg[1].shift, en);
+	return 0;
+}
+
+/*
+ * __dw_i2c_prep - prep function
+ *
+ * enable clk and set reset.
+ */
+static int dw_i2c_prep(struct udevice *bus)
+{
+	struct dw_i2c *priv = dev_get_priv(bus);
+
+	if (priv)
+		priv->comm_regs = (u32)devfdt_get_addr_index(bus, 1);
+	dw_i2c_clk_enable(bus, 1);
+	dw_i2c_set_reset(bus, 0);
+	return 0;
 }
 
 /*
@@ -535,8 +582,7 @@ static int __dw_i2c_init(struct i2c_regs *i2c_base, int speed, int slaveaddr)
 	if (ret)
 		return ret;
 
-	writel(IC_CON_SD | IC_CON_RE | IC_CON_SPD_FS | IC_CON_MM,
-	       &i2c_base->ic_con);
+	writel(IC_CON_SD | IC_CON_RE | IC_CON_SPD_FS | IC_CON_MM, &i2c_base->ic_con);
 	writel(IC_RX_TL, &i2c_base->ic_rx_tl);
 	writel(IC_TX_TL, &i2c_base->ic_tx_tl);
 	writel(IC_STOP_DET, &i2c_base->ic_intr_mask);
@@ -582,8 +628,7 @@ static struct i2c_regs *i2c_get_base(struct i2c_adapter *adap)
 	return NULL;
 }
 
-static unsigned int dw_i2c_set_bus_speed(struct i2c_adapter *adap,
-					 unsigned int speed)
+static unsigned int dw_i2c_set_bus_speed(struct i2c_adapter *adap, unsigned int speed)
 {
 	adap->speed = speed;
 	return _dw_i2c_set_bus_speed(NULL, i2c_get_base(adap), speed, IC_CLK);
@@ -594,14 +639,12 @@ static void dw_i2c_init(struct i2c_adapter *adap, int speed, int slaveaddr)
 	__dw_i2c_init(i2c_get_base(adap), speed, slaveaddr);
 }
 
-static int dw_i2c_read(struct i2c_adapter *adap, u8 dev, uint addr,
-		       int alen, u8 *buffer, int len)
+static int dw_i2c_read(struct i2c_adapter *adap, u8 dev, uint addr, int alen, u8 * buffer, int len)
 {
 	return __dw_i2c_read(i2c_get_base(adap), dev, addr, alen, buffer, len);
 }
 
-static int dw_i2c_write(struct i2c_adapter *adap, u8 dev, uint addr,
-			int alen, u8 *buffer, int len)
+static int dw_i2c_write(struct i2c_adapter *adap, u8 dev, uint addr, int alen, u8 * buffer, int len)
 {
 	return __dw_i2c_write(i2c_get_base(adap), dev, addr, alen, buffer, len);
 }
@@ -616,7 +659,7 @@ static int dw_i2c_probe(struct i2c_adapter *adap, u8 dev)
 	/*
 	 * Try to read the first location of the chip.
 	 */
-	ret = __dw_i2c_read(i2c_base, dev, 0, 1, (uchar *)&tmp, 1);
+	ret = __dw_i2c_read(i2c_base, dev, 0, 1, (uchar *) & tmp, 1);
 	if (ret)
 		dw_i2c_init(adap, adap->speed, adap->slaveaddr);
 
@@ -624,32 +667,23 @@ static int dw_i2c_probe(struct i2c_adapter *adap, u8 dev)
 }
 
 U_BOOT_I2C_ADAP_COMPLETE(dw_0, dw_i2c_init, dw_i2c_probe, dw_i2c_read,
-			 dw_i2c_write, dw_i2c_set_bus_speed,
-			 CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE, 0)
-
+			 dw_i2c_write, dw_i2c_set_bus_speed, CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE, 0)
 #if CONFIG_SYS_I2C_BUS_MAX >= 2
-U_BOOT_I2C_ADAP_COMPLETE(dw_1, dw_i2c_init, dw_i2c_probe, dw_i2c_read,
-			 dw_i2c_write, dw_i2c_set_bus_speed,
-			 CONFIG_SYS_I2C_SPEED1, CONFIG_SYS_I2C_SLAVE1, 1)
+    U_BOOT_I2C_ADAP_COMPLETE(dw_1, dw_i2c_init, dw_i2c_probe, dw_i2c_read,
+			 dw_i2c_write, dw_i2c_set_bus_speed, CONFIG_SYS_I2C_SPEED1, CONFIG_SYS_I2C_SLAVE1, 1)
 #endif
-
 #if CONFIG_SYS_I2C_BUS_MAX >= 3
-U_BOOT_I2C_ADAP_COMPLETE(dw_2, dw_i2c_init, dw_i2c_probe, dw_i2c_read,
-			 dw_i2c_write, dw_i2c_set_bus_speed,
-			 CONFIG_SYS_I2C_SPEED2, CONFIG_SYS_I2C_SLAVE2, 2)
+    U_BOOT_I2C_ADAP_COMPLETE(dw_2, dw_i2c_init, dw_i2c_probe, dw_i2c_read,
+			 dw_i2c_write, dw_i2c_set_bus_speed, CONFIG_SYS_I2C_SPEED2, CONFIG_SYS_I2C_SLAVE2, 2)
 #endif
-
 #if CONFIG_SYS_I2C_BUS_MAX >= 4
-U_BOOT_I2C_ADAP_COMPLETE(dw_3, dw_i2c_init, dw_i2c_probe, dw_i2c_read,
-			 dw_i2c_write, dw_i2c_set_bus_speed,
-			 CONFIG_SYS_I2C_SPEED3, CONFIG_SYS_I2C_SLAVE3, 3)
+    U_BOOT_I2C_ADAP_COMPLETE(dw_3, dw_i2c_init, dw_i2c_probe, dw_i2c_read,
+			 dw_i2c_write, dw_i2c_set_bus_speed, CONFIG_SYS_I2C_SPEED3, CONFIG_SYS_I2C_SLAVE3, 3)
 #endif
-
 #else /* CONFIG_DM_I2C */
 /* The DM I2C functions */
 
-static int designware_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
-			       int nmsgs)
+static int designware_i2c_xfer(struct udevice *bus, struct i2c_msg *msg, int nmsgs)
 {
 	struct dw_i2c *i2c = dev_get_priv(bus);
 	int ret;
@@ -658,11 +692,9 @@ static int designware_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
 	for (; nmsgs > 0; nmsgs--, msg++) {
 		debug("i2c_xfer: chip=0x%x, len=0x%x\n", msg->addr, msg->len);
 		if (msg->flags & I2C_M_RD) {
-			ret = __dw_i2c_read(i2c->regs, msg->addr, 0, 0,
-					    msg->buf, msg->len);
+			ret = __dw_i2c_read(i2c->regs, msg->addr, 0, 0, msg->buf, msg->len);
 		} else {
-			ret = __dw_i2c_write(i2c->regs, msg->addr, 0, 0,
-					     msg->buf, msg->len);
+			ret = __dw_i2c_write(i2c->regs, msg->addr, 0, 0, msg->buf, msg->len);
 		}
 		if (ret) {
 			debug("i2c_write: error sending\n");
@@ -688,8 +720,7 @@ static int designware_i2c_set_bus_speed(struct udevice *bus, unsigned int speed)
 	return _dw_i2c_set_bus_speed(i2c, i2c->regs, speed, rate);
 }
 
-static int designware_i2c_probe_chip(struct udevice *bus, uint chip_addr,
-				     uint chip_flags)
+static int designware_i2c_probe_chip(struct udevice *bus, uint chip_addr, uint chip_flags)
 {
 	struct dw_i2c *i2c = dev_get_priv(bus);
 	struct i2c_regs *i2c_base = i2c->regs;
@@ -697,7 +728,7 @@ static int designware_i2c_probe_chip(struct udevice *bus, uint chip_addr,
 	int ret;
 
 	/* Try to read the first location of the chip */
-	ret = __dw_i2c_read(i2c_base, chip_addr, 0, 1, (uchar *)&tmp, 1);
+	ret = __dw_i2c_read(i2c_base, chip_addr, 0, 0, (uchar *) & tmp, 1);
 	if (ret)
 		__dw_i2c_init(i2c_base, 0, 0);
 
@@ -715,11 +746,13 @@ int designware_i2c_ofdata_to_platdata(struct udevice *bus)
 	dev_read_u32(bus, "i2c-scl-falling-time-ns", &priv->scl_fall_time_ns);
 	dev_read_u32(bus, "i2c-sda-hold-time-ns", &priv->sda_hold_time_ns);
 
+#if 0
 	ret = reset_get_bulk(bus, &priv->resets);
 	if (ret)
 		dev_warn(bus, "Can't get reset: %d\n", ret);
 	else
 		reset_deassert_bulk(&priv->resets);
+#endif
 
 #if CONFIG_IS_ENABLED(CLK)
 	ret = clk_get_by_index(bus, 0, &priv->clk);
@@ -740,7 +773,8 @@ int designware_i2c_ofdata_to_platdata(struct udevice *bus)
 int designware_i2c_probe(struct udevice *bus)
 {
 	struct dw_i2c *priv = dev_get_priv(bus);
-
+	printf("enter %s\n",__func__);
+	dw_i2c_prep(bus);
 	return __dw_i2c_init(priv->regs, 0, 0);
 }
 
@@ -757,14 +791,14 @@ int designware_i2c_remove(struct udevice *dev)
 }
 
 const struct dm_i2c_ops designware_i2c_ops = {
-	.xfer		= designware_i2c_xfer,
-	.probe_chip	= designware_i2c_probe_chip,
-	.set_bus_speed	= designware_i2c_set_bus_speed,
+	.xfer = designware_i2c_xfer,
+	.probe_chip = designware_i2c_probe_chip,
+	.set_bus_speed = designware_i2c_set_bus_speed,
 };
 
 static const struct udevice_id designware_i2c_ids[] = {
-	{ .compatible = "snps,designware-i2c" },
-	{ }
+	{.compatible = "snps,designware-i2c"},
+	{}
 };
 
 U_BOOT_DRIVER(i2c_designware) = {

@@ -120,6 +120,8 @@ struct NS16550 {
 #define dll rbr
 #define dlm ier
 
+#define DLF_REG 0xc0
+
 typedef struct NS16550 *NS16550_t;
 
 /*

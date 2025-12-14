@@ -42,6 +42,53 @@ static void dump_instr(struct pt_regs *regs)
 	printf("\n");
 }
 
+#define MAX_BACK_TRACE_LEVEL 6
+
+struct stackframe {
+    unsigned long fp;
+    unsigned long sp;
+    unsigned long lr;
+    unsigned long pc;
+};
+
+int unwind_frame(struct stackframe *frame)
+{
+    static int cnt=0;
+
+    unsigned long fp = frame->fp;
+    if(++cnt == MAX_BACK_TRACE_LEVEL || frame->fp == 0)
+        return -1;
+
+    frame->fp = *(unsigned long *)(fp);
+    frame->sp = frame->fp;
+    frame->lr = frame->sp + 8;
+    frame->pc = *(unsigned long *)(frame->lr) - 4;
+    printf("Function entered (reloc): [<%016lx>] lr: [<%016lx>] sp: [<%016lx>]\n", frame->pc - gd->reloc_off, frame->lr - gd->reloc_off, frame->sp - gd->reloc_off);
+    printf("Function entered: [<%016lx>] lr: [<%016lx>] sp: [<%016lx>]\n", frame->pc, frame->lr, frame->sp);
+    return 0;
+}
+
+void dump_stack(struct pt_regs *regs)
+{
+    struct stackframe frame;
+    int urc;
+
+    frame.fp = frame.sp = regs->regs[29];
+    frame.lr = regs->regs[30];
+    /* frame.pc means the address of the function entry */
+    frame.pc = *(unsigned long *)(frame.lr) - 4;
+
+    printf("Function entered (reloc): [<%016lx>] lr: [<%016lx>] sp: [<%016lx>]\n", frame.pc, frame.lr, frame.sp);
+    printf("Function entered: [<%016lx>] lr: [<%016lx>] sp: [<%016lx>]\n", frame.pc - gd->reloc_off , frame.lr - gd->reloc_off, frame.sp - gd->reloc_off);
+
+    while((frame.sp - gd->reloc_off) < CONFIG_SYS_INIT_SP_ADDR)
+    {
+        urc = unwind_frame(&frame);
+        if (urc < 0)
+            break;
+    }
+}
+
 void show_regs(struct pt_regs *regs)
 {
 	int i;
@@ -57,6 +104,7 @@ void show_regs(struct pt_regs *regs)
 		       i, regs->regs[i], i+1, regs->regs[i+1]);
 	printf("\n");
 	dump_instr(regs);
+	dump_stack(regs);
 }
 
 /*

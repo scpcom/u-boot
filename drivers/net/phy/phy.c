@@ -244,7 +244,11 @@ int genphy_update_link(struct phy_device *phydev)
 			/*
 			 * Timeout reached ?
 			 */
+#ifdef CONFIG_AXERA_EMAC
+            if (i > (PHY_ANEG_TIMEOUT / 10)) {
+#else
 			if (i > (PHY_ANEG_TIMEOUT / 50)) {
+#endif
 				printf(" TIMEOUT !\n");
 				phydev->link = 0;
 				return -ETIMEDOUT;
@@ -383,6 +387,10 @@ int genphy_config(struct phy_device *phydev)
 {
 	int val;
 	u32 features;
+
+#ifdef CONFIG_AXERA_EMAC
+	printf("genphy config\n");
+#endif
 
 	features = (SUPPORTED_TP | SUPPORTED_MII
 			| SUPPORTED_AUI | SUPPORTED_FIBRE |
@@ -676,7 +684,6 @@ static struct phy_device *phy_device_create(struct mii_dev *bus, int addr,
 #endif
 
 	dev->autoneg = AUTONEG_ENABLE;
-
 	dev->addr = addr;
 	dev->phy_id = phy_id;
 	dev->is_c45 = is_c45;
@@ -914,7 +921,29 @@ void phy_connect_dev(struct phy_device *phydev, struct eth_device *dev)
 #endif
 {
 	/* Soft Reset the PHY */
+#ifdef CONFIG_AXERA_EMAC
+	int i=0;
+	int retry=3;
+	int reg;
+	if (phydev->phy_id == 0x00441400) {
+		do {
+			phy_reset(phydev);
+			reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMCR);
+			if ((reg==0x3000) || (reg==0x3100)) {
+				printf("PHY soft reset success\n");
+				break;
+			} else {
+				printf("PHY soft reset failed, bmcr:0x%x reset again\n", reg);
+				mdelay(10);
+			}
+			i++;
+		} while (i < retry);
+	} else {
+		phy_reset(phydev);
+	}
+#else
 	phy_reset(phydev);
+#endif
 	if (phydev->dev && phydev->dev != dev) {
 		printf("%s:%d is connected to %s.  Reconnecting to %s\n",
 		       phydev->bus->name, phydev->addr,

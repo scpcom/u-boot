@@ -114,9 +114,8 @@ config ENV_VARS_UBOOT_CONFIG
 	  - CONFIG_SYS_SOC
 
 config NR_DRAM_BANKS
-	int "Number of DRAM banks"
-	default 1 if ARCH_SUNXI
-	default 4
+	int "Number AXERA of DRAM banks"
+	default 1
 	help
 	  This defines the number of DRAM banks.
 

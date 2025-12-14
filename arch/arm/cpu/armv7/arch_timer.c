@@ -43,7 +43,6 @@ unsigned long long get_ticks(void)
 
 	gd->arch.tbl = nowl;
 	gd->arch.tbu = nowu;
-
 	return (((unsigned long long)gd->arch.tbu) << 32) | gd->arch.tbl;
 }
 

@@ -17,7 +17,6 @@ config DM_VIDEO
 config BACKLIGHT_PWM
 	bool "Generic PWM based Backlight Driver"
 	depends on DM_VIDEO && DM_PWM
-	default y
 	help
 	  If you have a LCD backlight adjustable by PWM, say Y to enable
 	  this driver.
@@ -524,6 +523,8 @@ config VIDEO_FSL_DCU_MAX_FB_SIZE_MB
 	 Controller Unit (DCU4).
 
 source "drivers/video/rockchip/Kconfig"
+
+source "drivers/video/axera/Kconfig"
 
 config VIDEO_ARM_MALIDP
 	bool "Enable Arm Mali Display Processor support"

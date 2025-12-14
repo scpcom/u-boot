@@ -145,7 +145,7 @@ static int display_text_info(void)
 	text_base = CONFIG_SYS_MONITOR_BASE;
 #endif
 
-	debug("U-Boot code: %08lX -> %08lX  BSS: -> %08lX\n",
+	ax_debug("U-Boot code: %08lX -> %08lX  BSS: -> %08lX\n",
 	      text_base, bss_start, bss_end);
 #endif
 
@@ -216,16 +216,16 @@ static int show_dram_config(void)
 #ifdef CONFIG_NR_DRAM_BANKS
 	int i;
 
-	debug("\nRAM Configuration:\n");
+	ax_debug("\nRAM Configuration:\n");
 	for (i = size = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
 		size += gd->bd->bi_dram[i].size;
-		debug("Bank #%d: %llx ", i,
+		ax_debug("Bank #%d: %llx ", i,
 		      (unsigned long long)(gd->bd->bi_dram[i].start));
 #ifdef DEBUG
 		print_size(gd->bd->bi_dram[i].size, "\n");
 #endif
 	}
-	debug("\nDRAM:  ");
+	ax_debug("\nDRAM:  ");
 #else
 	size = gd->ram_size;
 #endif
@@ -290,7 +290,7 @@ static int setup_spl_handoff(void)
 #if CONFIG_IS_ENABLED(HANDOFF)
 	gd->spl_handoff = bloblist_find(BLOBLISTT_SPL_HANDOFF,
 					sizeof(struct spl_handoff));
-	debug("Found SPL hand-off info %p\n", gd->spl_handoff);
+	ax_debug("Found SPL hand-off info %p\n", gd->spl_handoff);
 #endif
 
 	return 0;
@@ -326,11 +326,11 @@ __weak ulong board_get_usable_ram_top(ulong total_size)
 
 static int setup_dest_addr(void)
 {
-	debug("Monitor len: %08lX\n", gd->mon_len);
+	ax_debug("Monitor len: %08lX\n", gd->mon_len);
 	/*
 	 * Ram is setup, size stored in gd !!
 	 */
-	debug("Ram size: %08lX\n", (ulong)gd->ram_size);
+	ax_debug("Ram size: %08lX\n", (ulong)gd->ram_size);
 #if defined(CONFIG_SYS_MEM_TOP_HIDE)
 	/*
 	 * Subtract specified amount of memory to hide so that it won't
@@ -350,7 +350,7 @@ static int setup_dest_addr(void)
 	gd->ram_top = gd->ram_base + get_effective_memsize();
 	gd->ram_top = board_get_usable_ram_top(gd->mon_len);
 	gd->relocaddr = gd->ram_top;
-	debug("Ram top: %08lX\n", (ulong)gd->ram_top);
+	ax_debug("Ram top: %08lX\n", (ulong)gd->ram_top);
 #if defined(CONFIG_MP) && (defined(CONFIG_MPC86xx) || defined(CONFIG_E500))
 	/*
 	 * We need to make sure the location we intend to put secondary core
@@ -358,7 +358,7 @@ static int setup_dest_addr(void)
 	 */
 	if (gd->relocaddr > determine_mp_bootpg(NULL)) {
 		gd->relocaddr = determine_mp_bootpg(NULL);
-		debug("Reserving MP boot page to %08lx\n", gd->relocaddr);
+		ax_debug("Reserving MP boot page to %08lx\n", gd->relocaddr);
 	}
 #endif
 	return 0;
@@ -372,7 +372,7 @@ static int reserve_pram(void)
 
 	reg = env_get_ulong("pram", 10, CONFIG_PRAM);
 	gd->relocaddr -= (reg << 10);		/* size is in kB */
-	debug("Reserving %ldk for protected RAM at %08lx\n", reg,
+	ax_debug("Reserving %ldk for protected RAM at %08lx\n", reg,
 	      gd->relocaddr);
 	return 0;
 }
@@ -397,7 +397,7 @@ __weak int reserve_mmu(void)
 	gd->relocaddr &= ~(0x10000 - 1);
 
 	gd->arch.tlb_addr = gd->relocaddr;
-	debug("TLB table from %08lx to %08lx\n", gd->arch.tlb_addr,
+	ax_debug("TLB table from %08lx to %08lx\n", gd->arch.tlb_addr,
 	      gd->arch.tlb_addr + gd->arch.tlb_size);
 
 #ifdef CONFIG_SYS_MEM_RESERVE_SECURE
@@ -442,7 +442,7 @@ static int reserve_trace(void)
 #ifdef CONFIG_TRACE
 	gd->relocaddr -= CONFIG_TRACE_BUFFER_SIZE;
 	gd->trace_buff = map_sysmem(gd->relocaddr, CONFIG_TRACE_BUFFER_SIZE);
-	debug("Reserving %luk for trace data at: %08lx\n",
+	ax_debug("Reserving %luk for trace data at: %08lx\n",
 	      (unsigned long)CONFIG_TRACE_BUFFER_SIZE >> 10, gd->relocaddr);
 #endif
 
@@ -463,7 +463,7 @@ static int reserve_uboot(void)
 		gd->relocaddr &= ~(65536 - 1);
 	#endif
 
-		debug("Reserving %ldk for U-Boot at: %08lx\n",
+		ax_debug("Reserving %ldk for U-Boot at: %08lx\n",
 		      gd->mon_len >> 10, gd->relocaddr);
 	}
 
@@ -487,7 +487,7 @@ static int reserve_noncached(void)
 		MMU_SECTION_SIZE;
 	gd->start_addr_sp -= ALIGN(CONFIG_SYS_NONCACHED_MEMORY,
 				   MMU_SECTION_SIZE);
-	debug("Reserving %dM for noncached_alloc() at: %08lx\n",
+	ax_debug("Reserving %dM for noncached_alloc() at: %08lx\n",
 	      CONFIG_SYS_NONCACHED_MEMORY >> 20, gd->start_addr_sp);
 
 	return 0;
@@ -498,7 +498,7 @@ static int reserve_noncached(void)
 static int reserve_malloc(void)
 {
 	gd->start_addr_sp = gd->start_addr_sp - TOTAL_MALLOC_LEN;
-	debug("Reserving %dk for malloc() at: %08lx\n",
+	ax_debug("Reserving %dk for malloc() at: %08lx\n",
 	      TOTAL_MALLOC_LEN >> 10, gd->start_addr_sp);
 #ifdef CONFIG_SYS_NONCACHED_MEMORY
 	reserve_noncached();
@@ -514,7 +514,7 @@ static int reserve_board(void)
 		gd->start_addr_sp -= sizeof(bd_t);
 		gd->bd = (bd_t *)map_sysmem(gd->start_addr_sp, sizeof(bd_t));
 		memset(gd->bd, '\0', sizeof(bd_t));
-		debug("Reserving %zu Bytes for Board Info at: %08lx\n",
+		ax_debug("Reserving %zu Bytes for Board Info at: %08lx\n",
 		      sizeof(bd_t), gd->start_addr_sp);
 	}
 	return 0;
@@ -532,7 +532,7 @@ static int reserve_global_data(void)
 {
 	gd->start_addr_sp -= sizeof(gd_t);
 	gd->new_gd = (gd_t *)map_sysmem(gd->start_addr_sp, sizeof(gd_t));
-	debug("Reserving %zu Bytes for Global Data at: %08lx\n",
+	ax_debug("Reserving %zu Bytes for Global Data at: %08lx\n",
 	      sizeof(gd_t), gd->start_addr_sp);
 	return 0;
 }
@@ -550,7 +550,7 @@ static int reserve_fdt(void)
 
 		gd->start_addr_sp -= gd->fdt_size;
 		gd->new_fdt = map_sysmem(gd->start_addr_sp, gd->fdt_size);
-		debug("Reserving %lu Bytes for FDT at: %08lx\n",
+		ax_debug("Reserving %lu Bytes for FDT at: %08lx\n",
 		      gd->fdt_size, gd->start_addr_sp);
 	}
 #endif
@@ -565,7 +565,7 @@ static int reserve_bootstage(void)
 
 	gd->start_addr_sp -= size;
 	gd->new_bootstage = map_sysmem(gd->start_addr_sp, size);
-	debug("Reserving %#x Bytes for bootstage at: %08lx\n", size,
+	ax_debug("Reserving %#x Bytes for bootstage at: %08lx\n", size,
 	      gd->start_addr_sp);
 #endif
 
@@ -603,7 +603,7 @@ static int reserve_bloblist(void)
 
 static int display_new_sp(void)
 {
-	debug("New Stack Pointer is: %08lx\n", gd->start_addr_sp);
+	ax_debug("New Stack Pointer is: %08lx\n", gd->start_addr_sp);
 
 	return 0;
 }
@@ -697,7 +697,7 @@ static int reloc_bootstage(void)
 	if (gd->new_bootstage) {
 		int size = bootstage_get_size();
 
-		debug("Copying bootstage from %p to %p, size %x\n",
+		ax_debug("Copying bootstage from %p to %p, size %x\n",
 		      gd->bootstage, gd->new_bootstage, size);
 		memcpy(gd->new_bootstage, gd->bootstage, size);
 		gd->bootstage = gd->new_bootstage;
@@ -716,7 +716,7 @@ static int reloc_bloblist(void)
 	if (gd->new_bloblist) {
 		int size = CONFIG_BLOBLIST_SIZE;
 
-		debug("Copying bloblist from %p to %p, size %x\n",
+		ax_debug("Copying bloblist from %p to %p, size %x\n",
 		      gd->bloblist, gd->new_bloblist, size);
 		memcpy(gd->new_bloblist, gd->bloblist, size);
 		gd->bloblist = gd->new_bloblist;
@@ -729,7 +729,7 @@ static int reloc_bloblist(void)
 static int setup_reloc(void)
 {
 	if (gd->flags & GD_FLG_SKIP_RELOC) {
-		debug("Skipping relocation due to flag\n");
+		ax_debug("Skipping relocation due to flag\n");
 		return 0;
 	}
 
@@ -748,8 +748,8 @@ static int setup_reloc(void)
 #endif
 	memcpy(gd->new_gd, (char *)gd, sizeof(gd_t));
 
-	debug("Relocation Offset is: %08lx\n", gd->reloc_off);
-	debug("Relocating to %08lx, new gd at %08lx, sp at %08lx\n",
+	ax_debug("Relocation Offset is: %08lx\n", gd->reloc_off);
+	ax_debug("Relocating to %08lx, new gd at %08lx, sp at %08lx\n",
 	      gd->relocaddr, (ulong)map_to_sysmem(gd->new_gd),
 	      gd->start_addr_sp);
 
@@ -812,7 +812,7 @@ static int initf_bootstage(void)
 
 		ret = bootstage_unstash(stash, CONFIG_BOOTSTAGE_STASH_SIZE);
 		if (ret && ret != -ENOENT) {
-			debug("Failed to unstash bootstage: err=%d\n", ret);
+			ax_debug("Failed to unstash bootstage: err=%d\n", ret);
 			return ret;
 		}
 	}
@@ -902,9 +902,9 @@ static const init_fnc_t init_sequence_f[] = {
 	/* get CPU and bus clocks according to the environment variable */
 	get_clocks,		/* get CPU and bus clocks (etc.) */
 #endif
-#if !defined(CONFIG_M68K)
+// #if !defined(CONFIG_M68K)
 	timer_init,		/* initialize timer */
-#endif
+// #endif
 #if defined(CONFIG_BOARD_POSTCLK_INIT)
 	board_postclk_init,
 #endif
@@ -973,7 +973,9 @@ static const init_fnc_t init_sequence_f[] = {
 #ifdef CONFIG_ARM
 	reserve_mmu,
 #endif
+#ifndef AXERA_LOGO_BMP2YUV
 	reserve_video,
+#endif
 	reserve_trace,
 	reserve_uboot,
 	reserve_malloc,

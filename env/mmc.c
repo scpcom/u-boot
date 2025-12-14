@@ -53,6 +53,8 @@ static inline int mmc_offset_try_partition(const char *str, s64 *val)
 	return 0;
 }
 
+extern int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t *info);
+
 static inline s64 mmc_offset(int copy)
 {
 	const struct {
@@ -67,7 +69,9 @@ static inline s64 mmc_offset(int copy)
 	s64 val = 0, defvalue;
 	const char *propname;
 	const char *str;
-	int err;
+	int err, ret;
+	struct blk_desc *blk_dev_desc = NULL;
+	disk_partition_t part_info;
 
 	/* look for the partition in mmc CONFIG_SYS_MMC_ENV_DEV */
 	str = fdtdec_get_config_string(gd->fdt_blob, dt_prop.partition);
@@ -80,6 +84,30 @@ static inline s64 mmc_offset(int copy)
 
 	defvalue = CONFIG_ENV_OFFSET;
 	propname = dt_prop.offset;
+
+	blk_dev_desc = blk_get_dev("mmc", mmc_get_env_dev());
+	if (!blk_dev_desc) {
+		printf("%s: get mmc dev fail\n", __FUNCTION__);
+	}
+	else {
+		//printf("%s: get env part info ...\n", __FUNCTION__);
+		#ifdef USE_GPT_PARTITON
+		ret = part_get_info_by_name(blk_dev_desc, "env", &part_info);
+		if (ret == -1) {
+			printf("%s: get env partition info fail\n", __FUNCTION__);
+		}
+		#else
+		ret = get_part_info(blk_dev_desc,"env", &part_info);
+		if(ret == -1) {
+			printf("%s: get dtb partition info fail\n", __FUNCTION__);
+		}
+		#endif
+		else {
+			defvalue = part_info.start * part_info.blksz;
+			//printf("%s: env part start addr 0x%llX, start lba 0x%lX, blksz 0x%lX\n", __FUNCTION__,
+					//defvalue, part_info.start, part_info.blksz);
+		}
+	}
 
 #if defined(CONFIG_ENV_OFFSET_REDUND)
 	if (copy) {

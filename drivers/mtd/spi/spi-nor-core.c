@@ -36,6 +36,8 @@
 
 #define DEFAULT_READY_WAIT_JIFFIES		(40UL * HZ)
 
+#define SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+
 static int spi_nor_read_write_reg(struct spi_nor *nor, struct spi_mem_op
 		*op, void *buf)
 {
@@ -208,6 +210,17 @@ static int write_sr(struct spi_nor *nor, u8 val)
 	nor->cmd_buf[0] = val;
 	return nor->write_reg(nor, SPINOR_OP_WRSR, nor->cmd_buf, 1);
 }
+
+#ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+/*
+ * Set write enable latch with Write Enable for volatile status register command.
+ * Returns negative if error occurred.
+ */
+static int write_enable_volatile(struct spi_nor *nor)
+{
+	return nor->write_reg(nor, SPINOR_OP_WRENVSR, NULL, 0);
+}
+#endif
 
 /*
  * Set write enable latch with Write Enable command.
@@ -597,7 +610,11 @@ static int write_sr_and_check(struct spi_nor *nor, u8 status_new, u8 mask)
 {
 	int ret;
 
+#ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+	write_enable_volatile(nor);
+#else
 	write_enable(nor);
+#endif
 	ret = write_sr(nor, status_new);
 	if (ret)
 		return ret;
@@ -1336,7 +1353,11 @@ static int write_sr_cr(struct spi_nor *nor, u8 *sr_cr)
 {
 	int ret;
 
+#ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+	write_enable_volatile(nor);
+#else
 	write_enable(nor);
+#endif
 
 	ret = nor->write_reg(nor, SPINOR_OP_WRSR, sr_cr, 2);
 	if (ret < 0) {
@@ -2204,6 +2225,7 @@ static int spi_nor_init_params(struct spi_nor *nor,
 #endif
 		case SNOR_MFR_ST:
 		case SNOR_MFR_MICRON:
+		case SNOR_MFR_EON:
 			break;
 
 		default:
@@ -2436,7 +2458,11 @@ static int spi_nor_init(struct spi_nor *nor)
 	    JEDEC_MFR(nor->info) == SNOR_MFR_INTEL ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_SST ||
 	    nor->info->flags & SPI_NOR_HAS_LOCK) {
+#ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
+		write_enable_volatile(nor);
+#else
 		write_enable(nor);
+#endif
 		write_sr(nor, 0);
 		spi_nor_wait_till_ready(nor);
 	}

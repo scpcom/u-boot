@@ -73,7 +73,11 @@ ENTRY(_main)
 #elif defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_STACK)
 	ldr	x0, =(CONFIG_SPL_STACK)
 #elif defined(CONFIG_INIT_SP_RELATIVE)
-	adr	x0, __bss_start
+#if !defined(CONFIG_CMD_AXERA_BOOT_RISCV)
+	adrp	x0, __bss_start
+#else
+	adrp	x0, __bss_start
+#endif
 	add	x0, x0, #CONFIG_SYS_INIT_SP_BSS_OFFSET
 #else
 	ldr	x0, =(CONFIG_SYS_INIT_SP_ADDR)
@@ -99,6 +103,7 @@ ENTRY(_main)
 	bic	sp, x0, #0xf	/* 16-byte alignment for ABI compliance */
 	ldr	x18, [x18, #GD_NEW_GD]		/* x18 <- gd->new_gd */
 
+#ifndef CONFIG_UBOOT_SKIP_RELOCATE
 	adr	lr, relocation_return
 #if CONFIG_POSITION_INDEPENDENT
 	/* Add in link-vs-runtime offset */
@@ -112,6 +117,7 @@ ENTRY(_main)
 	add	lr, lr, x9	/* new return address after relocation */
 	ldr	x0, [x18, #GD_RELOCADDR]	/* x0 <- gd->relocaddr */
 	b	relocate_code
+#endif
 
 relocation_return:
 

@@ -7,6 +7,8 @@
 #include <env.h>
 #include <stdint.h>
 
+#define CONFIG_AX_ENV
+
 /*
  * Programs using the library must check which API is available,
  * that varies depending on the U-Boot version.

@@ -154,6 +154,19 @@ config DWC_ETH_QOS
 	  supports the specific configuration used in NVIDIA's Tegra186 chip,
 	  but should be extensible to other combinations quite easily.
 
+config AXERA_EMAC
+        bool "axera ax620e emac support"
+		depends on DM_ETH
+		select PHYLIB
+        help
+          support dwc eqos for axera ax620e
+
+config AXERA_EMAC_HAPS
+        bool "test axera ax620e emac in haps"
+        depends on AXERA_EMAC
+        help
+          test dwc eqos for axera ax620e in haps
+
 config E1000
 	bool "Intel PRO/1000 Gigabit Ethernet support"
 	help

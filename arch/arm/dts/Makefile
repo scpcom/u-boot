@@ -67,6 +67,18 @@ dtb-$(CONFIG_KIRKWOOD) += \
 dtb-$(CONFIG_ARCH_OWL) += \
 	bubblegum_96.dtb
 
+
+dtb-$(CONFIG_TARGET_AX620E_HAPS) += \
+	AX620E_haps.dtb
+dtb-$(CONFIG_TARGET_AX620E_EMMC) += \
+	AX620E_emmc.dtb
+dtb-$(CONFIG_TARGET_AX620E_NAND) += \
+	AX620E_nand.dtb
+dtb-$(CONFIG_TARGET_AX620E_NOR) += \
+	AX620E_nor.dtb
+dtb-$(CONFIG_TARGET_AX620E_QNAND) += \
+	AX620Q_nand_arm32_k419.dtb
+
 dtb-$(CONFIG_ROCKCHIP_PX30) += \
 	px30-evb.dtb \
 	px30-firefly.dtb

@@ -615,7 +615,12 @@ static int tftp_init_load_addr(void)
 
 	lmb_init_and_reserve(&lmb, gd->bd, (void *)gd->fdt_blob);
 
-	max_size = lmb_get_free_size(&lmb, image_load_addr);
+	if ((image_load_addr >= OTA_BUF_ADDR) && (image_load_addr < OTA_BUF_ADDR + (unsigned long)OTA_BUF_LEN)) {
+		max_size = (OTA_BUF_ADDR + (unsigned long)OTA_BUF_LEN - image_load_addr);
+		printf("%s: image_load_addr %lX, max_size %llX\n", __FUNCTION__, image_load_addr, max_size);
+	}
+	else
+		max_size = lmb_get_free_size(&lmb, image_load_addr);
 	if (!max_size)
 		return -1;
 

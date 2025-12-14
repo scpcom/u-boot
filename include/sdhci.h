@@ -272,6 +272,7 @@ struct sdhci_ops {
 };
 
 #if CONFIG_IS_ENABLED(MMC_SDHCI_ADMA)
+#define SDHCI_ADMA_BOUNDARY_SIZE	(128 * 1024 *1024)
 #define ADMA_MAX_LEN	65532
 #ifdef CONFIG_DMA_ADDR_T_64BIT
 #define ADMA_DESC_LEN	16
@@ -310,6 +311,7 @@ struct sdhci_host {
 	unsigned int host_caps;
 	unsigned int version;
 	unsigned int max_clk;   /* Maximum Base Clock frequency */
+	unsigned int timeout_clk;	/* Timeout freq (KHz) */
 	unsigned int clk_mul;   /* Clock Multiplier value */
 	unsigned int clock;
 	struct mmc *mmc;

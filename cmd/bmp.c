@@ -261,7 +261,11 @@ int bmp_display(ulong addr, int x, int y)
 		    y == BMP_ALIGN_CENTER)
 			align = true;
 
+#ifdef AXERA_LOGO_BMP2YUV
+		ret = video_yuv_display(dev, addr, x, y, align);
+#else
 		ret = video_bmp_display(dev, addr, x, y, align);
+#endif
 	}
 #elif defined(CONFIG_LCD)
 	ret = lcd_display_bitmap(addr, x, y);

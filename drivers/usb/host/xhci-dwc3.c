@@ -110,29 +110,78 @@ void dwc3_set_fladj(struct dwc3 *dwc3_reg, u32 val)
 			GFLADJ_30MHZ(val));
 }
 
+#ifdef CONFIG_ARCH_AXERA
+/* ref clk adj value */
+#define GFLADJ_REFCLK_240MHZ_DECR	0xa
+#define GFLADJ_REFCLK_FLADJ			0x7f0
+#define GUCTL_REFCLKPER				0x29
+#define DWC3_GUCTL_REFCLKPER_MASK	0x3ff
+#define DWC3_GFLADJ_REFCLK_LPM_SEL			BIT(23)
+#define DWC3_GFLADJ_REFCLK_FLADJ_MASK		0x3fff
+#define DWC3_GFLADJ_REFCLK_240MHZ_DECR_MASK	0x7f
+
+void dwc3_axera_usb_set(uintptr_t base)
+{
+	u32 value;
+	void *addr;
+
+	/* DWC3_GFLADJ: 0xc630 */
+	addr = (void *)(base+0xc630);
+	value = readl(addr);
+	value &= ~(DWC3_GFLADJ_REFCLK_FLADJ_MASK << 8);
+	value &= ~(DWC3_GFLADJ_REFCLK_240MHZ_DECR_MASK << 24);
+	value |= GFLADJ_REFCLK_240MHZ_DECR << 24 |
+			 DWC3_GFLADJ_REFCLK_LPM_SEL 	|
+			 GFLADJ_REFCLK_FLADJ << 8;
+	writel(value, addr);
+
+	/* DWC3_GUCTL: 0xc12c */
+	addr = (void *)(base+0xc12c);
+	value = readl(addr);
+	value &= ~(DWC3_GUCTL_REFCLKPER_MASK << 22);
+	value |= GUCTL_REFCLKPER << 22;
+	writel(value, addr);
+
+	/* DWC3_GUCTL1: 0xc11c */
+	addr = (void *)(base+0xc11c);
+	value = readl(addr);
+	value |= (0x1 << 26);
+	writel(value, addr);
+}
+#endif
+
 #if CONFIG_IS_ENABLED(DM_USB)
+
 static int xhci_dwc3_probe(struct udevice *dev)
 {
 	struct xhci_hcor *hcor;
 	struct xhci_hccr *hccr;
 	struct dwc3 *dwc3_reg;
-	enum usb_dr_mode dr_mode;
-	struct xhci_dwc3_platdata *plat = dev_get_platdata(dev);
 	const char *phy;
 	u32 reg;
+#ifndef CONFIG_ARCH_AXERA
+	enum usb_dr_mode dr_mode;
+	struct xhci_dwc3_platdata *plat = dev_get_platdata(dev);
 	int ret;
+#endif
 
 	hccr = (struct xhci_hccr *)((uintptr_t)dev_read_addr(dev));
 	hcor = (struct xhci_hcor *)((uintptr_t)hccr +
 			HC_LENGTH(xhci_readl(&(hccr)->cr_capbase)));
 
+#ifndef CONFIG_ARCH_AXERA
 	ret = dwc3_setup_phy(dev, &plat->usb_phys, &plat->num_phys);
 	if (ret && (ret != -ENOTSUPP))
 		return ret;
+#endif
 
 	dwc3_reg = (struct dwc3 *)((char *)(hccr) + DWC3_REG_OFFSET);
 
 	dwc3_core_init(dwc3_reg);
+
+#ifdef CONFIG_ARCH_AXERA
+	dwc3_axera_usb_set((uintptr_t) hccr);
+#endif
 
 	/* Set dwc3 usb2 phy config */
 	reg = readl(&dwc3_reg->g_usb2phycfg[0]);
@@ -155,12 +204,14 @@ static int xhci_dwc3_probe(struct udevice *dev)
 
 	writel(reg, &dwc3_reg->g_usb2phycfg[0]);
 
+#ifdef CONFIG_ARCH_AXERA
+	dwc3_set_mode(dwc3_reg, USB_DR_MODE_HOST);
+#else
 	dr_mode = usb_get_dr_mode(dev_of_offset(dev));
 	if (dr_mode == USB_DR_MODE_UNKNOWN)
 		/* by default set dual role mode to HOST */
 		dr_mode = USB_DR_MODE_HOST;
-
-	dwc3_set_mode(dwc3_reg, dr_mode);
+#endif
 
 	return xhci_register(dev, hccr, hcor);
 }

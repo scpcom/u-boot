@@ -278,6 +278,11 @@ int env_erase(void)
 		else
 			printf("OK\n");
 
+#ifdef CONFIG_ARCH_AXERA
+		env_load();
+		env_save();
+#endif
+
 		if (!ret)
 			return 0;
 	}

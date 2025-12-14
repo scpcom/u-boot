@@ -375,15 +375,16 @@ int spi_mem_exec_op(struct spi_slave *slave, const struct spi_mem_op *op)
 	/* Make sure to set END bit if no tx or rx data messages follow */
 	if (!tx_buf && !rx_buf)
 		flag |= SPI_XFER_END;
-
 	ret = spi_xfer(slave, op_len * 8, op_buf, NULL, flag);
 	if (ret)
 		return ret;
 
 	/* 2nd transfer: rx or tx data path */
 	if (tx_buf || rx_buf) {
+		if (op->data.buswidth == 4)
+			flag = SPI_XFER_QUAD;
 		ret = spi_xfer(slave, op->data.nbytes * 8, tx_buf,
-			       rx_buf, SPI_XFER_END);
+			       rx_buf, SPI_XFER_END | flag);
 		if (ret)
 			return ret;
 	}

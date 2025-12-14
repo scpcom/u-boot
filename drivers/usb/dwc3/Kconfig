@@ -23,6 +23,13 @@ config USB_DWC3_OMAP
 
 	  Say 'Y' here if you have one such device
 
+config USB_DWC3_AXERA
+	bool "AXERA and similar Platforms"
+	help
+	  Some platforms from AXERA like AX620E use this IP for USB2/3 functionality.
+
+	  Say 'Y' here if you have one such device
+
 config USB_DWC3_GENERIC
 	bool "Generic implementation of a DWC3 wrapper (aka dwc3 glue)"
 	depends on DM_USB && USB_DWC3 && MISC

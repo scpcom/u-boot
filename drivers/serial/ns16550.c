@@ -16,6 +16,8 @@
 #include <linux/err.h>
 #include <linux/types.h>
 #include <asm/io.h>
+#include <asm/arch/ax620e.h>
+#include <asm/arch/boot_mode.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -207,15 +209,27 @@ static u32 ns16550_getfcr(NS16550_t port)
 int ns16550_calc_divisor(NS16550_t port, int clock, int baudrate)
 {
 	const unsigned int mode_x_div = 16;
-
 	return DIV_ROUND_CLOSEST(clock, mode_x_div * baudrate);
 }
 
 static void NS16550_setbrg(NS16550_t com_port, int baud_divisor)
 {
+#ifdef CONFIG_AXERA_AX620E
+	boot_mode_info_t *boot_mode = (boot_mode_info_t *) BOOT_MODE_INFO_ADDR;
+	/*In uart download mode, uart baudrate is changed at fdl1, fdl2 can't set default, f*/
+	if (boot_mode->dl_channel == DL_CHAN_UART1
+	    || boot_mode->dl_channel == DL_CHAN_UART0) {
+		return;
+	}
+#endif
+	unsigned int rem, frac, base_baud = gd->baudrate * 16;
+	u8 dlf_size = fls(serial_in(&com_port->rbr + DLF_REG));
+	rem = CONFIG_SYS_NS16550_CLK % base_baud;
+	frac = DIV_ROUND_CLOSEST(rem << dlf_size, base_baud);
+	serial_out(frac, &com_port->rbr + DLF_REG);
+
 	/* to keep serial format, read lcr before writing BKSE */
 	int lcr_val = serial_in(&com_port->lcr) & ~UART_LCR_BKSE;
-
 	serial_out(UART_LCR_BKSE | lcr_val, &com_port->lcr);
 	serial_out(baud_divisor & 0xff, &com_port->dll);
 	serial_out((baud_divisor >> 8) & 0xff, &com_port->dlm);
@@ -518,7 +532,6 @@ int ns16550_serial_probe(struct udevice *dev)
 
 	com_port->plat = dev_get_platdata(dev);
 	NS16550_init(com_port, -1);
-
 	return 0;
 }
 

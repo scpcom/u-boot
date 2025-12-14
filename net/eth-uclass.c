@@ -421,10 +421,14 @@ int eth_initialize(void)
 		bootstage_mark(BOOTSTAGE_ID_NET_ETH_INIT);
 		do {
 			if (dev->seq != -1) {
+#ifdef CONFIG_AXERA_EMAC
+                printf("eth%d: %s  ", dev->seq, dev->name);
+#else
 				if (num_devices)
 					printf(", ");
 
 				printf("eth%d: %s", dev->seq, dev->name);
+#endif
 
 				if (ethprime && dev == prime_dev)
 					printf(" [PRIME]");

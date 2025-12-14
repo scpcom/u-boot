@@ -18,3 +18,4 @@ obj-$(CONFIG_SYSRESET_SYSCON) += sysreset_syscon.o
 obj-$(CONFIG_SYSRESET_WATCHDOG) += sysreset_watchdog.o
 obj-$(CONFIG_$(SPL_TPL_)SYSRESET_X86) += sysreset_x86.o
 obj-$(CONFIG_TARGET_XTFPGA) += sysreset_xtfpga.o
+obj-$(CONFIG_ARCH_AXERA) += sysreset_axera.o

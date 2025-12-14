@@ -89,6 +89,10 @@ switch_to_hypervisor_ret:
 #endif
 #endif
 
+#ifdef COUNTER_FREQUENCY
+	ldr r0, =COUNTER_FREQUENCY
+	MCR p15, 0, r0, c14, c0, 0   /* Initialize CNTFRQ */
+#endif
 	bl	_main
 
 /*------------------------------------------------------------------------------*/

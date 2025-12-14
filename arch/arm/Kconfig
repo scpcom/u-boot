@@ -1648,6 +1648,11 @@ config ARCH_ROCKCHIP
 	imply TPL_SYSRESET
 	imply USB_FUNCTION_FASTBOOT
 
+config ARCH_AXERA
+	bool "Support AXERA SoCs"
+	select OF_CONTROL
+	select DM
+
 config TARGET_THUNDERX_88XX
 	bool "Support ThunderX 88xx"
 	select ARM64
@@ -1775,6 +1780,8 @@ source "arch/arm/mach-mediatek/Kconfig"
 source "arch/arm/mach-qemu/Kconfig"
 
 source "arch/arm/mach-rockchip/Kconfig"
+
+source "arch/arm/mach-axera/Kconfig"
 
 source "arch/arm/mach-s5pc1xx/Kconfig"
 

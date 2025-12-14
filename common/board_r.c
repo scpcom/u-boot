@@ -64,6 +64,9 @@
 #if defined(CONFIG_GPIO_HOG)
 #include <asm/gpio.h>
 #endif
+#if defined(CONFIG_CMD_AXERA_BOOT_RISCV)
+#include "../cmd/axera/riscv/boot_riscv.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -473,6 +476,9 @@ static int should_load_env(void)
 #endif
 }
 
+#ifdef CONFIG_AXERA_ENV_BOARD_ID
+extern int pinmux_init(void);
+#endif
 static int initr_env(void)
 {
 	/* initialize environment */
@@ -487,6 +493,11 @@ static int initr_env(void)
 
 	/* Initialize from environment */
 	image_load_addr = env_get_ulong("loadaddr", 16, image_load_addr);
+
+#ifdef CONFIG_AXERA_ENV_BOARD_ID
+	printf("%s: delay pinmux_init for env board id\n", __FUNCTION__);
+	pinmux_init();
+#endif
 
 	return 0;
 }
@@ -666,6 +677,34 @@ static int run_main_loop(void)
 	return 0;
 }
 
+#ifdef CONFIG_DM_VIDEO
+static int initr_display(void)
+{
+	struct udevice *dev;
+	int ret;
+
+	ret = uclass_first_device_err(UCLASS_VIDEO, &dev);
+	if (ret)
+		printf("%s:video fail probe\n", __func__);
+
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_DM_I2C
+static int init_func_dm_i2c(void)
+{
+	struct udevice *bus;
+	int i;
+
+	for(i = 0; i < 15; i++)
+	{
+		uclass_get_device_by_seq(UCLASS_I2C, i, &bus);
+	}
+	return 0;
+}
+#endif
+
 /*
  * We hope to remove most of the driver-related init and do it if/when
  * the driver is later used.
@@ -767,16 +806,25 @@ static init_fnc_t init_sequence_r[] = {
 	/* initialize higher level parts of CPU like time base and timers */
 	cpu_init_r,
 #endif
+#ifdef CONFIG_MMC
+	initr_mmc,
+#endif
 #ifdef CONFIG_CMD_NAND
 	initr_nand,
 #endif
 #ifdef CONFIG_CMD_ONENAND
 	initr_onenand,
 #endif
-#ifdef CONFIG_MMC
-	initr_mmc,
+#ifdef CONFIG_AXERA_ENV_BOARD_ID
+	initr_pinmux,
+#endif
+#if defined(CONFIG_CMD_AXERA_BOOT_RISCV)
+	boot_riscv,
 #endif
 	initr_env,
+#ifdef CONFIG_DM_I2C
+	init_func_dm_i2c,
+#endif
 #ifdef CONFIG_SYS_BOOTPARAMS_LEN
 	initr_malloc_bootparams,
 #endif
@@ -791,6 +839,9 @@ static init_fnc_t init_sequence_r[] = {
 	 * Do pci configuration
 	 */
 	initr_pci,
+#endif
+#ifdef CONFIG_DM_VIDEO
+	initr_display,
 #endif
 	stdio_add_devices,
 	initr_jumptable,

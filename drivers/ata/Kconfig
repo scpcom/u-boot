@@ -66,6 +66,13 @@ config DWC_AHSATA
 	  Enable this driver to support the DWC AHSATA SATA controller found
 	  in i.MX5 and i.MX6 SoCs.
 
+config DWC_AHSATA_AXERA
+	bool "Enable DWC AHSATA Axera driver support"
+	select LIBATA
+	help
+	  Enable this driver to support the DWC AHSATA Axera SATA controller found
+	  in AX620E SoCs.
+
 config DWC_AHSATA_AHCI
 	bool "Enable DWC AHSATA AHCI driver support"
 	depends on DWC_AHSATA

@@ -14,13 +14,14 @@ obj-$(CONFIG_DM_VIDEO) += backlight-uclass.o
 obj-$(CONFIG_VIDEO_MIPI_DSI) += dsi-host-uclass.o
 obj-$(CONFIG_DM_VIDEO) += panel-uclass.o simple_panel.o
 obj-$(CONFIG_DM_VIDEO) += video-uclass.o vidconsole-uclass.o
-obj-$(CONFIG_DM_VIDEO) += video_bmp.o
+obj-$(CONFIG_DM_VIDEO) += video_bmp.o video_yuv.o
 endif
 
 obj-${CONFIG_EXYNOS_FB} += exynos/
 obj-${CONFIG_VIDEO_ROCKCHIP} += rockchip/
 obj-${CONFIG_VIDEO_STM32} += stm32/
 obj-${CONFIG_VIDEO_TEGRA124} += tegra124/
+obj-${CONFIG_VIDEO_AXERA} += axera/
 
 obj-$(CONFIG_AM335X_LCD) += am335x-fb.o
 obj-$(CONFIG_ATI_RADEON_FB) += ati_radeon_fb.o videomodes.o

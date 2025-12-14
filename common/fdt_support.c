@@ -291,8 +291,23 @@ int fdt_chosen(void *fdt)
 
 	str = env_get("bootargs");
 	if (str) {
+#if defined(CONFIG_ARCH_AXERA) && defined(CONFIG_CPU_V7A)
+	do {
+		err = fdt_setprop(fdt, nodeoffset, "bootargs", str,
+				strlen(str) + 1);
+		if (err == -FDT_ERR_NOSPACE) {
+			int ret = fdt_increase_size(fdt, 64);
+			if (ret) {
+				printf("Could not increase size of device tree: %s\n",
+						fdt_strerror(ret));
+				return ret;
+			}
+		}
+	} while (err == -FDT_ERR_NOSPACE);
+#else
 		err = fdt_setprop(fdt, nodeoffset, "bootargs", str,
 				  strlen(str) + 1);
+#endif
 		if (err < 0) {
 			printf("WARNING: could not set bootargs %s.\n",
 			       fdt_strerror(err));

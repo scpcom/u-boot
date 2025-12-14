@@ -229,6 +229,7 @@ static int video_post_probe(struct udevice *dev)
 	struct udevice *cons;
 	int ret;
 
+#ifndef AXERA_LOGO_BMP2YUV
 	/* Set up the line and display size */
 	priv->fb = map_sysmem(plat->base, plat->size);
 	if (!priv->line_length)
@@ -241,6 +242,7 @@ static int video_post_probe(struct udevice *dev)
 
 	if (!CONFIG_IS_ENABLED(NO_FB_CLEAR))
 		video_clear(dev);
+#endif
 
 	/*
 	 * Create a text console device. For now we always do this, although
@@ -293,6 +295,7 @@ static int video_post_bind(struct udevice *dev)
 	/* Before relocation there is nothing to do here */
 	if (!(gd->flags & GD_FLG_RELOC))
 		return 0;
+#ifndef AXERA_LOGO_BMP2YUV
 	size = alloc_fb(dev, &addr);
 	if (addr < gd->video_bottom) {
 		/* Device tree node may need the 'u-boot,dm-pre-reloc' or
@@ -305,6 +308,7 @@ static int video_post_bind(struct udevice *dev)
 	debug("%s: Claiming %lx bytes at %lx for video device '%s'\n",
 	      __func__, size, addr, dev->name);
 	gd->video_bottom = addr;
+#endif
 
 	return 0;
 }

@@ -203,6 +203,11 @@ static int m88e1xxx_parse_status(struct phy_device *phydev)
 		break;
 	}
 
+#ifdef CONFIG_AXERA_EMAC
+	printf("marvell phy status, link status:%d, duplex:%s, speed:%d\n",
+		phydev->link, phydev->duplex == DUPLEX_FULL ? "full" : "half", phydev->speed);
+#endif
+
 	return 0;
 }
 
@@ -602,7 +607,11 @@ static struct phy_driver M88E1111S_driver = {
 	.name = "Marvell 88E1111S",
 	.uid = 0x1410cc0,
 	.mask = 0xffffff0,
+#ifdef CONFIG_AXERA_EMAC_HAPS
+	.features = PHY_DEFAULT_FEATURES | SUPPORTED_100baseT_Full,
+#else
 	.features = PHY_GBIT_FEATURES,
+#endif
 	.config = &m88e1111s_config,
 	.startup = &m88e1011s_startup,
 	.shutdown = &genphy_shutdown,

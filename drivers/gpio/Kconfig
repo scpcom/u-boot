@@ -75,6 +75,13 @@ config DWAPB_GPIO
 	help
 	  Support for the Designware APB GPIO driver.
 
+config AXERA_GPIO
+	bool "AXERA GPIO driver"
+	depends on DM && DM_GPIO
+	default n
+	help
+	  Support for the  AXERA GPIO driver.
+
 config AT91_GPIO
 	bool "AT91 PIO GPIO driver"
 	depends on DM_GPIO

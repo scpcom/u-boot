@@ -20,6 +20,7 @@
 #include <time.h>
 #include <u-boot/sha256.h>
 #include <bootcount.h>
+#include <asm/arch/ax620e.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -300,6 +301,8 @@ static int abortboot(int bootdelay)
 	if (IS_ENABLED(CONFIG_SILENT_CONSOLE) && abort)
 		gd->flags &= ~GD_FLG_SILENT;
 
+	if(abort)
+		wdt0_enable(0);
 	return abort;
 }
 

@@ -653,16 +653,16 @@ static int spinand_mtd_write(struct mtd_info *mtd, loff_t to,
 static bool spinand_isbad(struct nand_device *nand, const struct nand_pos *pos)
 {
 	struct spinand_device *spinand = nand_to_spinand(nand);
+	u8 marker[2] = { };
 	struct nand_page_io_req req = {
 		.pos = *pos,
-		.ooblen = 2,
+		.ooblen = sizeof(marker),
 		.ooboffs = 0,
-		.oobbuf.in = spinand->oobbuf,
+		.oobbuf.in = marker,
 		.mode = MTD_OPS_RAW,
 	};
 	int ret;
 
-	memset(spinand->oobbuf, 0, 2);
 	ret = spinand_select_target(spinand, pos->target);
 	if (ret)
 		return ret;
@@ -671,7 +671,7 @@ static bool spinand_isbad(struct nand_device *nand, const struct nand_pos *pos)
 	if (ret)
 		return ret;
 
-	if (spinand->oobbuf[0] != 0xff || spinand->oobbuf[1] != 0xff)
+	if (marker[0] != 0xff || marker[1] != 0xff)
 		return true;
 
 	return false;
@@ -700,28 +700,20 @@ static int spinand_mtd_block_isbad(struct mtd_info *mtd, loff_t offs)
 static int spinand_markbad(struct nand_device *nand, const struct nand_pos *pos)
 {
 	struct spinand_device *spinand = nand_to_spinand(nand);
+	u8 marker[2] = {0x55, 0x55};
 	struct nand_page_io_req req = {
 		.pos = *pos,
 		.ooboffs = 0,
-		.ooblen = 2,
-		.oobbuf.out = spinand->oobbuf,
+		.ooblen = sizeof(marker),
+		.oobbuf.out = marker,
+		.mode = MTD_OPS_RAW,
 	};
 	int ret;
 
-	/* Erase block before marking it bad. */
 	ret = spinand_select_target(spinand, pos->target);
 	if (ret)
 		return ret;
 
-	ret = spinand_write_enable_op(spinand);
-	if (ret)
-		return ret;
-
-	ret = spinand_erase_op(spinand, pos);
-	if (ret)
-		return ret;
-
-	memset(spinand->oobbuf, 0, 2);
 	return spinand_write_page(spinand, &req);
 }
 
@@ -836,6 +828,8 @@ static const struct spinand_manufacturer *spinand_manufacturers[] = {
 	&macronix_spinand_manufacturer,
 	&micron_spinand_manufacturer,
 	&winbond_spinand_manufacturer,
+	&esmt_spinand_manufacturer,
+	&fmsh_spinand_manufacturer,
 };
 
 static int spinand_manufacturer_detect(struct spinand_device *spinand)
@@ -849,7 +843,7 @@ static int spinand_manufacturer_detect(struct spinand_device *spinand)
 			spinand->manufacturer = spinand_manufacturers[i];
 			return 0;
 		} else if (ret < 0) {
-			return ret;
+			continue;
 		}
 	}
 
@@ -981,13 +975,14 @@ static int spinand_detect(struct spinand_device *spinand)
 
 	ret = spinand_manufacturer_detect(spinand);
 	if (ret) {
-		dev_err(dev, "unknown raw ID %*phN\n", SPINAND_MAX_ID_LEN,
-			spinand->id.data);
+		dev_err(spinand->slave->dev, "unknown raw ID %02x %02x %02x %02x\n",
+			spinand->id.data[0], spinand->id.data[1],
+			spinand->id.data[2], spinand->id.data[3]);
 		return ret;
 	}
 
 	if (nand->memorg.ntargets > 1 && !spinand->select_target) {
-		dev_err(dev,
+		dev_err(spinand->slave->dev,
 			"SPI NANDs with more than one die must implement ->select_target()\n");
 		return -EINVAL;
 	}
@@ -1026,6 +1021,7 @@ static const struct mtd_ooblayout_ops spinand_noecc_ooblayout = {
 	.rfree = spinand_noecc_ooblayout_free,
 };
 
+//#define SPINAND_BLOCK_PROT
 static int spinand_init(struct spinand_device *spinand)
 {
 	struct mtd_info *mtd = spinand_to_mtd(spinand);
@@ -1073,7 +1069,7 @@ static int spinand_init(struct spinand_device *spinand)
 
 	ret = spinand_manufacturer_init(spinand);
 	if (ret) {
-		dev_err(dev,
+		dev_err(spinand->slave->dev,
 			"Failed to initialize the SPI NAND chip (err = %d)\n",
 			ret);
 		goto err_free_bufs;
@@ -1081,10 +1077,21 @@ static int spinand_init(struct spinand_device *spinand)
 
 	/* After power up, all blocks are locked, so unlock them here. */
 	for (i = 0; i < nand->memorg.ntargets; i++) {
+#ifdef SPINAND_BLOCK_PROT
+		u8 sr1;
+#endif
+
 		ret = spinand_select_target(spinand, i);
 		if (ret)
 			goto err_free_bufs;
 
+#ifdef SPINAND_BLOCK_PROT
+		spinand_read_reg_op(spinand, REG_BLOCK_LOCK, &sr1);
+		if (0 != sr1) {
+			printf("%s: protect target %d, reg 0x%x, val 0x%x\n", __func__, i, REG_BLOCK_LOCK, sr1);
+			continue;
+		}
+#endif
 		ret = spinand_lock_block(spinand, BL_ALL_UNLOCKED);
 		if (ret)
 			goto err_free_bufs;

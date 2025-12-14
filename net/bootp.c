@@ -1094,8 +1094,11 @@ static void dhcp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 			net_set_timeout_handler(0, (thand_f *)0);
 			bootstage_mark_name(BOOTSTAGE_ID_BOOTP_STOP,
 					    "bootp_stop");
-
+#ifdef CONFIG_AXERA_EMAC
+            net_set_state(NETLOOP_SUCCESS);
+#else
 			net_auto_load();
+#endif
 			return;
 		}
 		break;

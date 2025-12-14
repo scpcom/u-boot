@@ -177,6 +177,8 @@ obj-$(CONFIG_CMD_BLOB) += blob.o
 # Android Verified Boot 2.0
 obj-$(CONFIG_CMD_AVB) += avb.o
 
+obj-$(CONFIG_CMD_PWM) += pwm.o
+
 obj-$(CONFIG_ARM) += arm/
 obj-$(CONFIG_RISCV) += riscv/
 obj-$(CONFIG_X86) += x86/
@@ -190,6 +192,9 @@ obj-$(CONFIG_$(SPL_)CMD_TLV_EEPROM) += tlv_eeprom.o
 obj-y += nvedit.o
 
 obj-$(CONFIG_TI_COMMON_CMD_OPTIONS) += ti/
+
+# axera commands
+obj-$(CONFIG_ARCH_AXERA) += axera/
 
 filechk_data_gz = (echo "static const char data_gz[] ="; cat $< | scripts/bin2c; echo ";")
 

@@ -42,7 +42,15 @@ static int setup_flash_device(void)
 #ifdef CONFIG_DM_SPI_FLASH
 	struct udevice *new;
 	int	ret;
+#ifdef CONFIG_ARCH_AXERA
+	u32 busnum = 0;
 
+	ret = uclass_get_device(UCLASS_SPI_FLASH, busnum, &new);
+	if (ret) {
+		printf("uclass_get_device: Invalid bus %d (err=%d)\n", busnum, ret);
+		return ret;
+	}
+#else
 	/* speed and mode will be read from DT */
 	ret = spi_flash_probe_bus_cs(CONFIG_ENV_SPI_BUS, CONFIG_ENV_SPI_CS,
 				     CONFIG_ENV_SPI_MAX_HZ, CONFIG_ENV_SPI_MODE,
@@ -51,7 +59,7 @@ static int setup_flash_device(void)
 		env_set_default("spi_flash_probe_bus_cs() failed", 0);
 		return ret;
 	}
-
+#endif
 	env_flash = dev_get_uclass_priv(new);
 #else
 
@@ -276,10 +284,36 @@ static int env_sf_load(void)
 		gd->env_valid = ENV_VALID;
 
 err_read:
+#ifndef CONFIG_ARCH_AXERA
 	spi_flash_free(env_flash);
 	env_flash = NULL;
+#endif
 out:
 	free(buf);
+
+	return ret;
+}
+#endif
+
+#if defined(CONFIG_CMD_ERASEENV)
+static int env_sf_erase(void)
+{
+	int ret;
+	u32 sector;
+
+	ret = setup_flash_device();
+	if (ret)
+		return ret;
+
+	sector = DIV_ROUND_UP(CONFIG_ENV_SIZE, CONFIG_ENV_SECT_SIZE);
+
+	puts("Erasing SPI flash...");
+	ret = spi_flash_erase(env_flash, CONFIG_ENV_OFFSET,
+		sector * CONFIG_ENV_SECT_SIZE);
+	if (ret)
+		puts("Erasing failed!");
+
+	puts("done\n");
 
 	return ret;
 }
@@ -318,5 +352,8 @@ U_BOOT_ENV_LOCATION(sf) = {
 #endif
 #if defined(INITENV) && (CONFIG_ENV_ADDR != 0x0)
 	.init		= env_sf_init,
+#endif
+#if defined(CONFIG_CMD_ERASEENV)
+	.erase		= env_sf_erase,
 #endif
 };

@@ -14,7 +14,7 @@
 #include <linux/math64.h>
 #include "mmc_private.h"
 
-static ulong mmc_erase_t(struct mmc *mmc, ulong start, lbaint_t blkcnt)
+static ulong mmc_erase_t(struct mmc *mmc, ulong start, lbaint_t blkcnt, uint arg)
 {
 	struct mmc_cmd cmd;
 	ulong end;
@@ -51,7 +51,7 @@ static ulong mmc_erase_t(struct mmc *mmc, ulong start, lbaint_t blkcnt)
 		goto err_out;
 
 	cmd.cmdidx = MMC_CMD_ERASE;
-	cmd.cmdarg = MMC_ERASE_ARG;
+	cmd.cmdarg = arg;
 	cmd.resp_type = MMC_RSP_R1b;
 
 	err = mmc_send_cmd(mmc, &cmd, NULL);
@@ -79,7 +79,11 @@ ulong mmc_berase(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt)
 	u32 start_rem, blkcnt_rem;
 	struct mmc *mmc = find_mmc_device(dev_num);
 	lbaint_t blk = 0, blk_r = 0;
-	int timeout_ms = 1000;
+	int timeout_ms = mmc->max_busy_timeout ? mmc->max_busy_timeout : MMC_ERASE_TIMEOUT_MS;
+	int discard, max_discard;
+	unsigned int arg = MMC_ERASE_ARG;
+	unsigned int status;
+	__maybe_unused ulong start_time;
 
 	if (!mmc)
 		return -1;
@@ -103,18 +107,40 @@ ulong mmc_berase(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt)
 		       mmc->erase_grp_size, start & ~(mmc->erase_grp_size - 1),
 		       ((start + blkcnt + mmc->erase_grp_size)
 		       & ~(mmc->erase_grp_size - 1)) - 1);
+	max_discard = mmc_calc_max_discard(mmc);
+	discard = (max_discard > mmc->erase_grp_size) ? max_discard : mmc->erase_grp_size;
+
+	start_time = get_timer(0);
+	if (start % mmc->erase_grp_size) {
+		blk_r = (blkcnt < (mmc->erase_grp_size - start % mmc->erase_grp_size)) ?
+			blkcnt : (mmc->erase_grp_size - start % mmc->erase_grp_size);
+		err = mmc_erase_t(mmc, start, blk_r, MMC_TRIM_ARG);
+		if (err)
+			return -1;
+		blk += blk_r;
+		/* Waiting for the ready status */
+		if (mmc_send_status(mmc, &status))
+			return 0;
+	}
 
 	while (blk < blkcnt) {
 		if (IS_SD(mmc) && mmc->ssr.au) {
 			blk_r = ((blkcnt - blk) > mmc->ssr.au) ?
 				mmc->ssr.au : (blkcnt - blk);
 		} else {
-			blk_r = ((blkcnt - blk) > mmc->erase_grp_size) ?
-				mmc->erase_grp_size : (blkcnt - blk);
+			blk_r = ((blkcnt - blk) > discard) ?
+				discard : (blkcnt - blk);
+			if ((blkcnt - blk) >= discard)
+				arg = MMC_ERASE_ARG;
+			else
+				arg = MMC_TRIM_ARG;
 		}
-		err = mmc_erase_t(mmc, start + blk, blk_r);
+		err = mmc_erase_t(mmc, start + blk, blk_r, arg);
 		if (err)
+		{
+			printf("mmc_erase_t start lba 0x%lX, cnt 0x%lX, arg 0x%X, return %d\n", start + blk, blk_r, arg, err);
 			break;
+		}
 
 		blk += blk_r;
 
@@ -122,6 +148,7 @@ ulong mmc_berase(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt)
 		if (mmc_poll_for_busy(mmc, timeout_ms))
 			return 0;
 	}
+	printf("%s: erase %ld sectors cost %lu ms\n", __FUNCTION__, blk, get_timer(start_time));
 
 	return blk;
 }
@@ -170,9 +197,17 @@ static ulong mmc_write_blocks(struct mmc *mmc, lbaint_t start,
 		cmd.cmdidx = MMC_CMD_STOP_TRANSMISSION;
 		cmd.cmdarg = 0;
 		cmd.resp_type = MMC_RSP_R1b;
+
 		if (mmc_send_cmd(mmc, &cmd, NULL)) {
-			printf("mmc fail to send stop cmd\n");
+			debug("mmc fail to send stop cmd\n");
+#if !defined(CONFIG_MMC_SDHCI_AX620E)
 			return 0;
+#else
+			if (mmc_send_cmd(mmc, &cmd, NULL)) {
+				printf("mmc fail to send stop cmd again!\n");
+				return 0;
+			}
+#endif
 		}
 	}
 

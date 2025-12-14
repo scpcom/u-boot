@@ -4,9 +4,11 @@
 # Przemyslaw Marczak <p.marczak@samsung.com>
 #
 
+UBOOTINCLUDE    += -I$(srctree)/arch/arm/mach-axera/ax620e
 obj-$(CONFIG_ADC) += adc-uclass.o
 obj-$(CONFIG_ADC_EXYNOS) += exynos-adc.o
 obj-$(CONFIG_ADC_SANDBOX) += sandbox.o
 obj-$(CONFIG_SARADC_ROCKCHIP) += rockchip-saradc.o
 obj-$(CONFIG_SARADC_MESON) += meson-saradc.o
 obj-$(CONFIG_STM32_ADC) += stm32-adc.o stm32-adc-core.o
+obj-$(CONFIG_ADC_AXERA) += axera-adc.o

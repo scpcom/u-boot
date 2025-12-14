@@ -34,6 +34,8 @@
 #define HOST_PORTS_IMPL		0x0c /* bitmap of implemented ports */
 #define HOST_VERSION		0x10 /* AHCI spec. version compliancy */
 #define HOST_CAP2		0x24 /* host capabilities, extended */
+#define HOST_BISTCR		0xa4
+#define HOST_TESTR		0xf4
 
 /* HOST_CTL bits */
 #define HOST_RESET		(1 << 0)  /* reset controller; self-clear */
@@ -138,7 +140,11 @@ struct ahci_ioports {
 	struct ahci_cmd_hdr	*cmd_slot;
 	struct ahci_sg		*cmd_tbl_sg;
 	ulong	cmd_tbl;
+#ifdef CONFIG_PHYS_64BIT
+	ulong	rx_fis;
+#else
 	u32	rx_fis;
+#endif
 };
 
 /**

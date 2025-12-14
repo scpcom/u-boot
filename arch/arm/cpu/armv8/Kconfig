@@ -148,6 +148,14 @@ config ARMV8_PSCI_CPUS_PER_CLUSTER
 	  A value 0 or no definition of it works for single cluster system.
 	  System with multi-cluster should difine their own exact value.
 
+config ARMV8_SWITCH_TO_EL1
+	bool "linux kernel swtich to EL1."
+	depends on ARM64
+	default 0
+	help
+	  linux kernel run in EL1, used new trace32 tools to analysis dump.
+
+
 config ARMV8_EA_EL3_FIRST
 	bool "External aborts and SError interrupt exception are taken in EL3"
 	default n

@@ -177,6 +177,9 @@ static int rtl8211f_config(struct phy_device *phydev)
 
 	/* enable TX-delay for rgmii-id and rgmii-txid, otherwise disable it */
 	if (phydev->interface == PHY_INTERFACE_MODE_RGMII_ID ||
+#ifdef CONFIG_AXERA_EMAC
+        phydev->interface == PHY_INTERFACE_MODE_RGMII ||
+#endif
 	    phydev->interface == PHY_INTERFACE_MODE_RGMII_TXID)
 		reg |= MIIM_RTL8211F_TX_DELAY;
 	else
@@ -190,7 +193,13 @@ static int rtl8211f_config(struct phy_device *phydev)
 	/* Set green LED for Link, yellow LED for Active */
 	phy_write(phydev, MDIO_DEVAD_NONE,
 		  MIIM_RTL8211F_PAGE_SELECT, 0xd04);
+#ifdef CONFIG_AXERA_EMAC
+	/*LED2(green) will light at 1000M and blink at transmitting.
+	LED1(yellow) will light at 100M/10M and blink at transmitting.*/
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0x6271);
+#else
 	phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0x617f);
+#endif	
 	phy_write(phydev, MDIO_DEVAD_NONE,
 		  MIIM_RTL8211F_PAGE_SELECT, 0x0);
 
@@ -337,6 +346,82 @@ static int rtl8211f_startup(struct phy_device *phydev)
 	return rtl8211f_parse_status(phydev);
 }
 
+#ifdef CONFIG_AXERA_EMAC
+static void ax_ephy_802_3az_eee_disable(struct phy_device *phydev)
+{
+	unsigned int value;
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0000);	/* Switch to Page 0 */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x3c);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, BIT(14) | 0x7);
+	value = phy_read(phydev, MDIO_DEVAD_NONE, 0xe);
+	value &= ~BIT(1);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x3c);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, BIT(14) | 0x7);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, value);
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* switch to page 2 */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);
+}
+
+static int ax_ephy_afe_rx_set(struct phy_device *phydev)
+{
+	unsigned int value;
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0600);	/* Switch to Page 6 */
+	value = phy_read(phydev, MDIO_DEVAD_NONE, 0x10);
+	value &= ~0x7;
+	value |= 0x6;
+	value &= ~(0x7<<3);
+	value |= (0x5<<3);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x10, value);	/* Adc gain optimization */
+
+	value = phy_read(phydev, MDIO_DEVAD_NONE, 0x14);
+	value &= ~(0x3<<13);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x14, value);	/* Adc gain optimization */
+
+	return 0;
+}
+
+static int ax_ephy_config(struct phy_device *phydev)
+{
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* Switch to Page 1 */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x12, 0x4824);	/* Disable APS */
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* Switch to Page 2 */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);	/* 10 base-t filter selector */
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0300);	/* Switch to Page 3 */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x11, 0x8010);	/* AGC to minimum */
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0600);	/* Switch to Page 6 */
+	// phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0x5540);	/* Adc gain optimization */
+	// phy_write(phydev, MDIO_DEVAD_NONE, 0x12, 0x8400);	/* Adc gain optimization */
+	// phy_write(phydev, MDIO_DEVAD_NONE, 0x14, 0x1088);	/* Adc gain optimization */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x15, 0x3333);	/* a_TX_level optimiztion */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x19, 0x004c);	/* PHYAFE TX optimization and invorce ADC clock */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1b, 0x888f);	/* TX_BIAS */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1c, 0x8880);	/* PHYAFE PDCW optimization */
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0800);	/* Switch to Page 8 */
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x0844);	/* PHYAFE Tx_auto */
+
+	ax_ephy_802_3az_eee_disable(phydev);		/* Disable 802.3az IEEE */
+	// ax_ephy_afe_rx_set(phydev);
+
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0000);	/* Switch to Page 0 */
+
+	return 0;
+}
+
+static int ax_ephy_probe(struct phy_device *phydev)
+{
+	return 0;
+}
+#endif
+
 /* Support for RTL8211B PHY */
 static struct phy_driver RTL8211B_driver = {
 	.name = "RealTek RTL8211B",
@@ -386,12 +471,41 @@ static struct phy_driver RTL8211F_driver = {
 	.writeext = &rtl8211f_phy_extwrite,
 };
 
+#ifdef CONFIG_AXERA_EMAC
+static struct phy_driver JL2101_driver = {
+	.name = "JL2101 1000M Ethernet",
+	.uid = 0x937c4020,
+	.mask = 0x1fffffff,
+	.features = PHY_GBIT_FEATURES,
+	.probe = &rtl8211f_probe,
+	.config = &rtl8211f_config,
+	.startup = &rtl8211f_startup,
+	.shutdown = &genphy_shutdown,
+	.readext = &rtl8211f_phy_extread,
+	.writeext = &rtl8211f_phy_extwrite,
+};
+
+static struct phy_driver ax_ephy_driver = {
+	.name = "AX620E Fast Ethernet",
+	.uid = 0x00441400,
+	.mask = 0x0ffffff0,
+	.features = PHY_BASIC_FEATURES,
+	.probe = &ax_ephy_probe,
+	.config = &ax_ephy_config,
+	.startup = &genphy_startup,
+	.shutdown = &genphy_shutdown,
+};
+#endif
+
 int phy_realtek_init(void)
 {
 	phy_register(&RTL8211B_driver);
 	phy_register(&RTL8211E_driver);
 	phy_register(&RTL8211F_driver);
 	phy_register(&RTL8211DN_driver);
-
+#ifdef CONFIG_AXERA_EMAC
+	phy_register(&JL2101_driver);
+	phy_register(&ax_ephy_driver);
+#endif
 	return 0;
 }

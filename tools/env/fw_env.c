@@ -1442,10 +1442,15 @@ int fw_env_open(struct env_opts *opts)
 	crc0_ok = (crc0 == *environment.crc);
 	if (!have_redund_env) {
 		if (!crc0_ok) {
+#ifdef CONFIG_AX_ENV
+			fprintf(stderr, "Warning: Bad CRC\n");
+			memset(environment.data, '\0', 2);
+#else
 			fprintf(stderr,
 				"Warning: Bad CRC, using default environment\n");
 			memcpy(environment.data, default_environment,
 			       sizeof(default_environment));
+#endif
 			environment.dirty = 1;
 		}
 	} else {
@@ -1515,10 +1520,15 @@ int fw_env_open(struct env_opts *opts)
 		} else if (!crc0_ok && crc1_ok) {
 			dev_current = 1;
 		} else if (!crc0_ok && !crc1_ok) {
+#ifdef CONFIG_AX_ENV
+			fprintf(stderr, "Warning: Bad CRC\n");
+			memset(environment.data, '\0', 2);
+#else
 			fprintf(stderr,
 				"Warning: Bad CRC, using default environment\n");
 			memcpy(environment.data, default_environment,
 			       sizeof(default_environment));
+#endif
 			environment.dirty = 1;
 			dev_current = 0;
 		} else {

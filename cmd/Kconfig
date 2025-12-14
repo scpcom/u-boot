@@ -595,6 +595,8 @@ config CMD_NVEDIT_INFO
 
 endmenu
 
+source "cmd/axera/Kconfig"
+
 menu "Memory commands"
 
 config CMD_BINOP
@@ -1088,6 +1090,11 @@ config CMD_NAND_TRIMFFS
 	help
 	  Allows one to skip empty pages when flashing something on a NAND.
 
+config CMD_NAND_YAFFS
+	bool "nand write.yaffs2"
+	help
+	 NAND flash YAFFS2 support.
+
 config CMD_NAND_LOCK_UNLOCK
 	bool "nand lock/unlock"
 	help
@@ -1355,7 +1362,7 @@ if NET
 
 menuconfig CMD_NET
 	bool "Network commands"
-	default y
+	default n
 	imply NETDEVICES
 
 if CMD_NET
@@ -2157,6 +2164,12 @@ config CMD_AVB
 	    avb read_part_hex - read data from partition and output to stdout
 	    avb write_part - write data to partition
 	    avb verify - run full verification chain
+
+config CMD_PWM
+	bool "config enable pwm command"
+	help
+	    pwm <device number(start with 0)> <channel number(start with 0)> <period> <duty>
+
 endmenu
 
 config CMD_UBI

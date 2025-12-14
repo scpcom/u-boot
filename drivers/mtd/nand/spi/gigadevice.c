@@ -20,7 +20,7 @@
 #define GD5FXGQ4XEXXG_REG_STATUS2		0xf0
 
 static SPINAND_OP_VARIANTS(read_cache_variants,
-		SPINAND_PAGE_READ_FROM_CACHE_QUADIO_OP(0, 2, NULL, 0),
+		//SPINAND_PAGE_READ_FROM_CACHE_QUADIO_OP(0, 2, NULL, 0),
 		SPINAND_PAGE_READ_FROM_CACHE_X4_OP(0, 1, NULL, 0),
 		SPINAND_PAGE_READ_FROM_CACHE_DUALIO_OP(0, 1, NULL, 0),
 		SPINAND_PAGE_READ_FROM_CACHE_X2_OP(0, 1, NULL, 0),
@@ -102,6 +102,43 @@ static int gd5fxgq4xexxg_ecc_get_status(struct spinand_device *spinand,
 	return -EINVAL;
 }
 
+static int gd5f4gq6rexxg_ecc_get_status(struct spinand_device *spinand,
+					u8 status)
+{
+	u8 status2;
+	struct spi_mem_op op = SPINAND_GET_FEATURE_OP(GD5FXGQ4XEXXG_REG_STATUS2,
+						      &status2);
+	int ret;
+
+	switch (status & STATUS_ECC_MASK) {
+	case STATUS_ECC_NO_BITFLIPS:
+		return 0;
+
+	case STATUS_ECC_HAS_BITFLIPS:
+		/*
+		 * Read status2 register to determine a more fine grained
+		 * bit error status
+		 */
+		ret = spi_mem_exec_op(spinand->slave, &op);
+		if (ret)
+			return ret;
+
+		/*
+		 * 1 ... 4 bits are flipped (and corrected)
+		 */
+		/* bits sorted this way (1...0): ECCSE1, ECCSE0 */
+		return ((status2 & STATUS_ECC_MASK) >> 4) + 1;
+
+	case STATUS_ECC_UNCOR_ERROR:
+		return -EBADMSG;
+
+	default:
+		break;
+	}
+
+	return -EINVAL;
+}
+
 static const struct mtd_ooblayout_ops gd5fxgq4xexxg_ooblayout = {
 	.ecc = gd5fxgq4xexxg_ooblayout_ecc,
 	.rfree = gd5fxgq4xexxg_ooblayout_free,
@@ -117,6 +154,41 @@ static const struct spinand_info gigadevice_spinand_table[] = {
 		     0,
 		     SPINAND_ECCINFO(&gd5fxgq4xexxg_ooblayout,
 				     gd5fxgq4xexxg_ecc_get_status)),
+	SPINAND_INFO("GD5F1GM7xExxG", 0x91,
+		     NAND_MEMORG(1, 2048, 128, 64, 1024, 1, 1, 1),
+		     NAND_ECCREQ(8, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     0,
+		     SPINAND_ECCINFO(&gd5fxgq4xexxg_ooblayout,
+				     gd5fxgq4xexxg_ecc_get_status)),
+	SPINAND_INFO("GD5F2GQ5RExxH", 0x42,/* voltage:1.8v */
+		     NAND_MEMORG(1, 2048, 128, 64, 2048, 1, 1, 1),
+		     NAND_ECCREQ(8, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     0,
+		     SPINAND_ECCINFO(&gd5fxgq4xexxg_ooblayout,
+				     gd5fxgq4xexxg_ecc_get_status)),
+	SPINAND_INFO("GD5F4GQ6RExxG", 0x45,/* voltage:1.8v */
+		     NAND_MEMORG(1, 2048, 64, 64, 2048, 1, 2, 1),
+		     NAND_ECCREQ(4, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     SPINAND_HAS_QE_BIT,
+		     SPINAND_ECCINFO(&gd5fxgq4xexxg_ooblayout,
+				     gd5f4gq6rexxg_ecc_get_status)),
+	SPINAND_INFO("GD5F2GM7UExxG", 0x92,
+			NAND_MEMORG(1, 2048, 128, 64, 2048, 1, 1, 1),
+			NAND_ECCREQ(8, 512),
+			SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+						&write_cache_variants,
+						&update_cache_variants),
+			SPINAND_HAS_QE_BIT,
+			SPINAND_ECCINFO(&gd5fxgq4xexxg_ooblayout, gd5fxgq4xexxg_ecc_get_status)),
 };
 
 static int gigadevice_spinand_detect(struct spinand_device *spinand)

@@ -41,6 +41,7 @@ enum video_log2_bpp {
 	VIDEO_BPP8,
 	VIDEO_BPP16,
 	VIDEO_BPP32,
+	VIDEO_YUV420,
 };
 
 /*
@@ -78,6 +79,7 @@ struct video_priv {
 	/* Things set up by the driver: */
 	ushort xsize;
 	ushort ysize;
+	ushort stride;
 	ushort rot;
 	enum video_log2_bpp bpix;
 	const char *vidconsole_drv_name;

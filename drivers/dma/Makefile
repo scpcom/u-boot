@@ -13,5 +13,8 @@ obj-$(CONFIG_SANDBOX_DMA) += sandbox-dma-test.o
 obj-$(CONFIG_TI_KSNAV) += keystone_nav.o keystone_nav_cfg.o
 obj-$(CONFIG_TI_EDMA3) += ti-edma3.o
 obj-$(CONFIG_DMA_LPC32XX) += lpc32xx_dma.o
+obj-$(CONFIG_AXERA_DMA) += axdma/
+obj-$(CONFIG_AXERA_DMAPER) += dmaper/
+obj-$(CONFIG_DW_DMA) += dw_dma.o
 
 obj-y += ti/
