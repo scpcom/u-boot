@@ -1,6 +1,6 @@
-0x0230000C, 0x00020003,  /* PadName = VI_D0                Fuction = SPI_m1_MOSI */
-0x02300018, 0x00060083,  /* PadName = VI_D1                Fuction = GPIO_0_A1 */
-0x02300024, 0x00020003,  /* PadName = VI_D2                Fuction = SPI_m1_CS0 */
+0x0230000C, 0x00060083,  /* PadName = VI_D0                Fuction = GPIO0_A0 */
+0x02300018, 0x00060083,  /* PadName = VI_D1                Fuction = GPIO0_A1 */
+0x02300024, 0x00060083,  /* PadName = VI_D2                Fuction = GPIO0_A2 */
 0x02300030, 0x00060083,  /* PadName = VI_D3                Fuction = GPIO_0_A3 */
 0x0230003C, 0x00060083,  /* PadName = VI_D4                Fuction = GPIO_0_A4 */
 0x02300048, 0x00060083,  /* PadName = VI_D5                Fuction = GPIO_0_A5 */
@@ -65,8 +65,8 @@
 0x104F2018, 0x00000083,  /* PadName = SDIO_DAT1            Fuction = SDIO_DAT1 */
 0x104F2024, 0x00000083,  /* PadName = SDIO_CLK             Fuction = SDIO_CLK */
 0x104F2030, 0x00000083,  /* PadName = SDIO_CMD             Fuction = SDIO_CMD */
-0x104F203C, 0x00010083,  /* PadName = SDIO_DAT2            Fuction = I2C4_SCL */
-0x104F2048, 0x00010083,  /* PadName = SDIO_DAT3            Fuction = I2C4_SDA */
+0x104F203C, 0x00000083,  /* PadName = SDIO_DAT2            Fuction = SDIO_DAT2 */
+0x104F2048, 0x00000083,  /* PadName = SDIO_DAT3            Fuction = SDIO_DAT3 */
 0x0230A00C, 0x00000003,  /* PadName = CDTX_L0N             Fuction = CDTX_L0N */
 0x0230A018, 0x00000003,  /* PadName = CDTX_L0P             Fuction = CDTX_L0P */
 0x0230A024, 0x00000003,  /* PadName = CDTX_L1N             Fuction = CDTX_L1N */
