@@ -66,6 +66,7 @@ static char *board_name[5][16] = {
 	[AX630C_CHIP][PHY_AX630C_SLT_V1_0] = "AX630C_SLT_V1_0",
 	[AX630C_CHIP][PHY_AX630C_DEMO_V1_1] = "AX630C_DEMO_V1_1",
 	[AX630C_CHIP][PHY_AX630C_DEMO_LP4_V1_0] = "AX630C_DEMO_LP4_V1_0",
+	[AX630C_CHIP][PHY_AX630C_DEMO_LP4_V1_1] = "AX630C_DEMO_LP4_V1_1",
 };
 
 static unsigned char ax_board_id[5][16] = {
@@ -89,6 +90,7 @@ static unsigned char ax_board_id[5][16] = {
 	[AX630C_CHIP][PHY_AX630C_SLT_V1_0] = AX630C_SLT_V1_0,
 	[AX630C_CHIP][PHY_AX630C_DEMO_V1_1] = AX630C_DEMO_V1_1,
 	[AX630C_CHIP][PHY_AX630C_DEMO_LP4_V1_0] = AX630C_DEMO_LP4_V1_0,
+	[AX630C_CHIP][PHY_AX630C_DEMO_LP4_V1_1] = AX630C_DEMO_LP4_V1_1,
 };
 static const char * chip_type[AX620E_CHIP_MAX] = {
 	[AX620Q_CHIP] = "AX620Q_CHIP",
@@ -164,6 +166,7 @@ void set_ephy_led_pol(void)
 
 	//ephy led pol
 	if (misc_info->board_id == AX630C_DEMO_LP4_V1_0 ||
+		misc_info->board_id == AX630C_DEMO_LP4_V1_1 ||
 		misc_info->board_id == AX630C_DEMO_V1_1 ||
 		misc_info->board_id == AX620Q_LP4_DEMO_V1_1
 	) {

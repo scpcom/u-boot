@@ -70,6 +70,7 @@ static int ax_pinmux_index_conv(int index)
 
 	switch (index) {
 	case AX630C_DEMO_LP4_V1_0:
+	case AX630C_DEMO_LP4_V1_1:
 	case AX630C_DEMO_V1_1:
 		ret = AX630C_DEMO_V1_0;
 		break;
