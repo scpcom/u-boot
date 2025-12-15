@@ -37,7 +37,7 @@ config TARGET_AX620E_QNAND
 
 config AXERA_MEMORY_DUMP_EMMC
 	bool "axera memory dump to emmc"
-	depends on TARGET_AX620E_EMMC
+	depends on TARGET_AX620E_EMMC && FS_EXT4
 	help
 	  save dump file to emmc
 
@@ -49,8 +49,15 @@ config AXERA_AX630C_DDR4_RETRAIN
 
 config AXERA_MEMORY_DUMP_SD
 	bool "axera memory dump to SDcard"
+	depends on FS_FAT
 	help
 	  save dump file to SDcard
+
+config AXERA_SUPPORT_MEMORY_DUMP
+	bool "axera support memory dump"
+	default y if AXERA_MEMORY_DUMP_SD || AXERA_MEMORY_DUMP_EMMC || AXERA_MEMORY_DUMP_USB_STORAGE
+	help
+	support memory dump
 
 config SUPPORT_AB
 	bool "axera AB partition support"

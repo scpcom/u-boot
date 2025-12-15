@@ -23,9 +23,9 @@
 
 #include "stb_image.h"
 #include "ax_vo.h"
-#include "ax_simple_logo.h"
 #include "ax_jdec_hw.h"
 
+extern int g_out_mode;
 static int fdt_fixup_logo_reserved_mem(int dev, u64 addr, u64 size, void *fdt)
 {
 	int ret, offset, parent_offset;
@@ -201,67 +201,63 @@ static int emmc_parse_jpg_logo_data(void *imageData_jpg, void *logo_load_addr, s
 		return -1;
 	}
 
-	ret = stbi_info_from_memory(imageData_jpg, AX_MAX_VO_JPG_WIDTH * AX_MAX_VO_JPG_HEIGHT * AX_VO_JPG_CHANNEL, &width, &height, &channels);
+	ret = stbi_info_from_memory(imageData_jpg, CONFIG_VIDEO_AXERA_MAX_XRES * CONFIG_VIDEO_AXERA_MAX_YRES * AX_VO_CHANNEL, &width, &height, &channels);
 	if (ret != 1) {
 		printf("%s: parse info from jpg fail.\n", __func__);
 		return -1;
 	}
 
-	if (width > AX_MAX_VO_JPG_WIDTH || height > AX_MAX_VO_JPG_HEIGHT) {
-		printf("%s: jpeg resolution out of range. [%d , %d]\n", __func__, AX_MAX_VO_JPG_WIDTH, AX_MAX_VO_JPG_HEIGHT);
+	if (width > CONFIG_VIDEO_AXERA_MAX_XRES || height > CONFIG_VIDEO_AXERA_MAX_YRES) {
+		printf("%s: jpeg resolution out of range [%d , %d] \n", __func__, CONFIG_VIDEO_AXERA_MAX_XRES, CONFIG_VIDEO_AXERA_MAX_YRES);
 		return -1;
 	}
 
-	if ((width == JPEG_DECODE_WIDTH) && (height == JPEG_DECODE_HEIGHT)) {
+	if ((width == CONFIG_VIDEO_AXERA_DISPLAY_WIDTH) && (height == CONFIG_VIDEO_AXERA_DISPLAY_HEIGHT)) {
 		/* hardware decode */
 		printf("%s: hardware decode, jpeg param: width:%d, height:%d, channels:%d.\n", __func__, width, height, channels);
 		ret = jpeg_decode_hw(width, height, imageData_jpg, logo_load_addr);
 		if (ret) {
-			printf("%s: Unable to decode JPEG data\n", __func__);
-			return -1;
+			printf("%s: JPEG data hard decode fail\n", __func__);
+			goto jpeg_softdec;
 		}
-		newWidth = JPEG_DECODE_WIDTH;
-		newHeight = JPEG_DECODE_HEIGHT;
 
-		jpeg_image->width = newWidth;
-		jpeg_image->height = newHeight;
-		jpeg_image->stride = newWidth;
+		jpeg_image->width = width;
+		jpeg_image->height = height;
+		jpeg_image->stride = ALIGN_UP(width, 16);
 		jpeg_image->format = AX_VO_FORMAT_NV12;
 		jpeg_image->phyAddr[0] = (u64)logo_load_addr;
-		jpeg_image->phyAddr[1] = (u64)logo_load_addr + newWidth * ALIGN_UP(newHeight, 2);
+		jpeg_image->phyAddr[1] = (u64)logo_load_addr + jpeg_image->stride * ALIGN_UP(height, 16);
+		return 0;
+	}
+
+jpeg_softdec:
+	/* Use the stb_image library to decode JPEG data */
+	imageDecData = stbi_load_from_memory(imageData_jpg, CONFIG_VIDEO_AXERA_MAX_XRES * CONFIG_VIDEO_AXERA_MAX_YRES * AX_VO_CHANNEL, &width, &height, &channels, 0);
+	if (!imageDecData) {
+		printf("%s: Unable to decode JPEG data\n", __func__);
+		return -1;
+	}
+	printf("%s: software decode, jpeg param: width:%d, height:%d, channels:%d.\n", __func__, width, height, channels);
+
+	if ((width < CONFIG_VIDEO_AXERA_DISPLAY_WIDTH) && (height < CONFIG_VIDEO_AXERA_DISPLAY_HEIGHT)) {
+		newWidth = AX_VO_JPEG_ALIGN(width, 16);
+		newHeight = AX_VO_JPEG_ALIGN(height, 2);
 	} else {
-		/* Use the stb_image library to decode JPEG data */
-		imageDecData = stbi_load_from_memory(imageData_jpg, AX_MAX_VO_JPG_WIDTH * AX_MAX_VO_JPG_HEIGHT * AX_VO_JPG_CHANNEL, &width, &height, &channels, 0);
-		if (!imageDecData) {
-			printf("%s: Unable to decode JPEG data\n", __func__);
-			return -1;
-		}
-		printf("%s: software decode, jpeg param: width:%d, height:%d, channels:%d.\n", __func__, width, height, channels);
+		newWidth = CONFIG_VIDEO_AXERA_DISPLAY_WIDTH;
+		newHeight = CONFIG_VIDEO_AXERA_DISPLAY_HEIGHT;
+	}
 
-		if (((width == 1920) && (height == 1080)) ||
-		   ((width == 800) && (height == 480))) {
-			newWidth = width;
-			newHeight = height;
-		} else if ((width < AX_MIN_RESIZE_WIDTH) && (height < AX_MIN_RESIZE_HEIGHT)) {
-			newWidth = AX_VO_JPEG_ALIGN(width, 16);
-			newHeight = AX_VO_JPEG_ALIGN(height, 2);
-		} else {
-			newWidth = AX_MIN_RESIZE_WIDTH;
-			newHeight = AX_MIN_RESIZE_HEIGHT;
-		}
+	printf("%s: resize_image newWidth:%d, newHeight:%d\n", __func__, newWidth, newHeight);
+	resizeImage(height, width, newHeight, newWidth, channels, imageDecData, logo_load_addr, 0, 1);
 
-		printf("%s: resize_image newWidth:%d, newHeight:%d\n", __func__, newWidth, newHeight);
-		resizeImage(height, width, newHeight, newWidth, channels, imageDecData, logo_load_addr, 0, 1);
-
-		jpeg_image->width = newWidth;
-		jpeg_image->height = newHeight;
-		jpeg_image->stride = newWidth * 3;
-		jpeg_image->format = AX_VO_FORMAT_RGB888;
-		jpeg_image->phyAddr[0] = (u64)logo_load_addr;
-		if (imageDecData) {
-			free(imageDecData);
-			imageDecData = NULL;
-		}
+	jpeg_image->width = newWidth;
+	jpeg_image->height = newHeight;
+	jpeg_image->stride = newWidth * 3;
+	jpeg_image->format = AX_VO_FORMAT_RGB888;
+	jpeg_image->phyAddr[0] = (u64)logo_load_addr;
+	if (imageDecData) {
+		free(imageDecData);
+		imageDecData = NULL;
 	}
 
 	return 0;
@@ -296,6 +292,51 @@ int get_logo_from_emmc(unsigned char *logo_load_addr)
 
 	printf("load logo image addr = 0x%llx\n",(u64)logo_load_addr);
 	return 0;
+}
+
+static void string_replace_all(char *str, const char *old_str, const char *new_str)
+{
+	char *p = strstr(str, old_str);
+	int len_old = strlen(old_str);
+	int len_new = strlen(new_str);
+
+	while (p) {
+		memmove(p+len_new, p+len_old, strlen(p+len_old)+1);
+		memcpy(p, new_str, len_new);
+		p = strstr(p+len_new, old_str);
+	}
+}
+
+static void set_logo_mode(void)
+{
+	char * bootargs;
+	static char newbootargs[512];
+	char *logoparts = NULL;
+
+	bootargs = env_get("bootargs");
+	if(NULL == bootargs)
+		return;
+
+	logoparts = strstr(bootargs , "logomode");
+	if (NULL == logoparts) {
+		strcpy(newbootargs, bootargs);
+		strcat(newbootargs, " logomode=");
+		if (g_out_mode == AX_DISP_OUT_MODE_DSI_DPI_VIDEO) {
+			strcat(newbootargs, "mipi");
+		} else if (g_out_mode == AX_DISP_OUT_MODE_DPI) {
+			strcat(newbootargs, "dpi");
+		}
+		newbootargs[strlen(newbootargs)] = '\0';
+
+		env_set("bootargs", newbootargs);
+		env_save();
+	} else {
+		if((strstr(logoparts , "logomode=mipi")) && (g_out_mode == AX_DISP_OUT_MODE_DPI))
+			string_replace_all(bootargs, "logomode=mipi", "logomode=dpi");
+		else if ((strstr(logoparts , "logomode=dpi")) && (g_out_mode == AX_DISP_OUT_MODE_DSI_DPI_VIDEO))
+			string_replace_all(bootargs, "logomode=dpi", "logomode=mipi");
+	}
+
 }
 
 int ax_bootlogo_show(void)
@@ -427,13 +468,16 @@ int ax_bootlogo_show(void)
 			sync = AX_VO_OUTPUT_1080P60;
 		} else if ((dp_info.img_width == 800) && (dp_info.img_height == 480)) {
 			sync = AX_VO_OUTPUT_800_480_60;
+		} else if ((dp_info.img_width == 720) && (dp_info.img_height == 1280)) {
+			sync = AX_VO_OUTPUT_1080x1920_60;
 		} else {
 			printf("%s unsupported resolution(%dx%d)\n", __func__, dp_info.img_width, dp_info.img_height);
 			ret = -1;
 			goto ERR_RET;
 		}
 
-		ret = ax_start_vo(0, AX_DISP_OUT_MODE_DPI, sync, &dp_info);
+		ret = ax_start_vo(0, g_out_mode, sync, &dp_info);
+		set_logo_mode();
 	}
 
 ERR_RET:

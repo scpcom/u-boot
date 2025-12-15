@@ -12,5 +12,9 @@ obj-y += ax_jdec_hw.o
 obj-y += ax620e/ax620e_vo_common.o
 obj-y += ax620e/ax620e_vo_rst_ck_mux.o
 obj-y += ax620e/ax620e_vo.o
+obj-y += ax620e/ax620e_display_dpi.o
+obj-y += ax620e/ax620e_display_mipi.o
+obj-y += ax620e/ax620e_cdns_dsi.o
 obj-y += ax_simple_logo.o
+obj-y += ax_simple_logo_cfg.o
 endif

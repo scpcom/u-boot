@@ -20,8 +20,6 @@
 #include <mapmem.h>
 #include <cpu_func.h>
 
-#define JPEG_DECODE_WIDTH           (800)
-#define JPEG_DECODE_HEIGHT          (480)
 #define RETRY_TIME                  (100)
 #define JPEG_QTABLE_SIZE            (544)
 #define JPEGDEC_YUV420              (2)

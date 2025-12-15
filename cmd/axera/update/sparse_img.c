@@ -528,7 +528,11 @@ int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t 
 	struct cmdline_parts *parts = NULL;
 	struct cmdline_subpart *subpart = NULL;
 	lbaint_t part_start_blk = 0;
-
+#if CONFIG_IS_ENABLED(BLK)
+	struct mmc_uclass_priv *upriv;
+	struct mmc *mmc;
+	loff_t off = 0;
+#endif
 	char *bootargs = NULL;
 
 	struct boot_mode_info *const boot_info = (void *)BOOT_MODE_INFO_ADDR;
@@ -544,6 +548,17 @@ int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t 
 		bootargs = BOOTARGS_EMMC;
 		env_set("bootargs", bootargs);
 	}
+
+#if CONFIG_IS_ENABLED(BLK)
+	if (str2off(name, &off)) {
+		upriv = dev_desc->bdev->parent->uclass_priv;
+		mmc = upriv->mmc;
+		info->start = (lbaint_t) off / dev_desc->blksz;
+		info->size = (lbaint_t) (mmc->capacity_user - off) / dev_desc->blksz;
+		info->blksz = dev_desc->blksz;
+		return info->size > 0 ? 0 : -1;
+	}
+#endif
 
 	mmc_parts = strstr(bootargs , "blkdevparts");
 

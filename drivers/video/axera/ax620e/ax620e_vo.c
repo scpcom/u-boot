@@ -12,8 +12,8 @@
 #include <common.h>
 
 #include "ax620e_vo_reg.h"
+#include "../ax_vo.h"
 #include "ax620e_vo_rst_ck_mux.h"
-#include "ax_vo.h"
 
 static void dpu_intr_mask_all(struct dpu_hw_device *hdev)
 {
@@ -123,11 +123,6 @@ static void dispc_set_timings(struct dpu_hw_device *hdev, struct ax_disp_mode *m
 
 	if (mode->flags & MODE_FLAG_INTERLACE)
 		dpu_writel(hdev->regs, DPU_DISP_VTOTAL, !(mode->vtotal & 1));
-
-	if (mode->type == AX_DISP_OUT_MODE_DSI_DPI_VIDEO || mode->type == AX_DISP_OUT_MODE_DSI_SDI_VIDEO) {
-		hp_pol = !hp_pol;
-		vp_pol = !vp_pol;
-	}
 
 	dpu_writel(hdev->regs, DPU_DISP_POLAR, de_pol << 2 | hp_pol << 1 | vp_pol);
 }
@@ -625,7 +620,7 @@ static void dispc_dither(struct dpu_hw_device *dev)
 static int ax620e_dispc_config(struct dpu_hw_device *hdev, struct ax_disp_mode *mode)
 {
 	int tmp, ret = 0;
-	u32 reso, bt_mode, clk;
+	u32 reso, bt_mode;
 	struct dispc_out_mode dispc_out;
 
 	hdev->mode = *mode;
@@ -654,8 +649,6 @@ static int ax620e_dispc_config(struct dpu_hw_device *hdev, struct ax_disp_mode *
 
 	VO_INFO("mode: %d, fmt_in: %d, fmt_out: %d\n", dispc_out.mode, dispc_out.fmt_in, dispc_out.fmt_out);
 
-	clk = mode->clock * 1000;
-
 	tmp = dispc_out.mode;
 	switch (tmp) {
 	case OUT_MODE_BT601:
@@ -668,9 +661,6 @@ static int ax620e_dispc_config(struct dpu_hw_device *hdev, struct ax_disp_mode *
 		else
 			bt_mode = 2;
 
-		if (tmp == OUT_MODE_BT601 || tmp == OUT_MODE_BT656)
-			clk *= 2;
-
 		dispc_set_bt_mode(hdev, bt_mode);
 
 		break;
@@ -679,14 +669,6 @@ static int ax620e_dispc_config(struct dpu_hw_device *hdev, struct ax_disp_mode *
 	dispc_dither(hdev);
 
 	dpu_writel(hdev->regs, DPU_DISP_CLK, 0);
-
-	ret = pixel_clk_set_rate(hdev->id, mode->clock * 1000);
-	if (ret)
-		goto exit;
-
-	ret = dpu_glb_path_config(hdev->id, tmp);
-	if (ret)
-		goto exit;
 
 exit:
 	VO_INFO("dispc%d config %s\n", hdev->id, ret ? "failed" : "success");

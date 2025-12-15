@@ -8,7 +8,7 @@
  *
  **************************************************************************************************/
 
-#include "ax_vo.h"
+#include "../ax_vo.h"
 
 struct fbcdc_comp_level g_fbcdc_comp_level[] = {
 	{0, 256}, /* 8bit lossless */

@@ -95,6 +95,11 @@ config SPI_FLASH_BAR
 	  Bank/Extended address registers are used to access the flash
 	  which has size > 16MiB in 3-byte addressing.
 
+config SPI_FLASH_FORCE_UNLOCK
+	bool "SPI flash status register no protect support"
+	help
+	  Enable the SPI flash status register no protect support.
+
 config SF_DUAL_FLASH
 	bool "SPI DUAL flash memory support"
 	help

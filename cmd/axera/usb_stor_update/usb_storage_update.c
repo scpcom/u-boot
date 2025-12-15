@@ -420,8 +420,10 @@ static int usb_stor_update_to_storage(struct usb_stor_update_file *pfile, int le
 		if (NULL != bootargs) {
 			mtdparts = strstr(bootargs , "mtdparts");
 			if (NULL != mtdparts) {
+				mtdparts = strdup(mtdparts);
 				strtok(mtdparts, " ");
 				env_set("mtdparts", mtdparts);
+				free(mtdparts);
 			}
 		}
 		usb_stor_spi_nand_protect_disable();
@@ -437,8 +439,10 @@ static int usb_stor_update_to_storage(struct usb_stor_update_file *pfile, int le
 		if (NULL != bootargs) {
 			mtdparts = strstr(bootargs , "mtdparts");
 			if (NULL != mtdparts) {
+				mtdparts = strdup(mtdparts);
 				strtok(mtdparts, " ");
 				env_set("mtdparts", mtdparts);
+				free(mtdparts);
 			}
 		}
 		ret = usb_stor_update_to_spinor(pfile, len);

@@ -8,9 +8,12 @@
  *
  **************************************************************************************************/
 
-#ifndef __AX620E_VO_H
-#define __AX620E_VO_H
+#ifndef __AX620E_DISPLAY_MIPI_H__
+#define __AX620E_DISPLAY_MIPI_H__
 
-#include "ax620e_vo_reg.h"
+void display_mipi_dphy_config(int clk);
+int display_mipi_panel_init(void);
+void display_mipi_glb_init(void);
+void display_mipi_cdns_config(struct ax_disp_mode *mode);
 
-#endif /* __AX620E_VO_H */
+#endif

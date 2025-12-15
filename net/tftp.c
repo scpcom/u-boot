@@ -27,7 +27,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TIMEOUT		5000UL
 #ifndef	CONFIG_NET_RETRY_COUNT
 /* # of timeouts before giving up */
-# define TIMEOUT_COUNT	10
+# define TIMEOUT_COUNT	100
 #else
 # define TIMEOUT_COUNT  (CONFIG_NET_RETRY_COUNT * 2)
 #endif
@@ -218,9 +218,17 @@ static void new_transfer(void)
 static int load_block(unsigned block, uchar *dst, unsigned len)
 {
 	/* We may want to get the final block from the previous set */
-	ulong offset = ((int)block - 1) * len + tftp_block_wrap_offset;
+	ulong offset;
 	ulong tosend = len;
 
+	if (!block) {
+		tftp_block_wrap++;
+		tftp_block_wrap_offset += tftp_block_size * TFTP_SEQUENCE_SIZE;
+		timeout_count = 0;
+		offset=tftp_block_wrap_offset-len;
+	} else {
+		offset = ((int)block - 1) * len + tftp_block_wrap_offset;
+	}
 	tosend = min(net_boot_file_size - offset, tosend);
 	(void)memcpy(dst, (void *)(image_save_addr + offset), tosend);
 	debug("%s: block=%u, offset=%lu, len=%u, tosend=%lu\n", __func__,

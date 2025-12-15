@@ -181,8 +181,10 @@ int common_get_part_info(char *part_name, u64 * addr, u64 * len)
 		if (NULL != bootargs) {
 			mtdparts = strstr(bootargs , "mtdparts");
 			if (NULL != mtdparts) {
+				mtdparts = strdup(mtdparts);
 				strtok(mtdparts, " ");
 				env_set("mtdparts", mtdparts);
+				free(mtdparts);
 			}
 		}
 		printf("mtdpart: %s\n",env_get("mtdparts"));
@@ -227,8 +229,10 @@ int common_get_part_info(char *part_name, u64 * addr, u64 * len)
 		if (NULL != bootargs) {
 			mtdparts = strstr(bootargs , "mtdparts");
 			if (NULL != mtdparts) {
+				mtdparts = strdup(mtdparts);
 				strtok(mtdparts, " ");
 				env_set("mtdparts", mtdparts);
+				free(mtdparts);
 			}
 		}
 		printf("mtdpart: %s\n",env_get("mtdparts"));

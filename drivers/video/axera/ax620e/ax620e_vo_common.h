@@ -33,7 +33,7 @@
 
 
 #define DRAW_ADDR_ALIGN			(256)
-#define DRAW_ALIGNED_BYTES		(16)
+#define DRAW_ALIGNED_BYTES		(8)
 #define DRAW_FBCDC_ALIGNED_PIXEL	(128)
 #define DRAW_WIDTH_MIN			(2)
 #define DRAW_HEIGHT_MIN			(2)
@@ -59,69 +59,6 @@
 
 #define DISPC_RESO_HEIGHT_SHIFT		(16)
 #define DISPC_H_SHIFT			(16)
-#define RXCDPHY_NUM                          4
-
-
-/* mm_sys_glb registers definition start */
-#define MM_SYSGLB_CLK_EB0             0x4
-#define MM_SYSGLB_CLK_EB0_SET         0xAC
-#define MM_SYSGLB_CLK_EB0_CLR         0xB0
-#define MM_SYSGLB_CLK_EB1             0x8
-#define MM_SYSGLB_CLK_EB1_SET         0xB4
-#define MM_SYSGLB_CLK_EB1_CLR         0xB8
-#define MM_SYSGLB_CLK_DIV0            0xC
-#define MM_SYSGLB_CLK_DIV0_SET        0xBC
-#define MM_SYSGLB_CLK_DIV0_CLR        0xC0
-#define MM_SYSGLB_CLK_SW_RESET        0x10
-#define MM_SYSGLB_CLK_SW_RESET_SET    0xC4
-#define MM_SYSGLB_CLK_SW_RESET_CLR    0xC8
-
-#define MM_SYSGLB_CLK_DPU_OUT_EB          BIT(2)
-#define MM_SYSGLB_CLK_DPU_LITE_OUT_EB     BIT(1)
-#define MM_SYSGLB_PCLK_DPU_EB             BIT(15)
-#define MM_SYSGLB_PCLK_DPU_LITE_EB        BIT(16)
-#define MM_SYSGLB_CLK_DPU_LITE_EB         BIT(5)
-#define MM_SYSGLB_CLK_DPU_EB              BIT(4)
-
-/* mm_sys_glb registers definition end */
-
-
-/* common_sys_glb registers definition start */
-#define COMM_SYSGLB_CLK_EB0                      0x24
-#define COMM_SYSGLB_CLK_EB0_SET                  0x28
-#define COMM_SYSGLB_CLK_EB0_CLR                  0x2C
-
-#define COMM_SYSGLB_CLK_NX_DPULITE_EB            BIT(13)
-#define COMM_SYSGLB_CLK_1X_DPULITE_EB            BIT(7)
-
-#define COMM_SYSGLB_VO_CFG                       0x424
-#define COMM_SYSGLB_VO_CFG_SET                   0x428
-#define COMM_SYSGLB_VO_CFG_CLR                   0x42C
-
-#define COMM_SYSGLB_LCD_VOMUX_SEL	         BIT(0)
-#define COMM_SYSGLB_DPULITE_DMUX_SEL	         BIT(1)
-#define COMM_SYSGLB_DPULITE_DPHYTX_EN	         BIT(2)
-#define COMM_SYSGLB_DPULITE_TX_CLKING_MODE	 BIT(3)
-/* common_sys_glb registers definition end */
-
-
-/* flash_sys_glb registers definition start */
-#define FLASH_SYSGLB_CLK_EB0                    0x4
-#define FLASH_SYSGLB_CLK_EB0_SET                0x4004
-#define FLASH_SYSGLB_CLK_EB0_CLR                0x8004
-
-#define FLASH_SYSGLB_CLK_1X_DPU                 BIT(0)
-#define FLASH_SYSGLB_CLK_NX_DPU                 BIT(7)
-
-#define FLASH_SYSGLB_IMAGE_TX                   0x1B8
-#define FLASH_SYSGLB_IMAGE_TX_SET               0x41B8
-#define FLASH_SYSGLB_IMAGE_TX_CLR               0x81B8
-
-#define FLASH_SYSGLB_IMAGE_TX_EN                BIT(0)
-/* flash_sys_glb registers definition end */
-
-#define MM_FBCDC_BASE_ADDR         (0x4402000)
-#define MM_FBCDC_BASE_IOSIZE       (0x1000)
 
 enum {
 	FORMAT_ARGB1555 = 0,
@@ -269,8 +206,6 @@ struct dpu_hw_device {
 };
 
 extern struct fbcdc_comp_level g_fbcdc_comp_level[];
-
-//const struct color_space_cfg *get_csc_cfg(u32 cs_type);
 
 int display_out_mode_convert(struct ax_disp_mode *mode, struct dispc_out_mode *dispc_out);
 u32 vo_fmt2hw_fmt(u32 format);

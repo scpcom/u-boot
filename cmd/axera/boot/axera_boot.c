@@ -368,8 +368,10 @@ int flash_raw_read(const char *part_name, void *dest)
 		} else {
 			mtdparts = strstr(bootargs , "mtdparts");
 			if (NULL != mtdparts) {
+				mtdparts = strdup(mtdparts);
 				strtok(mtdparts, " ");
 				env_set("mtdparts", mtdparts);
+				free(mtdparts);
 			}
 		}
 		read_len = flash_read_from_nand(part_name, dest);
@@ -388,8 +390,10 @@ int flash_raw_read(const char *part_name, void *dest)
 		} else {
 			mtdparts = strstr(bootargs , "mtdparts");
 			if (NULL != mtdparts) {
+				mtdparts = strdup(mtdparts);
 				strtok(mtdparts, " ");
 				env_set("mtdparts", mtdparts);
+				free(mtdparts);
 			} else {
 				mtdparts = MTDPARTS_SPINOR;
 				env_set("mtdparts", mtdparts);
@@ -502,6 +506,7 @@ void ax_boot_kernel(char *img_addr,char *dtb_addr)
 	void (*kernel_entry)(int zero, int arch, uint params);
 	kernel_entry = (void (*)(int, int, uint))(ulong)img_addr;
 	fdt_chosen(dtb_addr);
+	fdt_fixup_ethernet(dtb_addr);
 	r2 = (ulong)dtb_addr;
 
 	printf("## Transferring control to Linux (img at address %08lx) (dtb at address %08lx)" \

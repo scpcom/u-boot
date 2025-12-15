@@ -30,6 +30,7 @@
 #include <asm/arch/ax620e.h>
 
 #include "ax_vo.h"
+#include "ax620e/ax620e_vo_rst_ck_mux.h"
 
 struct display_timing fixed_timigs[AX_VO_OUTPUT_BUTT] = {
 	{ /* AX_VO_OUTPUT_1080P60 */
@@ -55,6 +56,18 @@ struct display_timing fixed_timigs[AX_VO_OUTPUT_BUTT] = {
 		.vback_porch = {0, 29, 0},
 		.vsync_len = {0, 3, 0},
 		.flags = 0x15,
+	},
+	{ /* AX_VO_OUTPUT_1080x1920_60 */
+		.pixelclock = {0, 27000000, 0},
+		.hactive = {0, 720, 0},
+		.hfront_porch = {0, 40, 0},
+		.hback_porch = {0, 40, 0},
+		.hsync_len = {0, 4, 0},
+		.vactive = {0, 1280, 0},
+		.vfront_porch = {0, 16, 0},
+		.vback_porch = {0, 16, 0},
+		.vsync_len = {0, 4, 0},
+		.flags = 0xa,
 	},
 };
 
@@ -169,10 +182,10 @@ static int ax_vo_display(struct ax_dpu_device *ddev, struct display_info *dp_inf
 		task.src_h = task.dst_h - task.dst_y;
 
 	task.dst_fmt = AX_VO_FORMAT_NV12;
-	task.dst_stride_y = (ddev->mode.hdisplay + 0xf) & (~0xf);
+	task.dst_stride_y = (task.dst_w + 0xf) & (~0xf);
 	task.dst_stride_c = task.dst_stride_y;
 	task.dst_phy_addr_y = dp_info->display_addr;
-	task.dst_phy_addr_c = task.dst_phy_addr_y + task.dst_w * task.dst_h;
+	task.dst_phy_addr_c = task.dst_phy_addr_y + task.dst_stride_y * task.dst_h;
 
 	task.data = &ddev->hdev;
 
@@ -218,16 +231,11 @@ static int display_timing2disp_mode(struct display_timing *timing, struct ax_dis
 	mode->vsync_start = mode->vdisplay + timing->vfront_porch.typ;
 	mode->vsync_end = mode->vsync_start + timing->vsync_len.typ;
 	mode->vtotal = mode->vsync_end + timing->vback_porch.typ;
-	if ((mode->type & AX_DISP_OUT_MODE_DSI_DPI_VIDEO) ||
-	    (mode->type & AX_DISP_OUT_MODE_DSI_SDI_VIDEO)) {
-		mode->hp_pol = 0;
-		mode->vp_pol = 0;
-		mode->de_pol = 0;
-	} else {
-		mode->hp_pol = timing->flags & DISPLAY_FLAGS_HSYNC_LOW ? 0 : 1;
-		mode->vp_pol = timing->flags & DISPLAY_FLAGS_VSYNC_LOW ? 0 : 1;
-		mode->de_pol = timing->flags & DISPLAY_FLAGS_DE_LOW ? 0 : 1;
-	}
+
+	mode->hp_pol = timing->flags & DISPLAY_FLAGS_HSYNC_LOW ? 1 : 0;
+	mode->vp_pol = timing->flags & DISPLAY_FLAGS_VSYNC_LOW ? 1 : 0;
+	mode->de_pol = timing->flags & DISPLAY_FLAGS_DE_LOW ? 1: 0;
+
 	mode->vrefresh = (timing->pixelclock.typ + ((mode->vtotal * mode->htotal) >> 1)) /
 	                 (mode->vtotal * mode->htotal);
 
@@ -266,18 +274,29 @@ static int ax_vo_setup_mode(struct ax_dpu_device *ddev, u32 type, u32 sync)
 
 	mode->type = type;
 
+	display_glb_init(ddev->id, type);
+
 	ret = ax_dpu_init(ddev);
 	if (ret) {
 		VO_ERROR("failed to init dpu%d\n", ddev->id);
 		return ret;
 	}
 
-	mode->fmt_in = AX_VO_FORMAT_NV12;
-	mode->fmt_out = AX_DISP_OUT_FMT_RGB565;
+		mode->fmt_in = AX_VO_FORMAT_NV12;
+	if (type == AX_DISP_OUT_MODE_DSI_DPI_VIDEO)
+		mode->fmt_out = AX_DISP_OUT_FMT_RGB888;
+	else
+		mode->fmt_out = AX_DISP_OUT_FMT_RGB565;
 
 	ret = ax_dispc_config(ddev, mode);
 	if (ret) {
 		VO_ERROR("failed to config dpu%d\n", ddev->id);
+		return ret;
+	}
+
+	ret = display_glb_path_config(ddev->id, type, mode);
+	if (ret) {
+		VO_ERROR("failed to init display clk%d\n", ddev->id);
 		return ret;
 	}
 

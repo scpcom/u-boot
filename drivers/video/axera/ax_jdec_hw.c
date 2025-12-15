@@ -491,7 +491,7 @@ int jpeg_decode_hw(int width, int height, unsigned char *imageData_jpg, unsigned
 	u64 sos_offset = 0, stream_size = 0, vlc_base_offset = 0;
 	u64 input_stream_base = (u64)imageData_jpg;
 	u64 luma_out_base = (u64)logo_load_addr;
-	u64 chroma_out_base = luma_out_base + width * ALIGN_UP(height, 16);
+	u64 chroma_out_base = luma_out_base + ALIGN_UP(width, 16) * ALIGN_UP(height, 16);
 	u64 qtable_base = 0;
 	u32 reg_value1 = 0, reg_value2 = 0, strm_start_bit = 0;
 	u32 reg_set_value = 0;
@@ -589,11 +589,8 @@ int jpeg_decode_hw(int width, int height, unsigned char *imageData_jpg, unsigned
 	jpeg_decode_write_tables(qtable_base);
 
 	jpeg_decode_chroma_table_selectors();
-	if (width % 16 == 0) {
-		scaninfo.fillright = 0;
-	} else {
-		scaninfo.fillright = 1;
-	}
+
+	scaninfo.fillright = 0;
 
 	reg_set_value = readl(JDEC_ADDR_BASE + 0x00000014);
 	reg_set_value = (reg_set_value & (~0x3f0001fff)) | (strm_start_bit << 26) |

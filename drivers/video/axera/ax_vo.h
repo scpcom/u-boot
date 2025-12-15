@@ -13,6 +13,7 @@
 
 #include "ax_vo_common.h"
 #include "ax620e/ax620e_vo_common.h"
+#include "ax_simple_logo.h"
 
 struct display_info {
 	u32 img_width;

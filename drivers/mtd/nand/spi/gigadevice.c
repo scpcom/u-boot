@@ -160,7 +160,7 @@ static const struct spinand_info gigadevice_spinand_table[] = {
 		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
 					      &write_cache_variants,
 					      &update_cache_variants),
-		     0,
+		     SPINAND_HAS_QE_BIT,
 		     SPINAND_ECCINFO(&gd5fxgq4xexxg_ooblayout,
 				     gd5fxgq4xexxg_ecc_get_status)),
 	SPINAND_INFO("GD5F2GQ5RExxH", 0x42,/* voltage:1.8v */

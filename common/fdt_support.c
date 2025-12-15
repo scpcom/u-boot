@@ -88,6 +88,10 @@ int fdt_find_and_setprop(void *fdt, const char *node, const char *prop,
 			 const void *val, int len, int create)
 {
 	int nodeoff = fdt_path_offset(fdt, node);
+#if defined(CONFIG_ARCH_AXERA) && defined(CONFIG_CPU_V7A)
+	int   err;
+	int   ret;
+#endif
 
 	if (nodeoff < 0)
 		return nodeoff;
@@ -95,7 +99,23 @@ int fdt_find_and_setprop(void *fdt, const char *node, const char *prop,
 	if ((!create) && (fdt_get_property(fdt, nodeoff, prop, NULL) == NULL))
 		return 0; /* create flag not set; so exit quietly */
 
+#if defined(CONFIG_ARCH_AXERA) && defined(CONFIG_CPU_V7A)
+	do {
+		err = fdt_setprop(fdt, nodeoff, prop, val, len);
+		if (err == -FDT_ERR_NOSPACE) {
+			ret = fdt_increase_size(fdt, 64);
+			if (ret) {
+				printf("Could not increase size of device tree: %s\n",
+						fdt_strerror(ret));
+				return ret;
+			}
+		}
+	} while (err == -FDT_ERR_NOSPACE);
+
+	return err;
+#else
 	return fdt_setprop(fdt, nodeoff, prop, val, len);
+#endif
 }
 
 /**

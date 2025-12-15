@@ -377,59 +377,6 @@ int fs_set_blk_dev(const char *ifname, const char *dev_part_str, int fstype)
 	return -1;
 }
 
-#ifdef CONFIG_AXERA_MEMORY_DUMP_EMMC
-extern int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t * info);
-int ext4fs_memory_dump(struct blk_desc *fs_dev_desc, unsigned long int addr,unsigned long int size,
-                       unsigned long int info_addr,unsigned long int info_size,char *filename)
-{
-	struct fstype_info *info;
-	int ret;
-	int part = 2;
-	disk_partition_t opt_info;
-	info = &fstypes[1];// ext4
-	ret = get_part_info(fs_dev_desc,"opt", &opt_info);
-	if(ret < 0) {
-		printf("memorydump get opt partition error\n");
-		return -1;
-	} else {
-		printf("opt info start : 0x%lx size : 0x%lx\n",opt_info.start,opt_info.size);
-	}
-
-	fs_partition.start = opt_info.start;  /* # of first block in partition */
-	fs_partition.size = opt_info.size; //1GB  /* number of blocks in partition */
-	fs_partition.blksz = 512;          /* block size in bytes */
-	strcpy((char *)fs_partition.name,"memorydump");    /* partition name */
-	strcpy((char *)fs_partition.type,"U-Boot");    /* string type description */
-	fs_partition.bootable = 0;       /* Active/Bootable flag is set */
-#if CONFIG_IS_ENABLED(PARTITION_UUIDS)
-        strcpy((char *)(fs_partition.uuid),"ca996fda-e809-40b7-8532-15ab5e3fb7b7"); /* filesystem UUID as string, if exists */
-#endif
-#ifdef CONFIG_PARTITION_TYPE_GUID
-        strcpy(fs_partition.type_guid,(char *)"0fc63daf-8483-4772-8e79-3d69d8477de4");    /* type GUID as string, if exists       */
-#endif
-#ifdef CONFIG_DOS_PARTITION
-        fs_partition.sys_ind = 0;        /* partition type */
-#endif
-	if (!info->probe(fs_dev_desc, &fs_partition)) {
-		loff_t len,offset = 0;
-		fs_type = info->fstype;
-		fs_dev_part = part;
-		printf("saving vmcore.dump.info ...\n");
-		fs_write("/vmcore.dump.info", info_addr, offset, info_size, &len);
-	}
-
-	if (!info->probe(fs_dev_desc, &fs_partition)) {
-		loff_t len,offset = 0;
-		fs_type = info->fstype;
-		fs_dev_part = part;
-		printf("saving %s ...\n", filename);
-		fs_write(filename, addr, offset, size, &len);
-	}
-
-	return 0;
-}
-#endif
-
 /* set current blk device w/ blk_desc + partition # */
 int fs_set_blk_dev_with_part(struct blk_desc *desc, int part)
 {

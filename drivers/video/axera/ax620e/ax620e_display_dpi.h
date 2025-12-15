@@ -8,11 +8,12 @@
  *
  **************************************************************************************************/
 
-#ifndef __AX620E_VO_RST_CK_MUX_H__
-#define __AX620E_VO_RST_CK_MUX_H__
+#ifndef __AX620E_DISPLAY_DPI_H__
+#define __AX620E_DISPLAY_DPI_H__
 
-void dpu_glb_init(u32 id);
-int display_glb_path_config(u32 id, u32 out_mode, struct ax_disp_mode *mode);
-void display_glb_init(u32 id, u32 type);
-#endif
+void display_dpi_pixel_clk_set_rate(u32 id, int sel, int div);
+void display_dpi_glb_path_config(u32 id);
+void display_dpi_glb_init(u32 id);
+
+#endif //__AX620E_DISPLAY_DPI_H__
 

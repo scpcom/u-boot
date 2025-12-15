@@ -178,7 +178,7 @@ char net_boot_file_name[1024];
 /* Indicates whether the file name was specified on the command line */
 bool net_boot_file_name_explicit;
 /* The actual transferred size of the bootfile (in bytes) */
-u32 net_boot_file_size;
+long net_boot_file_size;
 /* Boot file size in blocks as reported by the DHCP server */
 u32 net_boot_file_expected_size_in_blocks;
 
@@ -402,9 +402,9 @@ void net_init(void)
  *	Main network processing loop.
  */
 
-int net_loop(enum proto_t protocol)
+long net_loop(enum proto_t protocol)
 {
-	int ret = -EINVAL;
+	long ret = -EINVAL;
 	enum net_loop_state prev_net_state = net_state;
 
 	net_restarted = 0;
@@ -634,7 +634,7 @@ restart:
 		case NETLOOP_SUCCESS:
 			net_cleanup_loop();
 			if (net_boot_file_size > 0) {
-				printf("Bytes transferred = %d (%x hex)\n",
+				printf("Bytes transferred = %ld (%lx hex)\n",
 				       net_boot_file_size, net_boot_file_size);
 				env_set_hex("filesize", net_boot_file_size);
 				env_set_hex("fileaddr", image_load_addr);

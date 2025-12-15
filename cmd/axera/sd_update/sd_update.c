@@ -418,8 +418,10 @@ static int sd_update_to_storage(struct sd_update_file *pfile, int len)
 		if (NULL != bootargs) {
 			mtdparts = strstr(bootargs , "mtdparts");
 			if (NULL != mtdparts) {
+				mtdparts = strdup(mtdparts);
 				strtok(mtdparts, " ");
 				env_set("mtdparts", mtdparts);
+				free(mtdparts);
 			}
 		}
 		sd_spi_nand_protect_disable();
@@ -435,8 +437,10 @@ static int sd_update_to_storage(struct sd_update_file *pfile, int len)
 		if (NULL != bootargs) {
 			mtdparts = strstr(bootargs , "mtdparts");
 			if (NULL != mtdparts) {
+				mtdparts = strdup(mtdparts);
 				strtok(mtdparts, " ");
 				env_set("mtdparts", mtdparts);
+				free(mtdparts);
 			}
 		}
 		ret = sd_update_to_spinor(pfile, len);

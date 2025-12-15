@@ -55,11 +55,17 @@ static int spi_nor_read_reg(struct spi_nor *nor, u8 code, u8 *val, int len)
 					  SPI_MEM_OP_NO_DUMMY,
 					  SPI_MEM_OP_DATA_IN(len, NULL, 1));
 	int ret;
+	static int read_reg_cnt = 0;
 
 	ret = spi_nor_read_write_reg(nor, &op, val);
 	if (ret < 0)
 		dev_dbg(&flash->spimem->spi->dev, "error %d reading %x\n", ret,
 			code);
+
+	if ((read_reg_cnt < 5) && ((SPINOR_OP_RDSR == code) || (0x35 == code))) {
+		read_reg_cnt++;
+		dev_err(nor->dev, "=========== read reg 0x%x, val 0x%x ===========\n", code, val[0]);
+	}
 
 	return ret;
 }
@@ -71,6 +77,9 @@ static int spi_nor_write_reg(struct spi_nor *nor, u8 opcode, u8 *buf, int len)
 					  SPI_MEM_OP_NO_DUMMY,
 					  SPI_MEM_OP_DATA_OUT(len, NULL, 1));
 
+	if ((SPINOR_OP_WRSR == opcode) || (0x31 == opcode)) {
+		dev_err(nor->dev, "=========== write reg 0x%x, val 0x%x ===========\n", opcode, buf[0]);
+	}
 	return spi_nor_read_write_reg(nor, &op, buf);
 }
 
@@ -2446,9 +2455,40 @@ static int spi_nor_setup(struct spi_nor *nor, const struct flash_info *info,
 	return 0;
 }
 
+#if defined (CONFIG_SPI_FLASH_FORCE_UNLOCK)
+static int spi_nor_protect_process(struct spi_nor *nor)
+{
+	int ret;
+	u8 sr, cr;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR, &sr, 1);
+	if (ret < 0) {
+		pr_err("error %d reading SR\n", (int)ret);
+		return ret;
+	}
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDCR, &cr, 1);
+	if (ret < 0) {
+		pr_err("error %d reading CR\n", ret);
+		return ret;
+	}
+
+	printf("%s: sr=0x%x, cr=0x%x\n", __func__, sr, cr);
+	if (sr & (SR_BP0 | SR_BP1 | SR_BP2 | SR_TB | SR_SRWD)) {
+		printf("%s: need disable protect\n", __func__);
+		return 1;
+	}
+
+	return 0;
+}
+#endif
+
 static int spi_nor_init(struct spi_nor *nor)
 {
 	int err;
+#if defined (CONFIG_SPI_FLASH_FORCE_UNLOCK)
+	int need_disable_proctect = spi_nor_protect_process(nor);
+#endif
 
 	/*
 	 * Atmel, SST, Intel/Numonyx, and others serial NOR tend to power up
@@ -2457,6 +2497,9 @@ static int spi_nor_init(struct spi_nor *nor)
 	if (JEDEC_MFR(nor->info) == SNOR_MFR_ATMEL ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_INTEL ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_SST ||
+#if defined (CONFIG_SPI_FLASH_FORCE_UNLOCK)
+	    need_disable_proctect == 1 ||
+#endif
 	    nor->info->flags & SPI_NOR_HAS_LOCK) {
 #ifdef SPI_NOR_WRITE_ENABLE_FOR_VOLATILE_STATUS_REGISTER
 		write_enable_volatile(nor);
