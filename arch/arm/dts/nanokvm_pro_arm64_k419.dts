@@ -1,0 +1,253 @@
+// SPDX-License-Identifier: GPL-2.0
+/**************************************************************************************************
+ *
+ * Copyright (c) 2019-2024 Axera Semiconductor Co., Ltd. All Rights Reserved.
+ *
+ * This dts file is the property of Axera Semiconductor Co., Ltd. and
+ * may not be copied or distributed in any isomorphic form without the prior
+ * written consent of Axera Semiconductor Co., Ltd.
+ *
+ **************************************************************************************************/
+
+/dts-v1/;
+#include "ax620e.dtsi"
+/ {
+	model = "NanoKVM-Pro";
+
+	chosen {
+		//bootargs = "mem=704M earlycon=uart8250,mmio32,0x4880000 board_id=0x5,boot_reason=0x00,initcall_debug=0 loglevel=8 usbcore.autosuspend=-1 root=/dev/mmcblk0p17 rootfstype=ext4 rw rootwait blkdevparts=mmcblk0:768K(spl),512K(ddrinit),256K(atf),256K(atf_b),1536K(uboot),1536K(uboot_b),1M(env),6M(logo),6M(logo_b),1M(optee),1M(optee_b),1M(dtb),1M(dtb_b),64M(kernel),64M(kernel_b),128M(boot),-(rootfs) logomode=vo0@dpi logomode=vo0@dsi_dpi_video";
+		stdout-path = "/serial@4880000";
+	};
+
+	emmc: mmc@1B40000 {
+		compatible = "axera,ax620e-sdhc";
+		reg = <0x0 0x1B40000 0x0 0x1000>;
+		interrupts = <0 9 4>;
+		bus-width = <8>;
+		sdhci-caps-mask = <0x2 0x03200000>;
+		sdhci-caps = <0x0 0x00040000>;
+		non-removable;
+		cdns,phy-input-delay-sd-highspeed = <2>;
+		cdns,phy-input-delay-legacy = <4>;
+		cdns,phy-input-delay-sd-uhs-sdr12 = <1>;
+		cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+		cdns,phy-input-delay-sd-uhs-sdr50 = <1>;
+		cdns,phy-input-delay-sd-uhs-ddr50 = <2>;
+		cdns,phy-input-delay-mmc-legacy = <1>;
+		cdns,phy-input-delay-mmc-highspeed = <2>;
+		cdns,phy-input-delay-mmc-ddr = <2>;
+		cdns,phy-dll-delay-sdclk = <0>;
+		cdns,phy-dll-delay-sdclk-hsmmc = <23>;
+		cdns,phy-dll-delay-strobe = <18>;
+		status = "okay";
+	};
+
+	sd: mmc@104E0000 {
+		compatible = "axera,ax620e-sdhc";
+		reg = <0x0 0x104E0000 0x0 0x1000>;
+		interrupts = <0 74 4>;
+
+		bus-width = <4>;
+		cap-sd-highspeed;
+		/*sd-uhs-sdr12;
+		sd-uhs-sdr25;
+		sd-uhs-sdr50;*/
+		no-sdio;
+		no-mmc;
+		disable-wp;
+		no-1-8-v;
+		broken-cd;
+
+		cdns,phy-input-delay-sd-highspeed = <2>;
+		cdns,phy-input-delay-legacy = <3>;
+		cdns,phy-input-delay-sd-uhs-sdr12 = <3>;
+		cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+		cdns,phy-input-delay-sd-uhs-sdr50 = <0>;
+		cdns,phy-input-delay-sd-uhs-ddr50 = <0>;
+		cdns,phy-dll-delay-sdclk = <0>;
+
+		status = "okay";
+	};
+
+	eth0: ethernet@0x104C0000{
+		compatible = "axera,ax620e-eqos";
+		phy-rst-gpio = <&port1a 27 0>; /* GPIO1_A27 */
+		status = "okay";
+	};
+};
+
+&i2c0 {
+	status = "disabled";
+	/delete-property/ pinctrl-names;
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-1;
+};
+
+&i2c1 {
+	status = "disabled";
+	/delete-property/ pinctrl-names;
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-1;
+};
+
+&i2c2 {
+	status = "disabled";
+};
+
+&i2c3 {
+	status = "disabled";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "disabled";
+};
+
+&uart2 {
+	status = "disabled";
+};
+
+&emmc{
+	sdhci-caps-mask = <0x2 0x03200000>;
+	bus-width = <8>;
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <4>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <1>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <1>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <2>;
+	cdns,phy-input-delay-mmc-legacy = <1>;
+	cdns,phy-input-delay-mmc-highspeed = <2>;
+	cdns,phy-input-delay-mmc-ddr = <2>;
+	cdns,phy-dll-delay-sdclk = <0>;
+	cdns,phy-dll-delay-sdclk-hsmmc = <23>;
+	cdns,phy-dll-delay-strobe = <18>;
+	status = "okay";
+};
+
+&sd{
+	bus-width = <4>;
+	cap-sd-highspeed;
+	no-sdio;
+	no-mmc;
+	disable-wp;
+	broken-cd;
+
+	cdns,phy-input-delay-sd-highspeed = <2>;
+	cdns,phy-input-delay-legacy = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr12 = <3>;
+	cdns,phy-input-delay-sd-uhs-sdr25 = <2>;
+	cdns,phy-input-delay-sd-uhs-sdr50 = <0>;
+	cdns,phy-input-delay-sd-uhs-ddr50 = <0>;
+	cdns,phy-dll-delay-sdclk = <0>;
+
+	status = "okay";
+};
+
+&i2c4 {
+	status = "disabled";
+};
+
+&i2c6 {
+	/delete-property/ pinctrl-names;
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-1;
+};
+
+&i2c7 {
+	status = "disabled";
+	/delete-property/ pinctrl-names;
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-1;
+};
+
+&usb {
+	status = "okay";
+};
+
+&spi1 {
+	status = "disabled";
+	cs-gpio = <&ax_gpio0 2 0>; // should be port0a
+	// /delete-property/ cs-gpio;
+
+	led_strip: led_strip@0 {
+		compatible = "spidev";
+		reg = <0>;
+		spi-max-frequency = <8000000>;
+		status = "okay";
+	};
+};
+
+&spi2 {
+	status = "okay";
+	spi-max-frequency = <20000000>;
+	cs-gpio = <&port0a 27 0>;
+
+	jd9853: panel_spi@0 {
+		compatible = "sipeed,for_jd9853";
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <1>;
+		spi-max-frequency = <20000000>;
+		reg = <0x00>;
+		panel-init-seq = [ff 00 03 df 98 53
+				  ff 00 02 b2 23
+				  ff 00 05 b7 00 47 00 6f
+				  ff 00 07 bb 1c 1a 55 73 63 f0
+				  ff 00 03 c0 44 a4
+				  ff 00 02 c1 12
+				  ff 00 09 c3 7d 07 14 06 cf 71 72 77
+				  ff 00 0d c4 00 00 a0 79 0b 0a 16 79 0b 0a 16 82
+				  ff 00 21 c8 3f 32 29 29 27 2b 27 28 28 26 25 17 12 0d 04 00 3f 32 29 29 27 2b 27 28 28 26 25 17 12 0d 04 00
+				  ff 00 06 d0 04 06 6b 0f 00
+				  ff 00 03 d7 00 30
+				  ff 00 02 e6 14
+				  ff 00 02 de 01
+				  ff 00 06 b7 03 13 ef 35 35
+				  ff 00 04 c1 14 15 c0
+				  ff 00 03 c2 06 3a
+				  ff 00 03 c4 72 12
+				  ff 00 02 be 00
+				  ff 00 02 de 02
+				  ff 00 04 e5 00 02 00
+				  ff 00 04 e5 01 02 00
+				  ff 00 02 de 00
+				  ff 00 01 34
+				  ff 00 03 44 00 00
+				  ff 00 02 35 00
+				  ff 00 03 44 00 00
+				  ff 00 02 3a 55
+				  ff 00 02 36 00
+				  ff 00 05 2a 00 22 00 cd
+				  ff 00 05 2b 00 00 01 3f
+				  ff 00 02 35 00
+				  ff 00 01 2c ff 78 01 11
+				  ff 00 02 de 02
+				  ff 00 04 e5 00 02 00
+				  ff 00 02 de 00 ff 0a 01 29
+				  ff 00 05 2a 00 22 00 cd
+				  ff 00 05 2b 00 00 01 3f];
+		dc = <1 11 0x1>;
+		rst = <1 9 0x0>;
+		bl = <1 8 0x1>;
+	};
+};
+
+&spi4 {
+	status = "okay";
+	/*spi_nand@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		rx-sample-delay-ns = <4>;
+		spi-max-frequency = <50000000>;
+	};*/
+	/*spi_flash@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <50000000>;
+	};*/
+};
