@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0+
 # include $(HOME_PATH)/build/projects/$(PROJECT)/project.mak
 AXERA_DTB_IMG_ADDR              := 0x40001000
-FLASH_PARTITIONS := "768K\(spl\),512K\(ddrinit\),256K\(atf\),256K\(atf_b\),1536K\(uboot\),1536K\(uboot_b\),1024K\(env\),6144K\(logo\),6144K\(logo_b\),1024K\(optee\),1024K\(optee_b\),1024K\(dtb\),1024K\(dtb_b\),262144K\(kernel\),262144K\(kernel_b\),29889536K\(ubuntu_rootfs\)"
-KERNEL_BOOTARGS  := "mem=1024M console=ttyS0,115200n8 earlycon=uart8250,mmio32,0x4880000 board_id=0,boot_reason=0x0 initcall_debug=0 quiet loglevel=0 usbcore.autosuspend=-1 root=/dev/mmcblk0p16 rootfstype=ext4 rw rootwait blkdevparts=mmcblk0:$(FLASH_PARTITIONS)"
+FLASH_PARTITIONS := "768K\(spl\),512K\(ddrinit\),256K\(atf\),256K\(atf_b\),1536K\(uboot\),1536K\(uboot_b\),1M\(env\),6M\(logo\),6M\(logo_b\),1M\(optee\),1M\(optee_b\),1M\(dtb\),1M\(dtb_b\),64M\(kernel\),64M\(kernel_b\),128M\(boot\),-\(rootfs\)"
+KERNEL_BOOTARGS  := "mem=704M earlycon=uart8250,mmio32,0x4880000 board_id=0x5,boot_reason=0x04,initcall_debug=0 loglevel=8 usbcore.autosuspend=-1 root=/dev/mmcblk0p17 rootfstype=ext4 rw rootwait blkdevparts=mmcblk0:$(FLASH_PARTITIONS) logomode=vo0@dpi logomode=vo0@dsi_dpi_video"
 
 IMG_HEADER_SIZE                 := 1024
 DTB_IMG_HEADER_ADDR             := 0x40000c00
