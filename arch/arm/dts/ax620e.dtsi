@@ -27,6 +27,8 @@
 		i2c5 = &i2c5;
 		i2c6 = &i2c6;
 		i2c7 = &i2c7;
+		spi1 = &spi1;
+		spi2 = &spi2;
 		mmc0 = &emmc;
 		mmc1 = &sd;
 	};
@@ -319,6 +321,31 @@
 		clock-names = "baudclk";
 		status = "disabled";
 	};
+
+	spi1: spi@6071000 {
+		compatible = "snps,dw-apb-ssi";
+		reg = <0x0 0x6071000 0x0 0x400>;
+		interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
+		cs-gpio = <&port0a 2 0>; /*GPIO0-A2 for apb_ssi's cs0 , default select cs0 */
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks =  <&sysclk>;
+		clock-names = "baudclk";
+		status = "disabled";
+	};
+
+	spi2: spi@6072000 {
+		compatible = "snps,dw-apb-ssi";
+		reg = <0x0 0x6072000 0x0 0x400>;
+		interrupts = <GIC_SPI 153 IRQ_TYPE_LEVEL_HIGH>;
+		cs-gpio = <&port0a 27 0>; /*GPIO0-A27 for apb_ssi's cs0 , default select cs0 */
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks =  <&ap_clk>;
+		clock-names = "baudclk";
+		status = "disabled";
+	};
+
 	spi4: spi@1a00000 {
 		compatible = "snps,dw-ssi";
 		reg = <0x0 0x1a00000 0x0 0x1000>;
