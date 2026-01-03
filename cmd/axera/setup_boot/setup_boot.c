@@ -35,7 +35,7 @@
 #include <linux/time.h>
 #include <elf.h>
 #ifdef CONFIG_AXERA_SUPPORT_MEMORY_DUMP
-#include "memory_dump/memory_dump.h"
+#include "../memory_dump/memory_dump.h"
 #endif
 
 extern struct boot_mode_info boot_info_data;
