@@ -17,10 +17,10 @@
 #include <div64.h>
 #include <linux/kernel.h>
 
-#include "../ax_vo.h"
+#include "ax_vo.h"
 #include "ax620e_display_reg.h"
 #include "ax620e_display_dphy_reg.h"
-#include "../ax_vo_common.h"
+#include "ax_vo_common.h"
 
 extern void __iomem *common_sys_glb_regs;
 static void __iomem *common_dphytx_regs = (void __iomem *)COMMMON_DPHYTX_BASE_ADDR;
@@ -1962,12 +1962,15 @@ static void dsi_dphy_config(int lanes, unsigned long long lane_bps)
 	udelay(20);
 
 	board_id = get_board_id();
-
-	if (board_id == AX630C_DEMO_LP4_V1_0 || board_id == AX630C_DEMO_V1_1 || board_id == AX620Q_LP4_DEMO_V1_1) {
+// ### SIPEED EDIT ###
+	if (board_id == AX630C_AX631_MAIXCAM2_SOM_0_5G || board_id == AX630C_AX631_MAIXCAM2_SOM_1G
+		|| board_id == AX630C_AX631_MAIXCAM2_SOM_2G || board_id == AX630C_AX631_MAIXCAM2_SOM_4G
+		|| board_id == AX630C_DEMO_LP4_V1_0 || board_id == AX630C_DEMO_V1_1 || board_id == AX620Q_LP4_DEMO_V1_1) {
 		writel(1, common_dphytx_regs + DPHY_TX0_REG22_ADDR);
 		writel(0, common_dphytx_regs + DPHY_TX0_REG23_ADDR);
 		writel(4, common_dphytx_regs + DPHY_TX0_REG24_ADDR);
 	}
+// ### SIPEED EDIT END ###
 	writel(1, common_dphytx_regs + DPHY_PPI_REG_2_SET_ADDR);
 	writel(lane_mask, common_dphytx_regs + DPHY_PPI_REG_3_SET_ADDR);
 	writel(1, common_dphytx_regs + DPHY_MIPITX0_EN_SET_ADDR);
@@ -2062,15 +2065,23 @@ static int panel_send_dsi_cmds(u8 *data, int len)
 
 int display_mipi_panel_init(void)
 {
+// ### SIPEED EDIT ###
 	int ret;
 	int num_init_seqs = g_dsi_panel.init_seq_len;
-
+	struct udevice *dev = NULL;
 	ret = gpio_request(g_dsi_panel.gpio_num, "mipi_panel");
 	if(ret < 0)
 	{
 		VO_ERROR("gpio request error\n");
 		goto exit;
 	}
+
+	if (g_dsi_panel.pwm_period != 0) {
+		uclass_get_device(UCLASS_PWM, g_dsi_panel.pwms/4, &dev);
+		pwm_set_config(dev, g_dsi_panel.pwms%4, g_dsi_panel.pwm_period, g_dsi_panel.pwm_duty);
+		pwm_set_enable(dev, g_dsi_panel.pwms%4, true);
+	}
+// ### SIPEED EDIT END ###
 	ret = gpio_direction_output(g_dsi_panel.gpio_num, 0);
 	if(ret < 0)
 	{

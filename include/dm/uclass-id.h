@@ -73,6 +73,7 @@ enum uclass_id {
 	UCLASS_NVME,		/* NVM Express device */
 	UCLASS_P2SB,		/* (x86) Primary-to-Sideband Bus */
 	UCLASS_PANEL,		/* Display panel, such as an LCD */
+	UCLASS_PANEL_SPI,
 	UCLASS_PANEL_BACKLIGHT,	/* Backlight controller for panel */
 	UCLASS_PCH,		/* x86 platform controller hub */
 	UCLASS_PCI,		/* PCI bus */

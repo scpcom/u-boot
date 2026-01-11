@@ -24,8 +24,33 @@
 #include "stb_image.h"
 #include "ax_vo.h"
 #include "ax_jdec_hw.h"
+// ### SIPEED EDIT ###
+#include <fat.h>
+// ### SIPEED EDIT END ###
+extern u32 g_vdev_id;
+extern u32 g_out_mode;
+extern u32 g_fixed_sync;
 
-extern int g_out_mode;
+static char *logo_fmt_str[AX_VO_LOGO_FMT_BUTT] = {
+	"bmp",
+	"jpg",
+	"gzip"
+};
+
+static char *logo_mode_str[AX_DISP_OUT_MODE_BUT] = {
+	"bt601",
+	"bt656",
+	"bt1120",
+	"dpi",
+	"dsi_dpi_video",
+	"dsi_sdi_video",
+	"dsi_sdi_cmd",
+	"lvds",
+};
+
+static u64 reserved_logo_mem_addr;
+static u64 reserved_logo_mem_size;
+
 static int fdt_fixup_logo_reserved_mem(int dev, u64 addr, u64 size, void *fdt)
 {
 	int ret, offset, parent_offset;
@@ -81,20 +106,46 @@ exit:
 	return ret;
 }
 
-void fdt_fixup_logo_info(int dev, u64 addr, u64 size, void *fdt)
+void fdt_fixup_logo_info(void *fdt)
 {
-	if (dev >= VO_NR) {
-		VO_ERROR("dev(%d) invalid\n", dev);
-		return;
-	}
+	int ret, fdt_size = 0;
+	u32 devid = g_vdev_id;
+	u64 addr = reserved_logo_mem_addr, size = reserved_logo_mem_size;
 
 	if (!fdt || fdt_check_header(fdt)) {
 		VO_ERROR("device tree invalid\n");
 		return;
 	}
 
-	if (!fdt_fixup_vo_init_mode(dev, fdt))
-		fdt_fixup_logo_reserved_mem(dev, addr, size, fdt);
+	if (!addr || !size) {
+		VO_ERROR("reserved logo mem(%lld-%lld) invalid\n", addr, size);
+		return;
+	}
+
+retry:
+	ret = fdt_fixup_vo_init_mode(devid, fdt);
+	if (!ret)
+		ret = fdt_fixup_logo_reserved_mem(devid, addr, size, fdt);
+
+	if ((ret == -FDT_ERR_NOSPACE) && !fdt_size) {
+		VO_INFO("need for fdt expansion\n");
+		fdt_size = fdt_totalsize(fdt);
+		ret = fdt_open_into(fdt, fdt, fdt_size + 512);
+		if (ret) {
+			VO_ERROR("fdt expansion to 0x%x failed\n", fdt_size + 512);
+			return;
+		}
+
+		goto retry;
+	}
+}
+
+static bool is_big_endian(void)
+{
+	u32 test = 0x12345678;
+	unsigned char *p = (unsigned char *)&test;
+
+	return (*p == 0x12) ? true : false;
 }
 
 static u32 bmp_bpix2vo_fmt(u32 bpix)
@@ -134,49 +185,6 @@ void resizeImage(int originalHeight, int originalWidth, int newHeight, int newWi
 		}
 	}
 }
-
-static unsigned char* gunzip_logo_img(unsigned long addr, unsigned long *lenp,
-					 void **alloc_addr)
-{
-	void *outAddr = NULL;
-	unsigned long len = 0;
-	unsigned char *logoData = NULL;
-	int ret = 0;
-
-	/*
-	 * Decompress  image
-	 */
-	len = AX_MAX_VO_LOGO_SIZE;
-	/* allocate extra 3 bytes for 32-bit-aligned-address + 16 alignment */
-	outAddr = malloc(AX_MAX_VO_LOGO_SIZE + 16);
-	if (outAddr == NULL) {
-		printf("Error: malloc in gunzip failed!\n");
-		return NULL;
-	}
-
-	/* align to 32-bit-aligned-address + 16 */
-	logoData = (unsigned char *)(((uintptr_t)outAddr + 0xf) & ~0xf); //align 16
-
-	ret = gunzip(logoData, AX_MAX_VO_LOGO_SIZE, map_sysmem(addr, 0), &len);
-	if (ret != 0) {
-		printf("Error: gunzip failed. ret:%d!\n", ret);
-		free(outAddr);
-		return NULL;
-	}
-
-	if (len == AX_MAX_VO_LOGO_SIZE) {
-		printf("Image could be truncated. len %ld > AX_MAX_VO_LOGO_SIZE:%d\n",
-			len, AX_MAX_VO_LOGO_SIZE);
-		free(outAddr);
-		return NULL;
-	}
-
-	printf("Gzipped logo image detected!\n");
-	*alloc_addr = outAddr;
-	*lenp = len;
-	return logoData;
-}
-
 
 static int emmc_parse_jpg_logo_data(void *imageData_jpg, void *logo_load_addr, struct jpeg_image *jpeg_image)
 {
@@ -263,7 +271,54 @@ jpeg_softdec:
 	return 0;
 }
 
-int get_logo_from_emmc(unsigned char *logo_load_addr)
+static int get_logo_type(void)
+{
+	int ret;
+	ulong rd_blkcnt;
+	unsigned char *img_data = (unsigned char *)LOGO_IMAGE_LOAD_ADDR;
+	struct blk_desc *blk_dev_desc;
+	disk_partition_t part_info;
+
+	blk_dev_desc = blk_get_dev("mmc", EMMC_DEV_ID);
+	if (!blk_dev_desc) {
+		printf("%s get mmc dev failed\n", __func__);
+		ret = -1;
+		goto exit;
+	}
+
+	ret = get_part_info(blk_dev_desc, "logo", &part_info);
+	if(ret < 0) {
+		printf("%s get logo partition info failed\n", __func__);
+		ret = -1;
+		goto exit;
+	}
+
+	rd_blkcnt = blk_dread(blk_dev_desc, part_info.start, 1, img_data);
+	if (rd_blkcnt != 1) {
+		printf("%s get the first blk failed from logo-partition\n", __func__);
+		ret = -1;
+		goto exit;
+	}
+
+	if ((img_data[0] == 0x1F) && (img_data[1] == 0x8B)) {
+		ret = AX_VO_LOGO_FMT_GZ;
+	} else if ((img_data[0] == 0xFF) && (img_data[1] == 0xD8)) {
+		ret = AX_VO_LOGO_FMT_JPEG;
+	} else if ((img_data[0] == 'B') && (img_data[1] == 'M')) {
+		ret = AX_VO_LOGO_FMT_BMP;
+	} else {
+		printf("%s logo-fmt invalid(0x%x-0x%x)\n", __func__, img_data[0], img_data[1]);
+		ret = -1;
+		goto exit;
+	}
+
+	printf("%s logo-fmt:%s\n", __func__, logo_fmt_str[ret]);
+
+exit:
+	return ret;
+}
+
+int load_logo_from_mmc(unsigned char *logo_load_addr)
 {
 	u64 rd_blkcnt_lb_logo;
 	struct blk_desc *blk_dev_desc = NULL;
@@ -283,10 +338,9 @@ int get_logo_from_emmc(unsigned char *logo_load_addr)
 		return -1;
 	}
 
-	rd_blkcnt_lb_logo = blk_dread(blk_dev_desc, part_info.start,
-						part_info.size, logo_load_addr);
+	rd_blkcnt_lb_logo = blk_dread(blk_dev_desc, part_info.start, part_info.size, logo_load_addr);
 	if (rd_blkcnt_lb_logo != part_info.size) {
-		printf("get_logo_from_emmc get logo image fail++ rd_blkcnt_lb_logo %llx part_info.size: %lx\n", rd_blkcnt_lb_logo, part_info.size);
+		printf("load_logo_from_mmc get logo image fail++ rd_blkcnt_lb_logo %llx part_info.size: %lx\n", rd_blkcnt_lb_logo, part_info.size);
 		return -1;
 	}
 
@@ -294,50 +348,175 @@ int get_logo_from_emmc(unsigned char *logo_load_addr)
 	return 0;
 }
 
-static void string_replace_all(char *str, const char *old_str, const char *new_str)
+static int check_logo_from_boot_partition(char *filename)
 {
-	char *p = strstr(str, old_str);
-	int len_old = strlen(old_str);
-	int len_new = strlen(new_str);
+	int ret = 0;
+	struct blk_desc *mmc_desc = NULL;
+	disk_partition_t fs_partition;
+	char *parttiton = "boot";
+	loff_t file_len = 0;
 
-	while (p) {
-		memmove(p+len_new, p+len_old, strlen(p+len_old)+1);
-		memcpy(p, new_str, len_new);
-		p = strstr(p+len_new, old_str);
+	mmc_desc = blk_get_dev("mmc", EMMC_DEV_ID);
+	if (NULL == mmc_desc) {
+		printf("[error] memory dump: emmc is not present, exit dump!\n");
+		return -1;
+	}
+
+	ret = get_part_info(mmc_desc, parttiton, &fs_partition);
+	if(ret < 0) {
+		printf("[error] memory dump get %s partition error, ret:%d\n", parttiton, ret);
+		return ret;
+	}
+
+	if (fat_set_blk_dev(mmc_desc, &fs_partition) != 0) {
+		mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
+		if (NULL == mmc_desc) {
+			printf("[error] memory dump: emmc/sd is not present, exit dump!\n");
+			return -1;
+		}
+
+		ret = fat_register_device(mmc_desc, 1);
+		if (ret != 0) {
+			printf("[error] fat_register_device failed\n");
+			return -1;
+		}
+	}
+
+	if (!fat_exists(filename)) {
+		printf("%s file is not exist\n", filename);
+		return 0;
+	} else {
+		return 1;
 	}
 }
 
-static void set_logo_mode(void)
+static int load_logo_from_boot_partition(unsigned char *logo_load_addr, char *filename)
 {
-	char * bootargs;
-	static char newbootargs[512];
-	char *logoparts = NULL;
+	int ret = 0;
+	struct blk_desc *mmc_desc = NULL;
+	disk_partition_t fs_partition;
+	char *parttiton = "boot";
+	loff_t file_len = 0;
+
+	mmc_desc = blk_get_dev("mmc", EMMC_DEV_ID);
+	if (NULL == mmc_desc) {
+		printf("[error] memory dump: emmc is not present, exit dump!\n");
+		return -1;
+	}
+
+	ret = get_part_info(mmc_desc, parttiton, &fs_partition);
+	if(ret < 0) {
+		printf("[error] memory dump get %s partition error, ret:%d\n", parttiton, ret);
+		return ret;
+	}
+
+	if (fat_set_blk_dev(mmc_desc, &fs_partition) != 0) {
+		mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
+		if (NULL == mmc_desc) {
+			printf("[error] memory dump: emmc/sd is not present, exit dump!\n");
+			return -1;
+		}
+
+		ret = fat_register_device(mmc_desc, 1);
+		if (ret != 0) {
+			printf("[error] fat_register_device failed\n");
+			return -1;
+		}
+	}
+
+	if (!fat_exists(filename)) {
+		printf("%s file is not exist\n", filename);
+		return -1;
+	}
+
+	if (fat_size(filename, &file_len) != 0) {
+		printf("[error] get %s file size error\n", filename);
+		return -1;
+	}
+
+	if (file_fat_read(filename, logo_load_addr, file_len) <= 0) {
+		printf("file_fat_read failed, ret:%d\n", ret);
+		return -1;
+	}
+
+	printf("load logo image addr = 0x%llx\n",(u64)logo_load_addr);
+	return 0;
+}
+
+static void set_logo_mode(u32 devid, u32 type)
+{
+	char * bootargs, *logoparts, *p;
+	char newbootargs[512], logomode[32];
 
 	bootargs = env_get("bootargs");
-	if(NULL == bootargs)
+	if(!bootargs)
 		return;
 
-	logoparts = strstr(bootargs , "logomode");
-	if (NULL == logoparts) {
-		strcpy(newbootargs, bootargs);
-		strcat(newbootargs, " logomode=");
-		if (g_out_mode == AX_DISP_OUT_MODE_DSI_DPI_VIDEO) {
-			strcat(newbootargs, "mipi");
-		} else if (g_out_mode == AX_DISP_OUT_MODE_DPI) {
-			strcat(newbootargs, "dpi");
-		}
-		newbootargs[strlen(newbootargs)] = '\0';
+	sprintf(logomode, " logomode=vo%d@%s", devid, logo_mode_str[type]);
 
-		env_set("bootargs", newbootargs);
-		env_save();
-	} else {
-		if((strstr(logoparts , "logomode=mipi")) && (g_out_mode == AX_DISP_OUT_MODE_DPI))
-			string_replace_all(bootargs, "logomode=mipi", "logomode=dpi");
-		else if ((strstr(logoparts , "logomode=dpi")) && (g_out_mode == AX_DISP_OUT_MODE_DSI_DPI_VIDEO))
-			string_replace_all(bootargs, "logomode=dpi", "logomode=mipi");
+	strcpy(newbootargs, bootargs);
+	logoparts = strstr(newbootargs , "logomode");
+	if (logoparts) {
+		if (strstr(logoparts , &logomode[1]))
+			return;
+
+		for (p = logoparts; *p != ' ' && *p != '\0'; p++);
+
+		if (*p != '\0')
+			strcpy(logoparts, p);
 	}
 
+	strcat(newbootargs, logomode);
+	env_set("bootargs", newbootargs);
+	env_save();
 }
+
+// ### SIPEED EDIT ###
+static int check_and_config_upgrade(void)
+{
+	uint32_t val = 0;
+	writel(0x00000003, 0x2302024);
+	val = readl(0x2302024);
+	val = readl(0x600100c) & (~0x2);
+	writel(val, 0x600100c);
+	val = readl(0x600100c);
+	udelay(1000);
+
+	val = readl(0x600108c);
+	val = readl(0x600108c);
+	int boot_key = (val >> 2) & 0x01;
+
+	char *_bootargs = NULL;
+	_bootargs = env_get("bootargs");
+
+	// delete boot_key=xxx
+	char *pos = strstr(_bootargs, "boot_key=");
+	if (pos) {
+		char *pos2 = strstr(pos + strlen("boot_key="), " ");
+		if (pos2) {
+			strcpy(pos, pos2 + 1);
+		} else {
+			*pos = '\0';
+		}
+	}
+
+	if (boot_key == 0) //  boot key pressed
+	{
+		char new_bootargs[512] = {0};
+		printf("boot key pressed\n");
+
+		memcpy(new_bootargs, _bootargs, strlen(_bootargs));
+		char *boot_key_arg = " boot_key=1";
+		memcpy(new_bootargs + strlen(new_bootargs), boot_key_arg, strlen(boot_key_arg));
+		printf("new_bootargs[%d]: %s\n", strlen(new_bootargs), new_bootargs);
+		env_set("bootargs", new_bootargs);
+
+		return 1;
+	} else {
+		return 0;
+	}
+}
+// ### SIPEED EDIT END ###
 
 int ax_bootlogo_show(void)
 {
@@ -348,95 +527,149 @@ int ax_bootlogo_show(void)
 	struct display_info dp_info = {0};
 	struct bmp_image *bmp;
 	struct jpeg_image jpeg_image = {0};
-	unsigned char *imageData_logo = NULL;
-	unsigned char *imageData_jpg = NULL;
-	unsigned char *imageData_gz = NULL;
-	AX_VO_LOGO_FMT_E inLogoFmt = AX_VO_LOGO_FMT_NONE;
-	AX_VO_LOGO_FMT_E outLogoFmt = AX_VO_LOGO_FMT_NONE;
-	unsigned long gzLen = 0;
-	void *gz_alloc_addr = NULL;
-	u32 display_x = 0;
-	u32 display_y = 0;
-	u32 sync = 0;
+	unsigned char *img_buf = NULL;
+	unsigned long gz_len = 0;
+	unsigned char *gz_addr = NULL;
+	unsigned char *jpg_buf = NULL;
+	unsigned char *jpg_addr = NULL;
+	unsigned char *bmp_addr = NULL;
+	u32 logo_type;
+	u32 display_x = 0, display_y = 0;
+	u32 devid = g_vdev_id;
+	u32 sync = g_fixed_sync;
+	u32 type = g_out_mode;
+
+	struct udevice *dev = NULL;
+
+	printf("richard %s:%d\n", __func__, __LINE__);
+	uclass_get_device(UCLASS_PANEL_SPI, 0, &dev);
 
 	if (boot_mode->dl_channel != DL_CHAN_UART1 &&
 	    boot_mode->dl_channel != DL_CHAN_USB &&
 	    boot_mode->dl_channel != DL_CHAN_SD) {
-
-		imageData_logo = memalign(AX_VO_LOGO_ALIGN_SIZE, AX_MAX_VO_LOGO_SIZE);
-		if (NULL == imageData_logo) {
-			printf("jpeg malloc failed.\n");
-			return -1;
-		}
-
-		ret = get_logo_from_emmc(imageData_logo);
-		if (ret < 0) {
-			printf("fail to read logo from emmc partition\n");
-			ret = -1;
+		// ### SIPEED EDIT ###
+		// logo_type = (u32)get_logo_type();
+		printf(" Set logo type to BMP!!!\r\n");
+		logo_type = AX_VO_LOGO_FMT_BMP;
+		// ### SIPEED EDIT END ###
+		if (logo_type >= AX_VO_LOGO_FMT_BUTT)
 			goto ERR_RET;
-		}
 
-		if (imageData_logo[0] == 0x1F && (imageData_logo[1] == 0x8B)) {
-			inLogoFmt = AX_VO_LOGO_FMT_GZ;
-			printf("%s inLogoFmt: %s\n", __func__, "FMT_GZ");
-		} else if ((imageData_logo[0] == 0xFF) && (imageData_logo[1] == 0xD8)) {
-			outLogoFmt = inLogoFmt = AX_VO_LOGO_FMT_JPEG;
-			imageData_jpg = imageData_logo;
-			printf("%s inLogoFmt: %s\n", __func__, "FMT_JPEG");
-		} else if ((imageData_logo[0]=='B') && (imageData_logo[1]=='M')) {
-			outLogoFmt = inLogoFmt = AX_VO_LOGO_FMT_BMP;
-			memcpy(logo_load_addr, imageData_logo, AX_MAX_VO_LOGO_SIZE);
-			printf("%s inLogoFmt: %s\n", __func__, "FMT_BMP");
+		if (logo_type != AX_VO_LOGO_FMT_BMP) {
+			img_buf = memalign(AX_VO_LOGO_ALIGN_SIZE, AX_MAX_VO_LOGO_SIZE);
+			if (!img_buf) {
+				printf("%s alloc image buf for non-bmp format logo failed\n", __func__);
+				goto ERR_RET;
+			}
+
+			logo_load_addr = (void *)img_buf;
+			if (logo_type == AX_VO_LOGO_FMT_JPEG)
+				jpg_addr = logo_load_addr;
+
 		} else {
-			printf("invalid logo fmt. logo header: 0x%x, 0x%x\n", imageData_logo[0], imageData_logo[1]);
-			ret = -1;
-			goto ERR_RET;
+			logo_load_addr = map_sysmem(LOGO_IMAGE_LOAD_ADDR, 0);
+			bmp_addr = logo_load_addr;
 		}
-
-
-		if (inLogoFmt == AX_VO_LOGO_FMT_GZ) {
-			imageData_gz = gunzip_logo_img((unsigned long)imageData_logo, &gzLen, &gz_alloc_addr);
-			if (imageData_gz == NULL) {
-				printf("gunzip_logo_img failed\n");
-				ret = -1;
-				goto ERR_RET;
+// ### SIPEED EDIT ###
+		char boot_bmp_name[32] = "logo.bmp";
+		if (check_and_config_upgrade()) {
+			strncpy(boot_bmp_name, "logo_upgrade.bmp", sizeof(boot_bmp_name));
+		} else {
+			int board_id = get_board_id();
+			switch (board_id) {
+			case PHY_AX630C_AX631_MAIXCAM2_SOM_0_5G:
+				strncpy(boot_bmp_name, "logo_512m.bmp", sizeof(boot_bmp_name));
+				break;
+			case PHY_AX630C_AX631_MAIXCAM2_SOM_1G:
+				strncpy(boot_bmp_name, "logo_1g.bmp", sizeof(boot_bmp_name));
+				break;
+			case PHY_AX630C_AX631_MAIXCAM2_SOM_2G:
+				strncpy(boot_bmp_name, "logo_2g.bmp", sizeof(boot_bmp_name));
+				break;
+			case PHY_AX630C_AX631_MAIXCAM2_SOM_4G:
+				strncpy(boot_bmp_name, "logo_4g.bmp", sizeof(boot_bmp_name));
+				break;
+			default:
+				strncpy(boot_bmp_name, "logo.bmp", sizeof(boot_bmp_name));
+				break;
+			break;
 			}
 
-			if ((imageData_gz[0] == 0xFF) && (imageData_gz[1] == 0xD8)) {
-				outLogoFmt = AX_VO_LOGO_FMT_JPEG;
-				imageData_jpg = imageData_gz;
-				printf("%s outLogoFmt: %s\n", __func__, "FMT_JPEG");
-			} else if ((imageData_gz[0]=='B') && (imageData_gz[1]=='M')) {
-				outLogoFmt = AX_VO_LOGO_FMT_BMP;
-				memcpy(logo_load_addr, imageData_gz, gzLen);
-				printf("%s outLogoFmt: %s\n", __func__, "FMT_BMP");
-			} else {
-				printf("invalid logo fmt. logo header: 0x%x, 0x%x\n", imageData_logo[0], imageData_logo[1]);
-				ret = -1;
-				goto ERR_RET;
+			if (check_logo_from_boot_partition(boot_bmp_name) <= 0) {
+				printf("image %s is not exist, use default image /boot/logo.bmp", boot_bmp_name);
+				strncpy(boot_bmp_name, "logo.bmp", sizeof(boot_bmp_name));
 			}
 		}
-
-
-		if (outLogoFmt == AX_VO_LOGO_FMT_JPEG) {
-			ret = emmc_parse_jpg_logo_data(imageData_jpg, logo_load_addr, &jpeg_image);
+		printf("try load image from /boot/%s\r\n", boot_bmp_name);
+		if (load_logo_from_boot_partition(logo_load_addr, boot_bmp_name) < 0) {
+			printf("try load_logo_from_mmc\r\n");
+			ret = load_logo_from_mmc(logo_load_addr);
 			if (ret < 0) {
-				printf("%s failed emmc_parse_jpg_logo_data\n", __func__);
+				printf("fail to read logo from emmc partition\n");
 				ret = -1;
 				goto ERR_RET;
 			}
+		} else {
+			printf("Load image from /boot/%s success!\r\n", boot_bmp_name);
+		}
+// ### SIPEED EDIT END ###
+		if (logo_type == AX_VO_LOGO_FMT_GZ) {
+			gz_addr = map_sysmem(LOGO_IMAGE_LOAD_ADDR, 0);
+			gz_len = AX_MAX_VO_LOGO_SIZE;
+			ret = gunzip(gz_addr, gz_len, logo_load_addr, &gz_len);
+			if (ret) {
+				printf("%s gunzip logo data failed, ret:%d\n", __func__, ret);
+				goto ERR_RET;
+			}
+
+			if (gz_len >= AX_MAX_VO_LOGO_SIZE) {
+				printf("%s image could be truncated, len(%ld) > maxsize(%d)\n",
+				       __func__, gz_len, AX_MAX_VO_LOGO_SIZE);
+				goto ERR_RET;
+			}
+
+			if ((gz_addr[0] == 0xFF) && (gz_addr[1] == 0xD8)) {
+				jpg_buf = memalign(0x400, gz_len);
+				if (!jpg_buf) {
+					printf("%s alloc jpg buf failed\n", __func__);
+					goto ERR_RET;
+				}
+
+				memcpy(jpg_buf, gz_addr, gz_len);
+
+				gz_addr = jpg_buf;
+				jpg_addr = gz_addr;
+
+				printf("%s gzip-jpg-fmt gz_addr:%llx, len:%ld\n", __func__, (u64)gz_addr, gz_len);
+
+			} else if ((gz_addr[0] == 'B') && (gz_addr[1] == 'M')) {
+				bmp_addr = gz_addr;
+				printf("%s gzip-bmp-fmt gz_addr:%llx\n", __func__, (u64)gz_addr);
+			} else {
+				printf("%s gzip-logo-fmt invalid(0x%x-0x%x)\n", __func__, gz_addr[0], gz_addr[1]);
+				ret = -1;
+				goto ERR_RET;
+			}
+		}
+
+		if (jpg_addr) {
+			logo_load_addr = map_sysmem(LOGO_IMAGE_LOAD_ADDR, 0);
+			ret = emmc_parse_jpg_logo_data(jpg_addr, logo_load_addr, &jpeg_image);
+			if (ret < 0) {
+				printf("%s parse jpg-logo failed\n", __func__);
+				goto ERR_RET;
+			}
+
 			dp_info.img_width = jpeg_image.width;
 			dp_info.img_height = jpeg_image.height;
 			dp_info.img_stride = jpeg_image.stride;
 			dp_info.img_fmt = jpeg_image.format;
 			dp_info.img_addr[0] = jpeg_image.phyAddr[0];
 			dp_info.img_addr[1] = jpeg_image.phyAddr[1];
-			printf("%s jpeg info: [%d, %d] stride:%d format:%d\n", __func__, jpeg_image.width, jpeg_image.height, jpeg_image.stride , jpeg_image.format);
 
-		} else if (outLogoFmt == AX_VO_LOGO_FMT_BMP) {
-
-			bmp = (struct bmp_image *)logo_load_addr;
-			if (!((bmp->header.signature[0]=='B') && (bmp->header.signature[1]=='M'))) {
+		} else if (bmp_addr) {
+			bmp = (struct bmp_image *)bmp_addr;
+			if (!((bmp->header.signature[0] == 'B') && (bmp->header.signature[1] == 'M'))) {
 				printf("%s bmp invalid\n", __func__);
 				ret = -1;
 				goto ERR_RET;
@@ -455,43 +688,64 @@ int ax_bootlogo_show(void)
 			dp_info.img_height = get_unaligned_le32(&bmp->header.height);
 			dp_info.img_stride = dp_info.img_width * (bmp_bpix >> 3);
 			dp_info.img_fmt = bmp_bpix2vo_fmt(bmp_bpix);
-			dp_info.img_addr[0] = (u64)logo_load_addr + data_offs;
+			dp_info.img_addr[0] = (u64)bmp_addr + data_offs;
+		}
 
-			printf("%s bmp info: [%d, %d, %d, %d]\n", __func__, dp_info.img_width, dp_info.img_height, bmp_bpix, data_offs);
+		if (!is_big_endian()) {
+			if (dp_info.img_fmt == AX_VO_FORMAT_RGB565)
+				dp_info.img_fmt = AX_VO_FORMAT_BGR565;
+			else if (dp_info.img_fmt == AX_VO_FORMAT_RGB888)
+				dp_info.img_fmt = AX_VO_FORMAT_BGR888;
 		}
 
 		dp_info.display_x = display_x;
 		dp_info.display_y = display_y;
 		dp_info.display_addr = LOGO_SHOW_BUFFER;
 
-		if ((dp_info.img_width == 1920) && (dp_info.img_height == 1080)) {
-			sync = AX_VO_OUTPUT_1080P60;
-		} else if ((dp_info.img_width == 800) && (dp_info.img_height == 480)) {
-			sync = AX_VO_OUTPUT_800_480_60;
-		} else if ((dp_info.img_width == 720) && (dp_info.img_height == 1280)) {
-			sync = AX_VO_OUTPUT_1080x1920_60;
-		} else {
-			printf("%s unsupported resolution(%dx%d)\n", __func__, dp_info.img_width, dp_info.img_height);
-			ret = -1;
-			goto ERR_RET;
+		printf("%s img-reso:%dx%d, fmt:%d, stride:%d, img-addr:%llx-%llx, display-coordi:%d-%d, display-addr:%llx\n", __func__,
+		       dp_info.img_width, dp_info.img_height,
+		       dp_info.img_fmt, dp_info.img_stride,
+		       dp_info.img_addr[0], dp_info.img_addr[1],
+		       dp_info.display_x, dp_info.display_y,
+		       dp_info.display_addr);
+
+		if (sync >= AX_VO_OUTPUT_BUTT) {
+			if ((dp_info.img_width == 1920) && (dp_info.img_height == 1080)) {
+				sync = AX_VO_OUTPUT_1080P60;
+			} else if ((dp_info.img_width == 800) && (dp_info.img_height == 480)) {
+				sync = AX_VO_OUTPUT_800_480_60;
+			} else if ((dp_info.img_width == 1080) && (dp_info.img_height == 1920)) {
+				sync = AX_VO_OUTPUT_1080x1920_60;
+			} else if ((dp_info.img_width == 1280) && (dp_info.img_height == 720)) {
+				sync = AX_VO_OUTPUT_720P30;
+			} else if ((dp_info.img_width == 720) && (dp_info.img_height == 480)) {
+				sync = AX_VO_OUTPUT_480P60;
+// ### SIPEED EDIT ###
+		} else if ((dp_info.img_width == 480) && (dp_info.img_height == 640)) {
+			sync = AX_VO_OUTPUT_480x640_60;
+// ### SIPEED EDIT END ###
+			} else {
+				printf("%s unsupported resolution(%dx%d)\n", __func__, dp_info.img_width, dp_info.img_height);
+				ret = -1;
+				goto ERR_RET;
+			}
 		}
 
-		ret = ax_start_vo(0, g_out_mode, sync, &dp_info);
-		set_logo_mode();
+		ret = ax_start_vo(devid, type, sync, &dp_info);
+		if (!ret) {
+			set_logo_mode(devid, type);
+			reserved_logo_mem_addr = dp_info.reserved_mem_addr;
+			reserved_logo_mem_size = dp_info.reserved_mem_size;
+		}
 	}
 
 ERR_RET:
-	if (ret)
-		printf("%s failed to show logo\n", __func__);
-	if (imageData_logo) {
-		free(imageData_logo);
-		imageData_logo = NULL;
-	}
+	if (img_buf)
+		free(img_buf);
+	if (jpg_buf)
+		free(jpg_buf);
 
-	if (gz_alloc_addr) {
-		free(gz_alloc_addr);
-		imageData_gz = NULL;
-	}
+	printf("%s show logo to vo%d %s\n", __func__, devid, ret ? "failed" : "success");
 
 	return ret;
 }

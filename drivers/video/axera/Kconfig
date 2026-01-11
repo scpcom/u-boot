@@ -69,5 +69,11 @@ choice
 		help
 		  This enables Mobile Industry Processor Interface(MIPI) display support.
 
+	config DISPLAY_AXERA_BT656
+		bool "BT656 Port"
+		depends on VIDEO_AXERA
+		help
+		  This enables BT656 display support.
+
 endchoice
 endif

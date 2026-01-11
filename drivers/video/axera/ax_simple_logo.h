@@ -22,8 +22,7 @@
 #define AX_VO_JPEG_ALIGN(x,a)   ( ((x) + ((a) - 1) ) & ( ~((a) - 1) ) )
 
 typedef enum {
-	AX_VO_LOGO_FMT_NONE,
-	AX_VO_LOGO_FMT_BMP = 1,
+	AX_VO_LOGO_FMT_BMP,
 	AX_VO_LOGO_FMT_JPEG,
 	AX_VO_LOGO_FMT_GZ,
 	AX_VO_LOGO_FMT_BUTT
@@ -79,6 +78,11 @@ struct mipi_dsi_panel_cfg {
 	enum mipi_dsi_pixel_format format;
 	unsigned long mode_flags;
 	int gpio_num;
+// ### SIPEED EDIT ###
+	int pwms;
+	int pwm_period;
+	int pwm_duty;
+// ### SIPEED EDIT END ###
 	void *panel_init_seq;
 	int init_seq_len;
 	int reset_delay_ms;

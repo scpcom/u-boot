@@ -14,6 +14,7 @@
 #include <common.h>
 #include <asm/io.h>
 
+/* #define VO_LOG_ON */
 #ifdef VO_LOG_ON
 #define VO_INFO(fmt,...) printf("[VO][I][%s:%d] "fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
 #define VO_DEBUG(fmt,...) printf("[VO][D][%s:%d] "fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
@@ -44,6 +45,8 @@ enum {
 	AX_VO_FORMAT_ARGB8888,
 	AX_VO_FORMAT_RGB565,
 	AX_VO_FORMAT_RGB888,
+	AX_VO_FORMAT_BGR565,
+	AX_VO_FORMAT_BGR888,
 	AX_VO_FORMAT_RGBA4444,
 	AX_VO_FORMAT_RGBA5551,
 	AX_VO_FORMAT_RGBA8888,
@@ -58,9 +61,18 @@ enum {
 };
 
 enum {
+	AX_VO_OUTPUT_576P50,                /* 720  x  576 at 50 Hz */
+	AX_VO_OUTPUT_480P60,                /* 720  x  480 at 60 Hz */
+	AX_VO_OUTPUT_720P25,                /* 1280 x  720 at 25 Hz */
+	AX_VO_OUTPUT_720P30,                /* 1280 x  720 at 30 Hz */
+	AX_VO_OUTPUT_1080P25,               /* 1920 x 1080 at 25 Hz. */
+	AX_VO_OUTPUT_1080P30,               /* 1920 x 1080 at 30 Hz. */
 	AX_VO_OUTPUT_1080P60,               /* 1920 x 1080 at 60 Hz. */
 	AX_VO_OUTPUT_800_480_60,            /* 800 x 480 at 60 Hz. */
 	AX_VO_OUTPUT_1080x1920_60,            /* 1080 x 1920 at 60 Hz. */
+// ### SIPEED EDIT ###
+	AX_VO_OUTPUT_480x640_60,			/* 480 x 640 at 60 Hz. */
+// ### SIPEED EDIT END ###
 	AX_VO_OUTPUT_BUTT
 };
 

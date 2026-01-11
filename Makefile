@@ -1803,15 +1803,25 @@ define filechk_version.h
 	echo \#define LD_VERSION_STRING \"$$(LC_ALL=C $(LD) --version | head -n 1)\"; )
 endef
 
+### SIPEED EDIT ###
 define filechk_ax_common.h
-	(echo \#define OS_MEM_ARGS \"$(OS_MEM)\";\
+	(\
+		echo \#define OS_MEM_ARGS \"$(OS_MEM)\";\
 		echo \#define FLASH_PARTITIONS \""$(FLASH_PARTITIONS)"\";\
 		echo \#define KERNEL_BOOTARGS \"$(KERNEL_BOOTARGS)\";\
 		echo \#define RECOVERY_BOOTARGS \"$(RECOVERY_BOOTARGS)\";\
 		echo \#define ROOTFS_TYPE \"$(ROOTFS_TYPE)\";\
 		echo \#define ROOTFS_DEV \"$(ROOTFS_DEV)\";\
+		echo \#define BOARD_0_5G_OS_MEM \"$(BOARD_0_5G_OS_MEM)\";\
+		echo \#define BOARD_1G_OS_MEM \"$(BOARD_1G_OS_MEM)\";\
+		echo \#define BOARD_2G_OS_MEM \"$(BOARD_2G_OS_MEM)\";\
+		echo \#define BOARD_4G_OS_MEM \"$(BOARD_4G_OS_MEM)\";\
+		if [ "$(UBOOT_SPI2_SIPEED_LOGO)" = "TRUE" ]; then \
+	    	echo \#define UBOOT_SPI2_SIPEED_LOGO; \
+	  	fi; \
 	)
 endef
+### SIPEED EDIT END ###
 
 # The SOURCE_DATE_EPOCH mechanism requires a date that behaves like GNU date.
 # The BSD date on the other hand behaves different and would produce errors

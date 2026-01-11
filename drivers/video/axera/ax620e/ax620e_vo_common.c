@@ -8,7 +8,35 @@
  *
  **************************************************************************************************/
 
-#include "../ax_vo.h"
+#include "ax_vo.h"
+
+const struct color_space_cfg cs_cfgs = {
+	.yuv2rgb_cfg = { \
+		.matrix = { \
+			{0x100, 0x0, 0x193}, \
+			{0x100, 0x7d0, 0x788}, \
+			{0x100, 0x1db, 0x0} \
+		}, \
+		.offset = { \
+			{0x0, 0x0, 0x0}, \
+			{0x0, 0x0, 0x0}  \
+		},\
+	},
+	.rgb2yuv_cfg = { \
+		.matrix = { \
+			{0x36, 0xb7, 0x12}, \
+			{0x7e3, 0x79d, 0x80}, \
+			{0x80, 0x78c, 0x7f4} \
+		}, \
+		.offset = { \
+			{0x0, 0x0, 0x0}, \
+			{0x0, 0x0, 0x0} \
+		}, \
+		.decimation_h = {0x0, 0x0, 0x0, 0x10, 0x10, 0x0, 0x0}, \
+		.uv_offbin_en = 0, \
+		.uv_seq_sel = 0, \
+	},
+};
 
 struct fbcdc_comp_level g_fbcdc_comp_level[] = {
 	{0, 256}, /* 8bit lossless */
@@ -23,10 +51,9 @@ struct fbcdc_comp_level g_fbcdc_comp_level[] = {
 
 int display_out_mode_convert(struct ax_disp_mode *mode, struct dispc_out_mode *dispc_out)
 {
-	int fmt_in = mode->fmt_in;
 	int fmt_out = mode->fmt_out;
 
-	VO_INFO("mode fmt_in: %d, fmt_out: %d\n", fmt_in, fmt_out);
+	VO_INFO("fmt_out: %d\n", fmt_out);
 
 	switch (mode->type) {
 	case AX_DISP_OUT_MODE_BT601:
@@ -59,49 +86,6 @@ int display_out_mode_convert(struct ax_disp_mode *mode, struct dispc_out_mode *d
 		return -EINVAL;
 	}
 
-	switch (fmt_in) {
-	case AX_VO_FORMAT_ARGB1555:
-		dispc_out->fmt_in = FMT_IN_ARGB1555;
-		break;
-	case AX_VO_FORMAT_ARGB4444:
-		dispc_out->fmt_in = FMT_IN_ARGB4444;
-		break;
-	case AX_VO_FORMAT_ARGB8565:
-		dispc_out->fmt_in = FMT_IN_ARGB8565;
-		break;
-	case AX_VO_FORMAT_ARGB8888:
-		dispc_out->fmt_in = FMT_IN_ARGB8888;
-		break;
-	case AX_VO_FORMAT_RGBA5551:
-		dispc_out->fmt_in = FMT_IN_RGBA5551;
-		break;
-	case AX_VO_FORMAT_RGBA4444:
-		dispc_out->fmt_in = FMT_IN_RGBA4444;
-		break;
-	case AX_VO_FORMAT_RGBA5658:
-		dispc_out->fmt_in = FMT_IN_RGBA5658;
-		break;
-	case AX_VO_FORMAT_RGBA8888:
-		dispc_out->fmt_in = FMT_IN_RGBA8888;
-		break;
-	case AX_VO_FORMAT_RGB565:
-		dispc_out->fmt_in = FMT_IN_RGB565;
-		break;
-	case AX_VO_FORMAT_RGB888:
-		dispc_out->fmt_in = FMT_IN_RGB888;
-		break;
-	case AX_VO_FORMAT_NV12:
-	case AX_VO_FORMAT_NV21:
-		dispc_out->fmt_in = FMT_IN_YUV420_8;
-		break;
-	case AX_VO_FORMAT_NV16:
-		dispc_out->fmt_in = FMT_IN_YUV422_8;
-		break;
-	default:
-		VO_ERROR("unsupported fmt_in, fmt_in = %d\n", fmt_in);
-		return -EINVAL;
-	}
-
 	switch (fmt_out) {
 	case AX_DISP_OUT_FMT_RGB565:
 		dispc_out->fmt_out = FMT_OUT_RGB565;
@@ -131,8 +115,10 @@ u32 vo_fmt2hw_fmt(u32 format)
 	u32 hw_fmt = FORMAT_NO_SUPPORT;
 
 	switch (format) {
-	case AX_VO_FORMAT_NV12:
 	case AX_VO_FORMAT_NV21:
+		hw_fmt = 0x40 | FORMAT_YUV420_8;
+		break;
+	case AX_VO_FORMAT_NV12:
 		hw_fmt = FORMAT_YUV420_8;
 		break;
 	case AX_VO_FORMAT_ARGB1555:
@@ -147,8 +133,14 @@ u32 vo_fmt2hw_fmt(u32 format)
 	case AX_VO_FORMAT_ARGB8888:
 		hw_fmt = FORMAT_ARGB8888;
 		break;
+	case AX_VO_FORMAT_BGR565:
+		hw_fmt = 0x20 | FORMAT_RGB565;
+		break;
 	case AX_VO_FORMAT_RGB565:
 		hw_fmt = FORMAT_RGB565;
+		break;
+	case AX_VO_FORMAT_BGR888:
+		hw_fmt = 0x20 | FORMAT_RGB888;
 		break;
 	case AX_VO_FORMAT_RGB888:
 		hw_fmt = FORMAT_RGB888;
@@ -172,7 +164,8 @@ u32 vo_fmt2hw_fmt(u32 format)
 		hw_fmt = FORMAT_BIT_MAP;
 		break;
 	default:
-		VO_ERROR("unsupported format, format = %d\n", format);
+		VO_ERROR("unsupported format(%d) and set default format to single-y\n", format);
+		hw_fmt = FORMAT_SINGLE_Y;
 		break;
 	}
 

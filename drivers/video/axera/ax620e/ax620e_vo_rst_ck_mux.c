@@ -11,7 +11,7 @@
 #include <common.h>
 #include <asm/io.h>
 
-#include "../ax_vo.h"
+#include "ax_vo.h"
 #include "ax620e_display_reg.h"
 #include "ax620e_display_dpi.h"
 #include "ax620e_display_mipi.h"
@@ -80,7 +80,7 @@ static int pixel_clk_set_rate(u32 id, int clk, u32 out_mode)
 		return ret;
 	}
 
-	val = (id == 0) ? (sel << MM_CLK_MUX_0_DPU_OUT_SEL) : (sel << MM_CLK_MUX_0_DPU_LITE_SRC_SEL);
+	val = (id == 0) ? (sel << MM_CLK_MUX_0_DPU_OUT_SEL) : (sel << MM_CLK_MUX_0_DPU_LITE_OUT_SEL);
 	dpu_writel(mm_sys_glb_regs, MM_SET_OFFS(MM_CLK_MUX_0), val);
 
 	val = ((id == 0) ? (div << MM_CLK_DIV_0_DPU_OUT_DIVN) : (div << MM_CLK_DIV_0_DPU_LITE_OUT_DIVN)) |
@@ -130,8 +130,12 @@ static void pixel_clk_init(void)
 
 int display_glb_path_config(u32 id, u32 out_mode, struct ax_disp_mode *mode)
 {
-	int ret = 0;
-	ret = pixel_clk_set_rate(id, mode->clock * 1000, out_mode);
+	int ret = 0, mul = 1;
+
+	if (!(mode->flags & MODE_FLAG_INTERLACE) && ((out_mode == AX_DISP_OUT_MODE_BT601) || (out_mode == AX_DISP_OUT_MODE_BT656)))
+		mul = 2;
+
+	ret = pixel_clk_set_rate(id, mode->clock * 1000 * mul, out_mode);
 	if (ret) {
 		VO_ERROR("dpu%d mode(%d) set clk failed\n", id, out_mode);
 		return -1;
@@ -142,7 +146,7 @@ int display_glb_path_config(u32 id, u32 out_mode, struct ax_disp_mode *mode)
 	case AX_DISP_OUT_MODE_BT656:
 	case AX_DISP_OUT_MODE_BT1120:
 	case AX_DISP_OUT_MODE_DPI:
-		display_dpi_glb_path_config(id);
+		display_dpi_glb_path_config(id, out_mode);
 		break;
 
 	case AX_DISP_OUT_MODE_DSI_DPI_VIDEO:
@@ -184,7 +188,10 @@ void dpu_glb_init(u32 id)
 	dpu_writel(mm_sys_glb_regs, MM_SET_OFFS(MM_SW_RST_0), val);
 	udelay(50);
 	dpu_writel(mm_sys_glb_regs, MM_CLR_OFFS(MM_SW_RST_0), val);
-	dpu_writel(mm_sys_glb_regs, MM_SET_OFFS(MM_CLK_MUX_0), ((MM_CLK_SEL_533M << MM_CLK_MUX_0_MM_GLB_SEL) | (MM_CLK_SEL_533M <<MM_CLK_MUX_0_DPU_SRC_SEL)));
+
+	val = ((id == 0) ? (MM_CLK_SEL_533M << MM_CLK_MUX_0_DPU_SRC_SEL) : (MM_CLK_SEL_533M << MM_CLK_MUX_0_DPU_LITE_SRC_SEL)) |
+	      (MM_CLK_SEL_533M << MM_CLK_MUX_0_MM_GLB_SEL);
+	dpu_writel(mm_sys_glb_regs, MM_SET_OFFS(MM_CLK_MUX_0), val);
 
 }
 

@@ -25,6 +25,19 @@ struct display_info {
 	u32 display_x;
 	u32 display_y;
 	u64 display_addr;
+
+	u64 reserved_mem_addr;
+	u32 reserved_mem_size;
+};
+
+struct layer_info {
+	u16 format;
+	u16 w;
+	u16 h;
+	u16 stride_y;
+	u16 stride_c;
+	u64 phy_addr_y;
+	u64 phy_addr_c;
 };
 
 struct draw_task {
@@ -58,8 +71,7 @@ struct dpu_hw_ops {
 	int (*dispc_config)(struct dpu_hw_device *hdev, struct ax_disp_mode *mode);
 	void (*dispc_enable)(struct dpu_hw_device *hdev);
 	void (*dispc_disable)(struct dpu_hw_device *hdev);
-	void (*dispc_set_buffer)(struct dpu_hw_device *hdev, u64 addr_y, u64 addr_uv,
-				 u32 stride_y, u32 stride_uv);
+	void (*dispc_set_buffer)(struct dpu_hw_device *hdev, struct layer_info *li);
 
 	int (*task_valid)(struct draw_task *task);
 	int (*draw_start)(struct draw_task *task);
@@ -75,6 +87,28 @@ struct ax_dpu_device {
 
 	struct dpu_hw_ops *ops;
 };
+
+static inline u32 logo_image_size(u32 w, u32 h, u32 fmt)
+{
+	u32 size = w * h * 3;
+
+	switch (fmt) {
+	case AX_VO_FORMAT_NV21:
+	case AX_VO_FORMAT_NV12:
+		size = w * h * 3 / 2;
+		break;
+	case AX_VO_FORMAT_RGB565:
+	case AX_VO_FORMAT_BGR565:
+		size = w * h * 2;
+		break;
+	case AX_VO_FORMAT_RGB888:
+	case AX_VO_FORMAT_BGR888:
+		size = w * h * 3;
+		break;
+	}
+
+	return size;
+}
 
 int ax_start_vo(u32 dev, u32 type, u32 sync, struct display_info *dp_info);
 int fdt_fixup_vo_init_mode(int dev, void *fdt);

@@ -46,6 +46,11 @@
 				  | ((((val >> 8) & 0xFF) << COLORKEY_VAL_FIX_POINT_SHIFT) << 10) \
 				  | ((val & 0xFF) << COLORKEY_VAL_FIX_POINT_SHIFT))
 
+
+#define VO_RGB2Y(R, G, B)  ((299 * R + 587 * G + 114 * B) / 1000)
+#define VO_RGB2U(R, G, B)  (((-169 * R - 331 * G + 500 * B) / 1000))
+#define VO_RGB2V(R, G, B)  ((((500* R - 419 *G - 81* B) / 1000)))
+
 /* u2.16, 1/360 value */
 #define DISPC_INV_HUE_MAX		(182)
 /* u5.18, 1/1.0 value */
@@ -59,6 +64,8 @@
 
 #define DISPC_RESO_HEIGHT_SHIFT		(16)
 #define DISPC_H_SHIFT			(16)
+
+#define HW_FMT_EXTRA(fmt) ((fmt) & 0x1F)
 
 enum {
 	FORMAT_ARGB1555 = 0,
@@ -163,15 +170,30 @@ enum dispc_format_out {
 	FMT_OUT_YUV422 = 5,
 };
 
+enum dispc_dither_acc {
+	DITHER_ACC_8BIT = 0,
+	DITHER_ACC_6BIT = 1,
+	DITHER_ACC_5BIT = 2,
+	DITHER_ACC_4BIT = 3,
+};
+
 enum dispc_scan_mode {
 	DISPC_SCAN_MODE_FRAME = 0,
 	DISPC_SCAN_MODE_FIELD = 1,
+};
+
+struct dispc_input_mode {
+	u32 fmt_in;
+	const struct rgb2yuv_regs *rgb2yuv_matrix;
 };
 
 struct dispc_out_mode {
 	enum dispc_format_in fmt_in;
 	enum dispc_format_out fmt_out;
 	enum out_mode mode;
+
+	bool matrix_need_update;
+	const struct yuv2rgb_regs *yuv2rgb_matrix;
 };
 
 struct fbcdc_comp_level {
@@ -202,6 +224,7 @@ struct dpu_hw_device {
 
 	struct ax_disp_mode mode;
 
+	struct dispc_input_mode input_mode;
 	struct dispc_out_mode out_mode;
 };
 

@@ -12,7 +12,7 @@
 #define __AX620E_DISPLAY_DPI_H__
 
 void display_dpi_pixel_clk_set_rate(u32 id, int sel, int div);
-void display_dpi_glb_path_config(u32 id);
+void display_dpi_glb_path_config(u32 id, u32 type);
 void display_dpi_glb_init(u32 id);
 
 #endif //__AX620E_DISPLAY_DPI_H__

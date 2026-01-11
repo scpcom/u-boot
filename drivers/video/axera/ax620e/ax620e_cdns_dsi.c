@@ -7,7 +7,7 @@
 #include <div64.h>
 #include <linux/kernel.h>
 
-#include "../ax_vo.h"
+#include "ax_vo.h"
 
 #define IP_CONF				0x0
 #define SP_HS_FIFO_DEPTH(x)		(((x) & GENMASK(30, 26)) >> 26)

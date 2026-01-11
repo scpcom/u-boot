@@ -69,6 +69,12 @@ static int ax_pinmux_index_conv(int index)
 	int ret;
 
 	switch (index) {
+	// ### SIPEED EDIT ###
+	case AX630C_AX631_MAIXCAM2_SOM_0_5G:
+	case AX630C_AX631_MAIXCAM2_SOM_1G:
+	case AX630C_AX631_MAIXCAM2_SOM_2G:
+	case AX630C_AX631_MAIXCAM2_SOM_4G:
+	// ### SIPEED EDIT END ###
 	case AX630C_DEMO_LP4_V1_0:
 	case AX630C_DEMO_LP4_V1_1:
 	case AX630C_DEMO_V1_1:

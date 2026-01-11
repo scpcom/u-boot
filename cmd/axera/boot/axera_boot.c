@@ -27,6 +27,7 @@
 #include <dm/lists.h>
 #include <linux/compat.h>
 #include <asm/io.h>
+#include "stdlib.h"
 #include <mapmem.h>
 #include <part.h>
 #include <fat.h>
@@ -516,6 +517,160 @@ void ax_boot_kernel(char *img_addr,char *dtb_addr)
 }
 #endif
 
+// ### SIPEED EDIT ###
+static int load_file_from_boot_partition(char *filename, char **file_data, size_t *file_size)
+{
+	int ret = 0;
+	struct blk_desc *mmc_desc = NULL;
+	disk_partition_t fs_partition;
+	char *parttiton = "boot";
+	loff_t file_len = 0;
+
+	mmc_desc = blk_get_dev("mmc", EMMC_DEV_ID);
+	if (NULL == mmc_desc) {
+		printf("[error] memory dump: emmc is not present, exit dump!\n");
+		return -1;
+	}
+
+	ret = get_part_info(mmc_desc, parttiton, &fs_partition);
+	if(ret < 0) {
+		printf("[error] memory dump get %s partition error, ret:%d\n", parttiton, ret);
+		return ret;
+	}
+
+	if (fat_set_blk_dev(mmc_desc, &fs_partition) != 0) {
+		mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
+		if (NULL == mmc_desc) {
+			printf("[error] memory dump: emmc/sd is not present, exit dump!\n");
+			return -1;
+		}
+
+		ret = fat_register_device(mmc_desc, 1);
+		if (ret != 0) {
+			printf("[error] fat_register_device failed\n");
+			return -1;
+		}
+	}
+
+	if (!fat_exists(filename)) {
+		printf("%s file is not exist\n", filename);
+		return -1;
+	}
+
+	if (fat_size(filename, &file_len) != 0) {
+		printf("[error] get %s file size error\n", filename);
+		return -1;
+	}
+
+	*file_size = file_len;
+	*file_data = malloc(file_len);
+	if (file_fat_read(filename, *file_data, file_len) <= 0) {
+		printf("file_fat_read failed, ret:%d\n", ret);
+		free(*file_data);
+		return -1;
+	}
+
+	printf("load /boot/%s success\n", filename);
+	return 0;
+}
+
+static char *find_key_value_from_string(char *str, char *key) {
+	char new_key[128] = {0};
+	char *line = strtok(str, "\n");
+	char *value_str = NULL;
+	snprintf(new_key, sizeof(new_key), "%s=", key);
+	while (line != NULL) {
+		while ((char)*line == ' ') line ++;
+
+		if (strlen(line) == 0 || line[0] == '#') {
+			line = strtok(NULL, "\n");
+			continue;
+		}
+
+		char *found = strstr(line, new_key);
+		if (found) {
+			char *value_start = found + strlen(new_key);
+			while ((char)*value_start == ' ') value_start ++;
+			if (strlen(value_start) > 0) {
+				value_str = strdup(value_start);
+				break;
+			}
+		}
+
+		line = strtok(NULL, "\n");
+	}
+
+	return value_str;
+}
+
+static void config_system_console(void) {
+	// config system console
+	char *buffer = NULL;
+	size_t buffer_size = 0;
+	if (load_file_from_boot_partition("configs", &buffer, &buffer_size) == 0) {
+		bool disable_system_console = false;
+		char console_config[128] = {0};
+		char *tmp_buffer = strdup(buffer);
+		char *value = find_key_value_from_string(tmp_buffer, "maix_system_console");
+		if (value) {
+			printf("found maix_system_console: %s\r\n", value);
+			disable_system_console = strcmp(value, "0") ? false : true;
+		}
+		free(tmp_buffer);
+
+		int kernel_loglevel = -1;
+		tmp_buffer = strdup(buffer);
+		value = find_key_value_from_string(tmp_buffer, "maix_kernel_loglevel");
+		if (value) {
+			printf("found maix_kernel_loglevel: %s\r\n", value);
+			kernel_loglevel = simple_strtoul(value, NULL, 10);
+		}
+		free(tmp_buffer);
+
+		char *_maix_console = env_get("maix_console");
+		if (_maix_console) {
+			printf("found maix_console: %s\r\n", _maix_console);
+			disable_system_console = strstr(_maix_console, "1") ? false : true;
+		}
+
+		printf("try %s system console\r\n", disable_system_console ? "disable" : "enable");
+
+		if (disable_system_console) {
+			char new_bootargs[1024] = {0};
+			char *_bootargs = env_get("bootargs");
+			memcpy(new_bootargs, _bootargs, strlen(_bootargs));
+
+			char *console = strstr(new_bootargs, "console=");
+			char *end = console;
+			while ((char)*end != ' ') end ++;
+			if ((char)*end != '\0') end ++;
+			strcpy(console, console_config);
+			strcat(new_bootargs, end);
+			env_set("bootargs", new_bootargs);
+			free(buffer);
+		}
+
+		if (kernel_loglevel >= 0) {
+			char new_bootargs[1024] = {0};
+			char *_bootargs = env_get("bootargs");
+			memcpy(new_bootargs, _bootargs, strlen(_bootargs));
+
+			char *loglevel = strstr(new_bootargs, "loglevel=");
+			char *end = loglevel;
+			while ((char)*end != ' ') end ++;
+			if ((char)*end != '\0') end ++;
+			char loglevel_config[32] = {0};
+			sprintf(loglevel_config, "loglevel=%d", kernel_loglevel);
+			strcpy(loglevel, loglevel_config);
+			strcat(new_bootargs, end);
+			env_set("bootargs", new_bootargs);
+			if (buffer != NULL)
+				free(buffer);
+		}
+	}
+}
+// ### SIPEED EDIT END ###
+
 int do_axera_boot(cmd_tbl_t * cmdtp, int flag, int argc, char *const argv[])
 {
 	int ret = -1;
@@ -537,10 +692,9 @@ int do_axera_boot(cmd_tbl_t * cmdtp, int flag, int argc, char *const argv[])
 	const char *x_kernel = "kernel";
 	const char *x_dtb = "dtb";
 
-	char *axera_boot_after_cmd = env_get("before_boot_cmd");
-	if(NULL != axera_boot_after_cmd) 
-		run_command(axera_boot_after_cmd, 0);
-
+	// ### SIPEED EDIT ###
+	config_system_console();
+	// ### SIPEED EDIT END ###
 #ifdef CONFIG_AXERA_EMAC
 	ax_shutdown_ephy();
 #endif
@@ -661,6 +815,13 @@ int do_axera_boot(cmd_tbl_t * cmdtp, int flag, int argc, char *const argv[])
 	}
 	invalidate_dcache_all();
 #endif
+
+#ifdef CONFIG_VIDEO_AXERA
+	extern void fdt_fixup_logo_info(void *fdt);
+
+	fdt_fixup_logo_info((void *)(unsigned long)DTB_IMAGE_ADDR);
+#endif
+
 #ifdef CONFIG_ARM64
 	sprintf(boot_cmd, "booti 0x%lx - 0x%lx", (unsigned long)KERNEL_IMAGE_ADDR, (unsigned long)DTB_IMAGE_ADDR);
 #else
