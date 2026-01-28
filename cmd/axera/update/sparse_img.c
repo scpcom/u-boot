@@ -549,6 +549,14 @@ int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t 
 		env_set("bootargs", bootargs);
 	}
 
+// ### SIPEED EDIT ###
+	if(!strstr(bootargs, "blkdevparts")) {
+		printf("get_part_info part: %s, bootargs is a bad value, will use default\n", name);
+		bootargs = BOOTARGS_EMMC;
+		env_set("bootargs", bootargs);
+	}
+// ### SIPEED EDIT END ###
+
 #if CONFIG_IS_ENABLED(BLK)
 	if (str2off(name, &off)) {
 		upriv = dev_desc->bdev->parent->uclass_priv;
