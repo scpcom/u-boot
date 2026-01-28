@@ -624,12 +624,20 @@ int board_late_init(void)
 
 	if (need_config_bootargs) {
 		char *mem_start = strstr(oldargs, "mem");
-		char *mem_end = strchr(mem_start, ' ');
-		int mem_start_offset = mem_start - oldargs;
-		memcpy(newargs, oldargs, mem_start_offset);
-		memcpy(newargs + mem_start_offset, new_mem_cfg, strlen(new_mem_cfg));
-		strcpy(newargs + mem_start_offset + strlen(new_mem_cfg), mem_end);
-		env_set("bootargs", newargs);
+		if (mem_start) {
+			char *mem_end = strchr(mem_start, ' ');
+			if (mem_end) {
+				int mem_start_offset = mem_start - oldargs;
+				memcpy(newargs, oldargs, mem_start_offset);
+				memcpy(newargs + mem_start_offset, new_mem_cfg, strlen(new_mem_cfg));
+				strcpy(newargs + mem_start_offset + strlen(new_mem_cfg), mem_end);
+				env_set("bootargs", newargs);
+			} else {
+				printf("Get mem end failed, old args: %s\r\n", oldargs);
+			}
+		} else {
+			printf("Get mem from bootargs failed, old args: %s\r\n", oldargs);
+		}
 	}
 // ### SIPEED EDIT END ###
 	return 0;
