@@ -528,8 +528,17 @@ static int load_file_from_boot_partition(char *filename, char **file_data, size_
 
 	mmc_desc = blk_get_dev("mmc", EMMC_DEV_ID);
 	if (NULL == mmc_desc) {
-		printf("[error] memory dump: emmc is not present, exit dump!\n");
-		return -1;
+		mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
+		if (NULL == mmc_desc) {
+			printf("[error] memory dump: emmc/sd is not present, exit dump!\n");
+			return -1;
+		}
+
+		ret = fat_register_device(mmc_desc, 1);
+		if (ret != 0) {
+			printf("[error] fat_register_device failed\n");
+			return -1;
+		}
 	}
 
 	ret = get_part_info(mmc_desc, parttiton, &fs_partition);

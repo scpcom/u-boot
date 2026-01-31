@@ -268,8 +268,17 @@ static int read_cmm_size_from_boot(int *cmm_size) {
 
 	mmc_desc = blk_get_dev("mmc", EMMC_DEV_ID);
 	if (NULL == mmc_desc) {
-		printf("[error] memory dump: emmc is not present, exit dump!\n");
-		return -1;
+		mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
+		if (NULL == mmc_desc) {
+			printf("[error] memory dump: emmc/sd is not present, exit dump!\n");
+			return -1;
+		}
+
+		ret = fat_register_device(mmc_desc, 1);
+		if (ret != 0) {
+			printf("[error] fat_register_device failed\n");
+			return -1;
+		}
 	}
 
 	ret = get_part_info(mmc_desc, parttiton, &fs_partition);
@@ -471,8 +480,17 @@ int read_nanokvm_logo_index_from_boot(int* logo_index)
 
 	mmc_desc = blk_get_dev("mmc", EMMC_DEV_ID);
 	if (NULL == mmc_desc) {
-		printf("[error] memory dump: emmc is not present, exit dump!\n");
-		return -1;
+		mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
+		if (NULL == mmc_desc) {
+			printf("[error] memory dump: emmc/sd is not present, exit dump!\n");
+			return -1;
+		}
+
+		ret = fat_register_device(mmc_desc, 1);
+		if (ret != 0) {
+			printf("[error] fat_register_device failed\n");
+			return -1;
+		}
 	}
 
 	ret = get_part_info(mmc_desc, parttiton, &fs_partition);
