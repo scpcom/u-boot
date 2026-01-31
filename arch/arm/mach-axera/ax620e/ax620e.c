@@ -470,7 +470,7 @@ int read_string_from_boot(const char *filename, char *buffer, int buffer_len)
 	return 0;
 }
 
-int read_nanokvm_logo_index_from_boot(int* logo_index) 
+int read_nanokvm_logo_index_from_boot(int* logo_index)
 {
 	int ret = 0;
 	struct blk_desc *mmc_desc = NULL;
@@ -607,6 +607,12 @@ int board_late_init(void)
 			break;
 		case PHY_AX630C_AX631_MAIXCAM2_SOM_4G:
 			strcpy(new_mem_cfg, BOARD_4G_OS_MEM);
+			need_config_bootargs = true;
+			break;
+		case AX620Q_LP4_DEMO_V1_1:
+			strcpy(new_mem_cfg, BOARD_256M_OS_MEM);
+			printf("BOARD_256M_OS_MEM: %s\n", BOARD_256M_OS_MEM);
+			printf("new_mem_cfg: %s\n", new_mem_cfg);
 			need_config_bootargs = true;
 			break;
 		default:
