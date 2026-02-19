@@ -6,11 +6,13 @@ FLASH_PARTITIONS := "768K\(spl\),512K\(ddrinit\),256K\(atf\),256K\(atf_b\),1536K
 IMG_HEADER_SIZE                 := 1024
 DTB_IMG_HEADER_ADDR             := 0x40000c00
 OS_MEM_SIZE          := 256 #MB
+BOARD_256M_OS_MEM_SIZE 	  := 96
 BOARD_0_5G_OS_MEM_SIZE 	  := 256
 BOARD_1G_OS_MEM_SIZE 	  := 512
 BOARD_2G_OS_MEM_SIZE 	  := 1024
 BOARD_4G_OS_MEM_SIZE 	  := 2048
 OS_MEM               := mem=$(strip $(OS_MEM_SIZE))M
+BOARD_256M_OS_MEM := mem=$(strip $(BOARD_256M_OS_MEM_SIZE))M
 BOARD_0_5G_OS_MEM := mem=$(strip $(BOARD_0_5G_OS_MEM_SIZE))M
 BOARD_1G_OS_MEM := mem=$(strip $(BOARD_1G_OS_MEM_SIZE))M
 BOARD_2G_OS_MEM := mem=$(strip $(BOARD_2G_OS_MEM_SIZE))M
