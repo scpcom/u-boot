@@ -1,10 +1,19 @@
 # SPDX-License-Identifier: GPL-2.0+
 # include $(HOME_PATH)/build/projects/$(PROJECT)/project.mak
-AXERA_DTB_IMG_ADDR              := 0x40001000
-FLASH_PARTITIONS := "768K\(spl\),512K\(ddrinit\),256K\(atf\),256K\(atf_b\),1536K\(uboot\),1536K\(uboot_b\),1M\(env\),6M\(logo\),6M\(logo_b\),1M\(optee\),1M\(optee_b\),1M\(dtb\),1M\(dtb_b\),64M\(kernel\),64M\(kernel_b\),128M\(boot\),-\(rootfs\)"
 
-IMG_HEADER_SIZE                 := 1024
-DTB_IMG_HEADER_ADDR             := 0x40000c00
+ifeq ("$(BOARD)","ax620e_Qnand")
+AXERA_DTB_IMG_ADDR              := 0x42008000
+FLASH_DEVICE := "mtdparts=spi4.0"
+FLASH_PARTITIONS := "1M\(spl\),512K\(ddrinit\),1M\(uboot\),512K\(env\),4M\(param\),512K\(dtb\),6M\(kernel\),114M\(rootfs\)"
+
+else
+AXERA_DTB_IMG_ADDR              := 0x40001000
+FLASH_DEVICE := "blkdevparts=mmcblk0"
+FLASH_PARTITIONS := "768K\(spl\),512K\(ddrinit\),256K\(atf\),256K\(atf_b\),1536K\(uboot\),1536K\(uboot_b\),1M\(env\),6M\(logo\),6M\(logo_b\),1M\(optee\),1M\(optee_b\),1M\(dtb\),1M\(dtb_b\),64M\(kernel\),64M\(kernel_b\),128M\(boot\),-\(rootfs\)"
+endif
+
+IMG_HEADER_SIZE                 := (1024)
+DTB_IMG_HEADER_ADDR             := ($(AXERA_DTB_IMG_ADDR) - $(IMG_HEADER_SIZE))
 OS_MEM_SIZE          := 256 #MB
 BOARD_256M_OS_MEM_SIZE 	  := 96
 BOARD_0_5G_OS_MEM_SIZE 	  := 256
@@ -23,7 +32,7 @@ ROOTFS_POSITION   := $(shell echo "$(FLASH_PARTITIONS)" | tr ',' '\n' | grep -n 
 ROOTFS_DEV        := /dev/mmcblk0p$(strip $(ROOTFS_POSITION))
 KERNEL_BOOTARGS   := "$(OS_MEM) console=ttyS0,115200n8 earlycon=uart8250,mmio32,0x4880000 board_id=0x0,boot_reason=0x00,initcall_debug=0 loglevel=8 \
 net.ifnames=0 \
-usbcore.autosuspend=-1 root=$(ROOTFS_DEV) rootfstype=$(ROOTFS_TYPE) rw rootwait blkdevparts=mmcblk0:$(FLASH_PARTITIONS)"
+usbcore.autosuspend=-1 root=$(ROOTFS_DEV) rootfstype=$(ROOTFS_TYPE) rw rootwait $(FLASH_DEVICE):$(FLASH_PARTITIONS)"
 VERSION = 2020
 PATCHLEVEL = 04
 SUBLEVEL =
