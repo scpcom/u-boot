@@ -5,11 +5,13 @@ ifeq ("$(BOARD)","ax620e_Qnand")
 AXERA_DTB_IMG_ADDR              := 0x42008000
 FLASH_DEVICE := "mtdparts=spi4.0"
 FLASH_PARTITIONS := "1M\(spl\),512K\(ddrinit\),1M\(uboot\),512K\(env\),4M\(param\),512K\(dtb\),6M\(kernel\),114M\(rootfs\)"
+ROOTFS_TYPE       ?= ubifs
 
 else
 AXERA_DTB_IMG_ADDR              := 0x40001000
 FLASH_DEVICE := "blkdevparts=mmcblk0"
 FLASH_PARTITIONS := "768K\(spl\),512K\(ddrinit\),256K\(atf\),256K\(atf_b\),1536K\(uboot\),1536K\(uboot_b\),1M\(env\),6M\(logo\),6M\(logo_b\),1M\(optee\),1M\(optee_b\),1M\(dtb\),1M\(dtb_b\),64M\(kernel\),64M\(kernel_b\),128M\(boot\),-\(rootfs\)"
+ROOTFS_TYPE       ?= ext4
 endif
 
 IMG_HEADER_SIZE                 := (1024)
@@ -27,7 +29,6 @@ BOARD_1G_OS_MEM := mem=$(strip $(BOARD_1G_OS_MEM_SIZE))M
 BOARD_2G_OS_MEM := mem=$(strip $(BOARD_2G_OS_MEM_SIZE))M
 BOARD_4G_OS_MEM := mem=$(strip $(BOARD_4G_OS_MEM_SIZE))M
 UBOOT_SPI2_SIPEED_LOGO		:= TRUE
-ROOTFS_TYPE       := ext4
 ROOTFS_POSITION   := $(shell echo "$(FLASH_PARTITIONS)" | tr ',' '\n' | grep -n 'rootfs' | cut -d ':' -f 1)
 ROOTFS_DEV        := /dev/mmcblk0p$(strip $(ROOTFS_POSITION))
 KERNEL_BOOTARGS   := "$(OS_MEM) console=ttyS0,115200n8 earlycon=uart8250,mmio32,0x4880000 board_id=0x0,boot_reason=0x00,initcall_debug=0 loglevel=8 \
