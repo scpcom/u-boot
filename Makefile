@@ -30,7 +30,11 @@ BOARD_2G_OS_MEM := mem=$(strip $(BOARD_2G_OS_MEM_SIZE))M
 BOARD_4G_OS_MEM := mem=$(strip $(BOARD_4G_OS_MEM_SIZE))M
 UBOOT_SPI2_SIPEED_LOGO		:= TRUE
 ROOTFS_POSITION   := $(shell echo "$(FLASH_PARTITIONS)" | tr ',' '\n' | grep -n 'rootfs' | cut -d ':' -f 1)
-ROOTFS_DEV        := /dev/mmcblk0p$(strip $(ROOTFS_POSITION))
+ifneq (,$(findstring mtd, $(FLASH_DEVICE)))
+ROOTFS_DEV        ?= /dev/mtdblock$(strip $(ROOTFS_POSITION))
+else
+ROOTFS_DEV        ?= /dev/mmcblk0p$(strip $(ROOTFS_POSITION))
+endif
 KERNEL_BOOTARGS   := "$(OS_MEM) console=ttyS0,115200n8 earlycon=uart8250,mmio32,0x4880000 board_id=0x0,boot_reason=0x00,initcall_debug=0 loglevel=8 \
 net.ifnames=0 \
 usbcore.autosuspend=-1 root=$(ROOTFS_DEV) rootfstype=$(ROOTFS_TYPE) rw rootwait $(FLASH_DEVICE):$(FLASH_PARTITIONS)"
