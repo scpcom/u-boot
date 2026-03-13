@@ -14,6 +14,8 @@
 #include <asm/arch-axera/dma.h>
 #include <fat.h>
 #include <string.h>
+#include <ubi_uboot.h>
+#include <ubifs_uboot.h>
 
 #ifdef CONFIG_ARM64
 static struct mm_region ax620e_mem_map[] = {
@@ -258,96 +260,140 @@ static int __atoi(char *str) {
     return result * sign;
 }
 
+static int parse_cmm_config(char *buffer, int *cmm_size) {
+	const char *key = "maix_memory_cmm";
+	char *line = strtok(buffer, "\n");
+
+	while (line != NULL) {
+		char *key_value_str = strstr(line, key);
+		if (key_value_str != NULL) {
+			bool key_is_valid = true;
+
+			for (char *p = line; p < key_value_str; p++) {
+				if (*p == '#') {
+					key_is_valid = false;
+					printf("[info] maix_memory_cmm is invalid\r\n");
+					break;
+				}
+			}
+
+			if (key_is_valid) {
+				char *value_str = strstr(key_value_str, "=");
+				if (value_str != NULL) {
+					int value = __atoi(value_str + 1);
+					if (cmm_size) {
+						*cmm_size = value;
+					}
+					return 0;
+				}
+			}
+		}
+		line = strtok(NULL, "\n");
+	}
+
+	return -1;
+}
+
 extern int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t *info);
 static int read_cmm_size_from_boot(int *cmm_size) {
-	int ret = 0;
-	struct blk_desc *mmc_desc;
-	char *parttiton = "boot";
+	struct blk_desc *mmc_desc = NULL;
+	char *partition = "boot";
 	char *filename = "configs";
 	disk_partition_t fs_partition;
 
+	bool mmc_ready = false, nand_ready = false;
+	char *buffer = NULL;
+	int ret = -1;
+
 	mmc_desc = blk_get_dev("mmc", EMMC_DEV_ID);
-	if (NULL == mmc_desc) {
+	if (mmc_desc == NULL) {
 		mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
-		if (NULL == mmc_desc) {
-			printf("[error] memory dump: emmc/sd is not present, exit dump!\n");
-			return -1;
-		}
+	}
 
-		ret = fat_register_device(mmc_desc, 1);
-		if (ret != 0) {
-			printf("[error] fat_register_device failed\n");
-			return -1;
+	if (mmc_desc != NULL && get_part_info(mmc_desc, partition, &fs_partition) == 0) {
+		if (fat_set_blk_dev(mmc_desc, &fs_partition) == 0) {
+			mmc_ready = true;
+		} else {
+			mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
+			if (mmc_desc != NULL && fat_register_device(mmc_desc, 1) == 0) {
+				mmc_ready = true;
+			}
 		}
 	}
 
-	ret = get_part_info(mmc_desc, parttiton, &fs_partition);
-	if(ret < 0) {
-		printf("[error] memory dump get %s partition error, ret:%d\n", parttiton, ret);
-		return ret;
-	}
-
-	if (fat_set_blk_dev(mmc_desc, &fs_partition) != 0) {
-		mmc_desc = blk_get_dev("mmc", SD_DEV_ID);
-		if (NULL == mmc_desc) {
-			printf("[error] memory dump: emmc/sd is not present, exit dump!\n");
-			return -1;
-		}
-
-		ret = fat_register_device(mmc_desc, 1);
-		if (ret != 0) {
-			printf("[error] fat_register_device failed\n");
-			return -1;
+	if (!mmc_ready) {
+		printf("[info] mmc is not ready, trying to load %s from NAND UBIFS\n", filename);
+		if (ubi_part("rootfs", NULL) == 0) {
+			ubifs_init();
+			if (uboot_ubifs_mount("ubi0:bootfs") == 0) {
+				nand_ready = true;
+			} else {
+				printf("[error] mount ubi0:bootfs failed\n");
+			}
+		} else {
+			printf("[error] ubi_part rootfs failed\n");
 		}
 	}
 
-	if (fat_exists(filename)) {
+	if (mmc_ready) {
+		if (!fat_exists(filename)) {
+			printf("[info] file does not exist on FAT\n");
+			return -1;
+		}
+
 		int buffer_size = 15 * 1024 * 1024;
-		char *buffer = malloc(buffer_size);
+		buffer = malloc(buffer_size);
 		if (buffer == NULL) {
-			printf("malloc buffer failed\n");
+			printf("[error] malloc buffer failed\n");
 			return -1;
 		}
+
 		if (file_fat_read(filename, buffer, buffer_size) <= 0) {
-			printf("file_fat_read failed, ret:%d\n", ret);
+			printf("[error] file_fat_read failed\n");
 			free(buffer);
 			return -1;
 		}
 
-		int value = -1;
-		char *key = "maix_memory_cmm";
-		char *line = strtok(buffer, "\n");
-		while (NULL != line) {
-			char *key_value_str = strstr(line, key);
-			if (key_value_str != NULL) {
-				char *p = line;
-				bool key_is_valid = true;
-				while (p != key_value_str) {
-					if (*p == '#') {
-						key_is_valid = false;
-						printf("maix_memory_cmm is invalid\r\n");
-						break;
-					}
-					p ++;
-				}
-
-				if (key_is_valid) {
-					char *value_str = strstr(key_value_str, "=") + 1;
-					value = __atoi(value_str);
-				}
-				break;
-			}
-			line = strtok(NULL, "\n");
+	} else if (nand_ready) {
+		if (!ubifs_exists(filename)) {
+			printf("[info] file does not exist on UBIFS\n");
+			uboot_ubifs_umount();
+			return -1;
 		}
 
-		if (cmm_size) {
-			*cmm_size = value;
+		loff_t file_size, actread;
+		ubifs_size(filename, &file_size);
+
+		buffer = malloc(file_size + 1);
+		if (buffer == NULL) {
+			printf("[error] malloc buffer failed\n");
+			uboot_ubifs_umount();
+			return -1;
 		}
-		free(buffer);
+
+		if (ubifs_read(filename, buffer, 0, file_size, &actread) == 0) {
+			buffer[actread] = '\0';
+		} else {
+			printf("[error] ubifs_read failed\n");
+			free(buffer);
+			uboot_ubifs_umount();
+			return -1;
+		}
+		uboot_ubifs_umount();
+
 	} else {
-		printf("%s file is not exist\n", filename);
+		printf("[error] memory dump: emmc/sd/nand is not present, exit dump!\n");
 		return -1;
 	}
+
+	if (buffer != NULL) {
+		ret = parse_cmm_config(buffer, cmm_size);
+		if (ret != 0) {
+			printf("[error] maix_memory_cmm parse failed\n");
+		}
+		free(buffer);
+	}
+
 	return ret;
 }
 
@@ -611,8 +657,6 @@ int board_late_init(void)
 			break;
 		case AX620Q_LP4_DEMO_V1_1:
 			strcpy(new_mem_cfg, BOARD_256M_OS_MEM);
-			printf("BOARD_256M_OS_MEM: %s\n", BOARD_256M_OS_MEM);
-			printf("new_mem_cfg: %s\n", new_mem_cfg);
 			need_config_bootargs = true;
 			break;
 		default:
@@ -635,6 +679,9 @@ int board_late_init(void)
 			break;
 		case PHY_AX630C_AX631_MAIXCAM2_SOM_4G:
 			os_mem_size = 4096 - cmm_size;
+			break;
+		case AX620Q_LP4_DEMO_V1_1:
+			os_mem_size = 256 - cmm_size;
 			break;
 		default:
 			os_mem_size = 512 - cmm_size;

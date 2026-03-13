@@ -555,6 +555,12 @@ int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t 
 		bootargs = BOOTARGS_EMMC;
 		env_set("bootargs", bootargs);
 	}
+
+	if (strstr(bootargs, "mtdparts")) {
+		printf("get_part_info part: %s, mtdparts is not supported in sparse image, will use sd bootargs\n", name);
+		bootargs = BOOTARGS_SD;
+		env_set("bootargs", bootargs);
+	}
 // ### SIPEED EDIT END ###
 
 #if CONFIG_IS_ENABLED(BLK)
@@ -575,6 +581,12 @@ int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t 
 		/*printf("mmc_parts: %s\n",mmc_parts);*/
 		parse_parts(&parts, mmc_parts);
 	}
+
+// ### SIPEED EDIT ###
+	if (parts == NULL) {
+		return -1;
+	}
+// ### SIPEED EDIT END ###
 
 	for (subpart = parts->subpart; subpart;subpart = subpart->next_subpart)
 	{
