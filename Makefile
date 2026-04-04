@@ -10,7 +10,11 @@ ROOTFS_TYPE       ?= ubifs
 else
 AXERA_DTB_IMG_ADDR              := 0x40001000
 FLASH_DEVICE := "blkdevparts=mmcblk0"
+ifneq ("$(findstring AX620Q,$(DEVICE_TREE))","")
+FLASH_PARTITIONS := "768K\(spl\),512K\(ddrinit\),1536K\(uboot\),1536K\(uboot_b\),1M\(env\),6M\(logo\),1M\(dtb\),64M\(kernel\),128M\(boot\),-\(rootfs\)"
+else
 FLASH_PARTITIONS := "768K\(spl\),512K\(ddrinit\),256K\(atf\),256K\(atf_b\),1536K\(uboot\),1536K\(uboot_b\),1M\(env\),6M\(logo\),6M\(logo_b\),1M\(optee\),1M\(optee_b\),1M\(dtb\),1M\(dtb_b\),64M\(kernel\),64M\(kernel_b\),128M\(boot\),-\(rootfs\)"
+endif
 ROOTFS_TYPE       ?= ext4
 endif
 
