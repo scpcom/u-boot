@@ -33,6 +33,7 @@ char sf1_parts[256] = {0};
 
 extern struct boot_mode_info boot_info_data;
 extern int get_part_info(struct blk_desc *dev_desc, const char *name, disk_partition_t * info);
+extern int update_verify_image(const char *part_name, const char *pfile);
 
 char lastXferPart[32] = { '@' };
 char lastLoadPart[32] = { '@' };
