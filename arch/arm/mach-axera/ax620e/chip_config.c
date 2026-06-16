@@ -16,6 +16,7 @@
 extern void wdt0_enable(bool enable);
 extern int pinmux_init(void);
 extern void dphyrx_pin_reg_config(void);
+int generic_timer_init(void);
 
 static misc_info_t *misc_info = (misc_info_t *) MISC_INFO_ADDR;
 
