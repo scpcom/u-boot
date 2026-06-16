@@ -652,7 +652,7 @@ int fdl_save_to_storage(struct fdl_file_info *pfile)
 {
 	int ret = -1;
 
-	ret = update_verify_image(pfile->part_name, pfile->start_addr);
+	ret = update_verify_image(pfile->part_name, (const char *)pfile->start_addr);
 	if (ret != 0) {
 		frame_send_respone(FDL_RESP_SECURE_SIGNATURE_ERR);
 		return -1;
