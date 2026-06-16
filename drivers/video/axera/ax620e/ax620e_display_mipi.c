@@ -15,6 +15,8 @@
 #include <common.h>
 #include <asm/gpio.h>
 #include <div64.h>
+#include <dm.h>
+#include <pwm.h>
 #include <linux/kernel.h>
 
 #include "ax_vo.h"
