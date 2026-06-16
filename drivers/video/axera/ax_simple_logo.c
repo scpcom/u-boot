@@ -14,6 +14,7 @@
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <bmp_layout.h>
+#include <dm.h>
 
 #include <splash.h>
 #include "linux/delay.h"
