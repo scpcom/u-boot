@@ -1,0 +1,1 @@
+/home/haidang/Documents/LicheeRV-Nano-Build/build/boards/sg200x/sg2002_licheervnano_sd/u-boot/cvitek.h
